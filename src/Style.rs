@@ -1,11 +1,12 @@
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug,Copy)]
+#[derive(PartialEq)]
 #[wasm_bindgen]
 pub struct StyleInterface {
-    id: usize,
-    size: i32,
-    cramped: bool,
+    pub id: usize,
+    pub size: i32,
+    pub cramped: bool,
 }
 
 impl Clone for StyleInterface{

@@ -3,9 +3,14 @@
 extern crate lazy_static;
 
 mod domTree;
+mod metrics;
 mod Namespace;
+mod Options;
+//mod ParseError;
+//mod Setting;
 mod sourceLocation;
 mod spacingData;
+mod stretchy;
 mod Style;
 mod svgGeometry;
 mod symbols;
@@ -29,9 +34,14 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 
 use domTree::*;
+use metrics::*;
 use Namespace::*;
+use Options::*;
+//use ParseError::*;
+//use Setting::*;
 use sourceLocation::*;
 use spacingData::*;
+use stretchy::*;
 use Style::*;
 use token::*;
 use tree::*;

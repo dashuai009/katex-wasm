@@ -7,3 +7,5 @@ wasm-pack.log
 .idea
 test.rs
 test
+fonts/*
+dockers/*

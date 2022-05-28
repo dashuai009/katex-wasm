@@ -1,4 +1,7 @@
+use std::str::FromStr;
+
 use wasm_bindgen::prelude::*;
+use crate::types::Mode;
 /**
  * This file provides support for Unicode range U+1D400 to U+1D7FF,
  * Mathematical Alphanumeric Symbols.
@@ -60,14 +63,14 @@ const wideNumeralData: [[&'static str; 3]; 5] = [
 ];
 
 #[wasm_bindgen]
-pub fn wideCharacterFont(wideChar: String, mode: &JsValue) -> js_sys::Array {
+pub fn wideCharacterFont(wideChar: String, mode: String) -> js_sys::Array {
     // IE doesn't support codePointAt(). So work with the surrogate pair.
     // let H = wideChar[0];    // high surrogate
     // let L = wideChar.charCodeAt(1);    // low surrogate
     // let codePoint = ((H - 0xD800) * 0x400) + (L - 0xDC00) + 0x10000;
     let codePoint = wideChar.chars().nth(0).unwrap() as usize;
 
-    let j = if mode == "math" { 0 } else { 1 }; // column index for CSS class.
+    let j = if Mode::from_str(mode.as_str()).unwrap() == Mode::math { 0 } else { 1 }; // column index for CSS class.
 
     if 0x1D400 <= codePoint && codePoint < 0x1D6A4 {
         // wideLatinLetterData contains exactly 26 chars on each row.

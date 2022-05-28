@@ -1,3 +1,4 @@
+use serde::{Serialize, Deserialize};
 use wasm_bindgen::prelude::*;
 
 use std::collections::HashMap;
@@ -39,7 +40,7 @@ lazy_static! {
     };
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Serialize,Deserialize)]
 pub struct Measurement {
     pub number: f64,
     pub unit: String,

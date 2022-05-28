@@ -1,8 +1,17 @@
+/*
+ * This file defines the Unicode scripts and script families that we
+ * support. To add new scripts or families, just add a new entry to the
+ * scriptData array below. Adding scripts to the scriptData array allows
+ * characters from that script to appear in \text{} environments.
+ */
 use wasm_bindgen::prelude::*;
 
 type BlockType = [i64; 2];
-
-#[wasm_bindgen]
+/**
+ * Each script or script family has a name and an array of blocks.
+ * Each block is an array of two numbers which specify the start and
+ * end points (inclusive) of a block of Unicode codepoints.
+ */
 pub struct Script {
     name: &'static str,
     blocks: &'static [BlockType],
@@ -71,6 +80,10 @@ const scriptData: [Script; 7] = [
     },
 ];
 
+/**
+ * Given a codepoint, return the name of the script or script family
+ * it is from, or null if it is not part of a known block
+ */
 #[wasm_bindgen]
 pub fn scriptFromCodepoint(codepoint: f64) -> Option<String> {
     for script in scriptData {
@@ -92,6 +105,7 @@ pub fn scriptFromCodepoint(codepoint: f64) -> Option<String> {
  * in Firefox, Chrome and Node.
  */
 
+ 
 #[wasm_bindgen]
 pub fn supportedCodepoint(codepoint: f64) -> bool {
     for script in scriptData {

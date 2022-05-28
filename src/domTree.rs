@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 /**
  * This node represents an image embed (<img>) element.
  */
-
+#[derive(Debug,Clone)]
 #[wasm_bindgen]
 pub struct CssStyle {
     backgroundColor: String,
@@ -28,6 +28,13 @@ pub struct CssStyle {
     top: String,
     width: String,
     verticalAlign: String,
+}
+
+#[wasm_bindgen]
+impl CssStyle{
+    pub fn js_clone(&self)->CssStyle{
+        self.clone()
+    }
 }
 
 #[wasm_bindgen]

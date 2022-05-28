@@ -120,29 +120,17 @@ lazy_static! {
 }
 
 #[wasm_bindgen]
-pub fn get_spacings(k1: String, k2: String) -> js_sys::Object {
+pub fn get_spacings(k1: String, k2: String) -> JsValue {
     let res = spacings.get(&k1);
 
     match res {
         Some(p) => match p.get(&k2) {
             Some(q) => {
-                let mut m = js_sys::Object::new();
-
-                js_sys::Reflect::set(
-                    &m,
-                    &js_sys::JsString::from("number"),
-                    &js_sys::JsString::from(q.number.to_string()),
-                );
-                js_sys::Reflect::set(
-                    &m,
-                    &js_sys::JsString::from("unit"),
-                    &js_sys::JsString::from(q.unit.clone()),
-                );
-                m
+                JsValue::from_serde(q).unwrap()
             }
-            None => js_sys::Object::new(),
+            None => JsValue::NULL,
         },
-        None => js_sys::Object::new(),
+        None => JsValue::NULL,
     }
 }
 
@@ -173,26 +161,17 @@ macro_rules!  console_log {
 use std::panic;
 
 #[wasm_bindgen]
-pub fn get_tightSpacings(k1: String, k2: String) -> js_sys::Object {
+pub fn get_tightSpacings(k1: String, k2: String) -> JsValue {
     let res = tightSpacings.get(&k1);
-    return match res {
+    let res = spacings.get(&k1);
+
+    match res {
         Some(p) => match p.get(&k2) {
             Some(q) => {
-                let mut m = js_sys::Object::new();
-                js_sys::Reflect::set(
-                    &m,
-                    &js_sys::JsString::from("number"),
-                    &js_sys::JsString::from(q.number.to_string()),
-                );
-                js_sys::Reflect::set(
-                    &m,
-                    &js_sys::JsString::from("unit"),
-                    &js_sys::JsString::from(q.unit.clone()),
-                );
-                m
+                JsValue::from_serde(q).unwrap()
             }
-            None => js_sys::Object::new(),
+            None => JsValue::NULL,
         },
-        None => js_sys::Object::new(),
-    };
+        None => JsValue::NULL,
+    }
 }

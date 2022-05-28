@@ -1,10 +1,17 @@
+
 use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
 pub struct unicodeAccentsTextAndMath {
     text: &'static str,
     math: &'static str,
 }
 use std::collections::HashMap;
 lazy_static! {
+    /**
+     * Unicode block data for the families of scripts we support in \text{}.
+     * Scripts only need to appear here if they do not have font metrics.
+    */
     pub static ref unicodeAccents: HashMap<&'static str, unicodeAccentsTextAndMath> = {
         let mut m = HashMap::new();
         m.insert(

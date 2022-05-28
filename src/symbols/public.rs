@@ -1,8 +1,6 @@
 pub use std::{collections::HashMap, str::FromStr};
 
-
 pub use crate::types::Mode;
-
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Font {
@@ -74,6 +72,27 @@ impl Group {
         }
     }
 }
+
+impl FromStr for Group {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<Group, Self::Err> {
+        match input {
+            "accent-token" => Ok(Group::accent),
+            "bin" => Ok(Group::bin),
+            "close" => Ok(Group::close),
+            "inner" => Ok(Group::inner),
+            "mathord" => Ok(Group::mathord),
+            "op-token" => Ok(Group::op),
+            "open" => Ok(Group::open),
+            "punct" => Ok(Group::punct),
+            "rel" => Ok(Group::rel),
+            "spacing" => Ok(Group::spacing),
+            "textord" => Ok(Group::textord),
+            _ => Err(()),
+        }
+    }
+}
 #[derive(Debug, Clone)]
 pub struct Symbol {
     pub font: Font,
@@ -105,8 +124,6 @@ impl Symbol {
     }
 }
 
-
-
 pub fn defineSymbol2(
     map: &mut HashMap<String, Symbol>,
     font: Font,
@@ -118,7 +135,7 @@ pub fn defineSymbol2(
     let s = Symbol {
         font,
         group,
-         replace,
+        replace,
     };
     let t = s.clone();
 
@@ -150,7 +167,7 @@ macro_rules! defineSymbolM {
             $_group,
             None,
             $_name.to_string(),
-            $_accecpt
+            $_accecpt,
         )
     };
     ($_map:ident,$_font:ident, $_group:ident, $_replace:expr, $_name:expr, $_accecpt:expr) => {
@@ -160,7 +177,7 @@ macro_rules! defineSymbolM {
             $_group,
             Some(($_replace).to_string()),
             $_name.to_string(),
-            $_accecpt
+            $_accecpt,
         )
     };
     ($_map:ident,$_font:ident, $_group:ident, $_replace:expr, $_name:expr) => {
@@ -170,7 +187,7 @@ macro_rules! defineSymbolM {
             $_group,
             Some(($_replace).to_string()),
             $_name.to_string(),
-            false
+            false,
         )
     };
 }
@@ -178,6 +195,5 @@ macro_rules! defineSymbolM {
 pub(crate) use defineSymbolM;
 
 pub fn code_to_str(a: u16, b: u16) -> String {
-    return String::from_utf16(&[a,b]).unwrap();
+    return String::from_utf16(&[a, b]).unwrap();
 }
-

@@ -6,12 +6,13 @@
 use wasm_bindgen::prelude::*;
 use super::unicodeAccents::unicodeAccents;
 use std::collections::HashMap;
+use std::sync::Mutex;
 use unicode_normalization::UnicodeNormalization;
 
 const letters: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\
     αβγδεϵζηθϑικλμνξοπϖρϱςστυφϕχψωΓΔΘΛΞΠΣΥΦΨΩ";
 lazy_static! {
-    pub static ref unicodeSysmbols: HashMap<String, String> = {
+    pub static ref unicodeSysmbols: Mutex<HashMap<String, String> > = Mutex::new({
         let mut m = HashMap::new();
         for letter in letters.chars() {
             for accent in unicodeAccents.iter() {
@@ -33,16 +34,15 @@ lazy_static! {
             }
         }
         m
-    };
+    });
 }
 
 
 
 #[wasm_bindgen]
-pub fn __result() -> js_sys::Object {
-    let mut res = js_sys::Object::new();
-    for o in unicodeSysmbols.iter() {
-        js_sys::Reflect::set(&res, &JsValue::from_str(o.0), &JsValue::from_str(o.1));
+pub fn unicode_sysmbols_result_get(key:String) -> Option<String> {
+    match unicodeSysmbols.lock().unwrap().get(&key) {
+        Some(s)=>Some(s.clone()),
+        None=>None
     }
-    return res;
 }
