@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-#[derive(Debug,Copy)]
+#[derive(Debug,Clone)]
 #[derive(PartialEq)]
 #[wasm_bindgen]
 pub struct StyleInterface {
@@ -9,11 +9,6 @@ pub struct StyleInterface {
     pub cramped: bool,
 }
 
-impl Clone for StyleInterface{
-    fn clone(&self)->StyleInterface{
-        *self
-    }
-}
 
 #[wasm_bindgen]
 impl StyleInterface {
@@ -31,58 +26,51 @@ impl StyleInterface {
     /**
      * Get the style of a superscript given a base in the current style.
      */
-    #[wasm_bindgen]
     pub fn sup(&self) -> StyleInterface {
-        return styles[sup[self.id]];
+        return styles[sup[self.id]].clone();
     }
 
     /**
      * Get the style of a subscript given a base in the current style.
      */
-    #[wasm_bindgen]
     pub fn sub(&self) -> StyleInterface {
-        return styles[sub[self.id]];
+        return styles[sub[self.id]].clone();
     }
 
     /**
      * Get the style of a fraction numerator given the fraction in the current
      * style.
      */
-    #[wasm_bindgen]
     pub fn fracNum(&self) -> StyleInterface {
-        return styles[fracNum[self.id]];
+        return styles[fracNum[self.id]].clone();
     }
 
     /**
      * Get the style of a fraction denominator given the fraction in the current
      * style.
      */
-    #[wasm_bindgen]
     pub fn fracDen(&self) -> StyleInterface {
-        return styles[fracDen[self.id]];
+        return styles[fracDen[self.id]].clone();
     }
 
     /**
      * Get the cramped version of a style (in particular, cramping a cramped style
      * doesn't change the style).
      */
-    #[wasm_bindgen]
     pub fn cramp(&self) -> StyleInterface {
-        return styles[cramp[self.id]];
+        return styles[cramp[self.id]].clone();
     }
 
     /**
      * Get a text or display version of self.style.
      */
-    #[wasm_bindgen]
     pub fn text(&self) -> StyleInterface {
-        return styles[text[self.id]];
+        return styles[text[self.id]].clone();
     }
 
     /**
      * Return true if self.style is tightly spaced (scriptstyle/scriptscriptstyle)
      */
-    #[wasm_bindgen]
     pub fn isTight(&self) -> bool {
         return self.size >= 2;
     }
