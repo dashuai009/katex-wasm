@@ -23,6 +23,8 @@ mod unicodeScripts;
 mod unicodeSysmbols;
 mod units;
 mod utils;
+mod settings;
+mod ParseError;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
