@@ -4,55 +4,55 @@ use wasm_bindgen::prelude::*;
 
 lazy_static! {
     static ref stretchy_codepoint: HashMap<&'static str, &'static str> = {
-        let mut res = HashMap::new();
-        res.insert("widechar", "^");
-        res.insert("widecheck", "ˇ");
-        res.insert("widetilde", "~");
-        res.insert("utilde", "~");
-        res.insert("overleftarrow", "\u{2190}");
-        res.insert("underleftarrow", "\u{2190}");
-        res.insert("xleftarrow", "\u{2190}");
-        res.insert("overrightarrow", "\u{2192}");
-        res.insert("underrightarrow", "\u{2192}");
-        res.insert("xrightarrow", "\u{2192}");
-        res.insert("underbrace", "\u{23df}");
-        res.insert("overbrace", "\u{23de}");
-        res.insert("overgroup", "\u{23e0}");
-        res.insert("undergroup", "\u{23e1}");
-        res.insert("overleftrightarrow", "\u{2194}");
-        res.insert("underleftrightarrow", "\u{2194}");
-        res.insert("xleftrightarrow", "\u{2194}");
-        res.insert("Overrightarrow", "\u{21d2}");
-        res.insert("xRightarrow", "\u{21d2}");
-        res.insert("overleftharpoon", "\u{21bc}");
-        res.insert("xleftharpoonup", "\u{21bc}");
-        res.insert("overrightharpoon", "\u{21c0}");
-        res.insert("xrightharpoonup", "\u{21c0}");
-        res.insert("xLeftarrow", "\u{21d0}");
-        res.insert("xLeftrightarrow", "\u{21d4}");
-        res.insert("xhookleftarrow", "\u{21a9}");
-        res.insert("xhookrightarrow", "\u{21aa}");
-        res.insert("xmapsto", "\u{21a6}");
-        res.insert("xrightharpoondown", "\u{21c1}");
-        res.insert("xleftharpoondown", "\u{21bd}");
-        res.insert("xrightleftharpoons", "\u{21cc}");
-        res.insert("xleftrightharpoons", "\u{21cb}");
-        res.insert("xtwoheadleftarrow", "\u{219e}");
-        res.insert("xtwoheadrightarrow", "\u{21a0}");
-        res.insert("xlongequal", "=");
-        res.insert("xtofrom", "\u{21c4}");
-        res.insert("xrightleftarrows", "\u{21c4}");
-        res.insert("xrightequilibrium", "\u{21cc}");
-        res.insert("xleftequilibrium", "\u{21cb}");
-        res.insert("\\cdrightarrow", "\u{2192}");
-        res.insert("\\cdleftarrow", "\u{2190}");
-        res.insert("\\cdlongequal", "=");
-        res
+        HashMap::from([
+        ("widechar", "^"),
+        ("widecheck", "ˇ"),
+        ("widetilde", "~"),
+        ("utilde", "~"),
+        ("overleftarrow", "\u{2190}"),
+        ("underleftarrow", "\u{2190}"),
+        ("xleftarrow", "\u{2190}"),
+        ("overrightarrow", "\u{2192}"),
+        ("underrightarrow", "\u{2192}"),
+        ("xrightarrow", "\u{2192}"),
+        ("underbrace", "\u{23df}"),
+        ("overbrace", "\u{23de}"),
+        ("overgroup", "\u{23e0}"),
+        ("undergroup", "\u{23e1}"),
+        ("overleftrightarrow", "\u{2194}"),
+        ("underleftrightarrow", "\u{2194}"),
+        ("xleftrightarrow", "\u{2194}"),
+        ("Overrightarrow", "\u{21d2}"),
+        ("xRightarrow", "\u{21d2}"),
+        ("overleftharpoon", "\u{21bc}"),
+        ("xleftharpoonup", "\u{21bc}"),
+        ("overrightharpoon", "\u{21c0}"),
+        ("xrightharpoonup", "\u{21c0}"),
+        ("xLeftarrow", "\u{21d0}"),
+        ("xLeftrightarrow", "\u{21d4}"),
+        ("xhookleftarrow", "\u{21a9}"),
+        ("xhookrightarrow", "\u{21aa}"),
+        ("xmapsto", "\u{21a6}"),
+        ("xrightharpoondown", "\u{21c1}"),
+        ("xleftharpoondown", "\u{21bd}"),
+        ("xrightleftharpoons", "\u{21cc}"),
+        ("xleftrightharpoons", "\u{21cb}"),
+        ("xtwoheadleftarrow", "\u{219e}"),
+        ("xtwoheadrightarrow", "\u{21a0}"),
+        ("xlongequal", "="),
+        ("xtofrom", "\u{21c4}"),
+        ("xrightleftarrows", "\u{21c4}"),
+        ("xrightequilibrium", "\u{21cc}"),
+        ("xleftequilibrium", "\u{21cb}"),
+        ("\\cdrightarrow", "\u{2192}"),
+        ("\\cdleftarrow", "\u{2190}"),
+        ("\\cdlongequal", "=")
+            ])
     };
 }
 
 
 #[wasm_bindgen]
-pub fn get_stretchy_codepoint(key:String)->String{
+pub fn get_stretchy_codepoint(key: String) -> String {
     stretchy_codepoint.get(&key.as_str()).unwrap().to_string()
 }

@@ -9,7 +9,6 @@ use crate::token::Token;
  * default settings.
  */
 use crate::utils;
-use crate::ParseError::ParseError;
 
 // Custom KaTeX behaviors.
 

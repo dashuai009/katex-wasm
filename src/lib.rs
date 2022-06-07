@@ -2,7 +2,6 @@
 #[macro_use]
 extern crate lazy_static;
 
-mod domTree;
 mod metrics;
 mod Namespace;
 mod Options;
@@ -25,6 +24,7 @@ mod units;
 mod utils;
 mod settings;
 mod ParseError;
+mod dom_tree;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -34,8 +34,6 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 
 
-
-use domTree::*;
 use metrics::*;
 use Namespace::*;
 use Options::*;

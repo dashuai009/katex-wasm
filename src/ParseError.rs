@@ -10,11 +10,11 @@ use crate::sourceLocation::SourceLocation;
  * If possible, a caller should provide a Token or ParseNode with information
  * about where in the source string the problem occurred.
  */
-struct ParseError {
-    position: f64,
-}
+// struct ParseError {
+//     position: f64,
+// }
 
-pub fn ParseError(message: String, loc: SourceLocation) -> js_sys::Error {
+pub fn parse_error(message: String, loc: SourceLocation) -> js_sys::Error {
     let mut error: String = format!("KaTeX parse error: {}", message);
     let mut start: usize = 0;
     if loc.start <= loc.end {

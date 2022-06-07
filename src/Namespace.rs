@@ -1,131 +1,134 @@
-// use wasm_bindgen::prelude::*;
+use std::collections::HashMap;
+use wasm_bindgen::prelude::*;
+use crate::utils::{console_log,log};
+use crate::ParseError::parse_error;
 
-// /**
-//  * A `Namespace` refers to a space of nameable things like macros or lengths,
-//  * which can be `set` either globally or local to a nested group, using an
-//  * undo stack similar to how TeX implements this functionality.
-//  * Performance-wise, `get` and local `set` take constant time, while global
-//  * `set` takes time proportional to the depth of group nesting.
-//  */
+/**
+ * A `Namespace` refers to a space of nameable things like macros or lengths,
+ * which can be `set` either globally or local to a nested group, using an
+ * undo stack similar to how TeX implements this functionality.
+ * Performance-wise, `get` and local `set` take constant time, while global
+ * `set` takes time proportional to the depth of group nesting.
+ */
 
-// type Mapping<T> = std::collections::HashMap<String,T>;
+type Mapping<T> = std::collections::HashMap<String, T>;
 
-// struct  Namespace<Value> {
-//     current: Mapping<Value>,
-//     builtins: Mapping<Value>,
-//     undefStack: Vec<Mapping<Option<Value> > >
-// }
+struct Namespace<Value> {
+    current: Mapping<Value>,
+    builtins: Mapping<Value>,
+    undef_stack: Vec<Mapping<Option<Value>>>,
+}
 
+impl<Value: Clone> Namespace<Value> {
+    /**
+     * Both arguments are optional.  The first argument is an object of
+     * built-in mappings which never change.  The second argument is an object
+     * of initial (global-level) mappings, which will constantly change
+     * according to any global/top-level `set`s done.
+     */
+    pub fn new(builtins: Mapping<Value>,
+               global_macros: Mapping<Value>) -> Namespace<Value> {
+        Namespace {
+            current: global_macros,
+            builtins: builtins,
+            undef_stack: Vec::new(),
+        }
+    }
 
-// impl<Value> Namespace<Value>{
+    /**
+     * Start a new nested group, affecting future local `set`s.
+     */
+    pub fn begin_group(&mut self) {
+        self.undef_stack.push(HashMap::new());
+    }
 
-//     /**
-//      * Both arguments are optional.  The first argument is an object of
-//      * built-in mappings which never change.  The second argument is an object
-//      * of initial (global-level) mappings, which will constantly change
-//      * according to any global/top-level `set`s done.
-//      */
-//     constructor(builtins: Mapping<Value> = {},
-//                 globalMacros: Mapping<Value> = {}) {
-//         this.current = globalMacros;
-//         this.builtins = builtins;
-//         this.undefStack = [];
-//     }
+    /**
+     * End current nested group, restoring values before the group began.
+     */
+    pub fn end_group(&mut self) {
+        if self.undef_stack.len() == 0 {
+            console_log!("Unbalanced namespace destruction: attempt to pop global namespace; please report this as a bug");
+            return;
+        }
+        let stack = self.undef_stack.pop().unwrap();
+        for (k,v) in stack {
+            if v.is_none(){
+                self.current.remove(&k);
+            }else{
+                self.current.insert(k,v.unwrap());
+            }
+        }
+    }
 
-//     /**
-//      * Start a new nested group, affecting future local `set`s.
-//      */
-//     beginGroup() {
-//         this.undefStack.push({});
-//     }
+    /**
+     * Ends all currently nested groups (if any), restoring values before the
+     * groups began.  Useful in case of an error in the middle of parsing.
+     */
+    pub fn end_all_groups(&mut self) {
+        while self.undef_stack.len() > 0 {
+            self.end_group();
+        }
+    }
 
-//     /**
-//      * End current nested group, restoring values before the group began.
-//      */
-//     endGroup() {
-//         if (this.undefStack.length === 0) {
-//             throw new ParseError("Unbalanced namespace destruction: attempt " +
-//                 "to pop global namespace; please report this as a bug");
-//         }
-//         const undefs = this.undefStack.pop();
-//         for (const undef in undefs) {
-//             if (undefs.hasOwnProperty(undef)) {
-//                 if (undefs[undef] == null) {
-//                     delete this.current[undef];
-//                 } else {
-//                     this.current[undef] = undefs[undef];
-//                 }
-//             }
-//         }
-//     }
+    /**
+     * Detect whether `name` has a definition.  Equivalent to
+     * `get(name) != null`.
+     */
+    pub fn has(&self, name: String) -> bool {
+        return self.current.contains_key(&name) ||
+            self.builtins.contains_key(&name);
+    }
 
-//     /**
-//      * Ends all currently nested groups (if any), restoring values before the
-//      * groups began.  Useful in case of an error in the middle of parsing.
-//      */
-//     endGroups() {
-//         while (this.undefStack.length > 0) {
-//             this.endGroup();
-//         }
-//     }
+    /**
+     * Get the current value of a name, or `undefined` if there is no value.
+     *
+     * Note: Do not use `if (namespace.get(...))` to detect whether a macro
+     * is defined, as the definition may be the empty string which evaluates
+     * to `false` in JavaScript.  Use `if (namespace.get(...) != null)` or
+     * `if (namespace.has(...))`.
+     */
+    pub fn get(&self, name: String) -> Option<&Value> {
+        if (self.current.contains_key(&name)) {
+            return self.current.get(&name);
+        } else {
+            return self.builtins.get(&name);
+        }
+    }
 
-//     /**
-//      * Detect whether `name` has a definition.  Equivalent to
-//      * `get(name) != null`.
-//      */
-//     has(name: string): boolean {
-//         return this.current.hasOwnProperty(name) ||
-//                this.builtins.hasOwnProperty(name);
-//     }
+    /**
+     * Set the current value of a name, and optionally set it globally too.
+     * Local set() sets the current value and (when appropriate) adds an undo
+     * operation to the undo stack.  Global set() may change the undo
+     * operation at every level, so takes time linear in their number.
+     * A value of undefined means to delete existing definitions.
+     */
+    pub fn set(&mut self, name: String, value: Option<Value>, global: bool) {
+        if (global) {
+            // Global set is equivalent to setting in all groups.  Simulate this
+            // by destroying any undos currently scheduled for this name,
+            // and adding an undo with the *new* value (in case it later gets
+            // locally reset within this environment).
+            for stack in self.undef_stack.iter_mut() {
+                stack.remove(&name);
+            }
+            if self.undef_stack.len() > 0 {
+                self.undef_stack.last_mut().unwrap().insert(name.clone(),value.clone());
+            }
+        } else {
+            // Undo this set at end of this group (possibly to `undefined`),
+            // unless an undo is already in place, in which case that older
+            // value is the correct one.
+            if let Some(top) = self.undef_stack.last_mut(){
+                if(top.contains_key(&name)){
+                    top.insert(name.clone(), Some((*self.current.get(&name).unwrap()).clone()));
+                }
+            }
+        }
 
-//     /**
-//      * Get the current value of a name, or `undefined` if there is no value.
-//      *
-//      * Note: Do not use `if (namespace.get(...))` to detect whether a macro
-//      * is defined, as the definition may be the empty string which evaluates
-//      * to `false` in JavaScript.  Use `if (namespace.get(...) != null)` or
-//      * `if (namespace.has(...))`.
-//      */
-//     get(name: string): ?Value {
-//         if (this.current.hasOwnProperty(name)) {
-//             return this.current[name];
-//         } else {
-//             return this.builtins[name];
-//         }
-//     }
-
-//     /**
-//      * Set the current value of a name, and optionally set it globally too.
-//      * Local set() sets the current value and (when appropriate) adds an undo
-//      * operation to the undo stack.  Global set() may change the undo
-//      * operation at every level, so takes time linear in their number.
-//      * A value of undefined means to delete existing definitions.
-//      */
-//     set(name: string, value: ?Value, global: boolean = false) {
-//         if (global) {
-//             // Global set is equivalent to setting in all groups.  Simulate this
-//             // by destroying any undos currently scheduled for this name,
-//             // and adding an undo with the *new* value (in case it later gets
-//             // locally reset within this environment).
-//             for (let i = 0; i < this.undefStack.length; i++) {
-//                 delete this.undefStack[i][name];
-//             }
-//             if (this.undefStack.length > 0) {
-//                 this.undefStack[this.undefStack.length - 1][name] = value;
-//             }
-//         } else {
-//             // Undo this set at end of this group (possibly to `undefined`),
-//             // unless an undo is already in place, in which case that older
-//             // value is the correct one.
-//             const top = this.undefStack[this.undefStack.length - 1];
-//             if (top && !top.hasOwnProperty(name)) {
-//                 top[name] = this.current[name];
-//             }
-//         }
-//         if (value == null) {
-//             delete this.current[name];
-//         } else {
-//             this.current[name] = value;
-//         }
-//     }
-// }
+        if value.is_none(){
+            self.current.remove(&name);
+        } else {
+            self.current.insert(name, value.unwrap());
+        }
+    }
+}
