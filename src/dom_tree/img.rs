@@ -1,41 +1,6 @@
-use super::tree::VirturalNode;
 use wasm_bindgen::prelude::*;
-/**
- * This node represents an image embed (<img>) element.
- */
-#[derive(Debug,Clone)]
-#[wasm_bindgen]
-pub struct CssStyle {
-    backgroundColor: String,
-    borderBottomWidth: String,
-    borderColor: String,
-    borderRightStyle: String,
-    borderRightWidth: String,
-    borderTopWidth: String,
-    borderStyle: String,
-    borderWidth: String,
-    bottom: String,
-    color: String,
-    height: String,
-    left: String,
-    margin: String,
-    marginLeft: String,
-    marginRight: String,
-    marginTop: String,
-    minWidth: String,
-    paddingLeft: String,
-    position: String,
-    top: String,
-    width: String,
-    verticalAlign: String,
-}
-
-#[wasm_bindgen]
-impl CssStyle{
-    pub fn js_clone(&self)->CssStyle{
-        self.clone()
-    }
-}
+use crate::dom_tree::css_style::CssStyle;
+use crate::VirturalNode;
 
 #[wasm_bindgen]
 pub struct Img {
@@ -73,17 +38,10 @@ impl VirturalNode for Img {
     fn toNode(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_element("img").expect("");
-        web_sys::Element::set_attribute(&node,"src",self.src.as_str());
-        web_sys::Element::set_attribute(&node,"alt",self.alt.as_str());
-        web_sys::Element::set_attribute(&node,"className","mord");
-
-        // Apply inline styles
-        // for style in self.style.iter() {
-        //     if (self.style.hasOwnProperty(style)) {
-        //         // $FlowFixMe
-        //         node.style[style] = self.style[style];
-        //     }
-        // }
+        web_sys::Element::set_attribute(&node, "src", self.src.as_str());
+        web_sys::Element::set_attribute(&node, "alt", self.alt.as_str());
+        web_sys::Element::set_attribute(&node, "className", "mord");
+        web_sys::Element::set_attribute(&node, "style", self.style.to_string().as_str());
 
         return web_sys::Node::from(node);
     }
