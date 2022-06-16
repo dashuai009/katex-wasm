@@ -1,6 +1,8 @@
-use wasm_bindgen::prelude::*;
 use crate::dom_tree::css_style::CssStyle;
+use crate::utils::escape;
 use crate::VirturalNode;
+use js_sys::Array;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct Img {
@@ -28,38 +30,42 @@ impl Img {
         }
     }
 
-    pub fn hasClass(className: String) -> bool {
+    pub fn hasClass(&self, class_name: String) -> bool {
         //   TODO interface HtmlDomNode
-        return false; //return utils.contains(this.classes, className);
+        return self.classes.contains(&class_name);
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn classes(&self) -> Array {
+        let arr = Array::new_with_length(self.classes.len() as u32);
+        for (i, s) in self.classes.iter().enumerate() {
+            arr.set(i as u32, JsValue::from_str(s));
+        }
+        arr
     }
 }
 
-impl VirturalNode for Img {
-    fn toNode(&self) -> web_sys::Node {
+#[wasm_bindgen]
+impl Img {
+    pub fn toNode(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_element("img").expect("");
         web_sys::Element::set_attribute(&node, "src", self.src.as_str());
         web_sys::Element::set_attribute(&node, "alt", self.alt.as_str());
         web_sys::Element::set_attribute(&node, "className", "mord");
-        web_sys::Element::set_attribute(&node, "style", self.style.to_string().as_str());
+        let style_str = self.style.to_css_str();
+        web_sys::Element::set_attribute(&node, "style", style_str.as_str());
 
         return web_sys::Node::from(node);
     }
 
-    fn toMarkup(&self) -> String {
+    pub fn toMarkup(&self) -> String {
         let mut markup = format!("<img  src='{} 'alt='${}' ", self.src, self.alt);
-
-        // Add the styles, after hyphenation
-        // let styles = "";
-        // for style in self.style {
-        //     if (self.style.hasOwnProperty(style)) {
-        //         styles += format!("${utils.hyphenate(style)}:${this.style[style]};");
-        //     }
-        // }
-        // if styles !="" {
-        //     markup += format!("style=\"${utils.escape(styles)}");
-        // }
-
+        let style_str = escape(format!(
+            "style={}",
+            self.style.to_css_str().replace('_', "-")
+        ));
+        markup.push_str(style_str.as_str());
         markup += "'/>";
         return markup;
     }

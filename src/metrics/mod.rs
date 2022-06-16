@@ -1,14 +1,10 @@
 mod extra_character_map;
 mod fontMetricsData;
+pub(crate) mod public;
 pub(crate) mod sigmas_and_xis;
-mod public;
 
 use crate::{
-    metrics::{
-        extra_character_map::*,
-        fontMetricsData::*,
-        sigmas_and_xis::*
-    },
+    metrics::{extra_character_map::*, fontMetricsData::*, sigmas_and_xis::*},
     types::Mode,
     unicodeScripts::supportedCodepoint,
     utils::console_log,
@@ -70,8 +66,8 @@ pub fn _set_font_char(
  * Note: the `width` property may be undefined if fontMetricsData.js wasn't
  * built using `Make extended_metrics`.
  */
-pub fn getCharacterMetrics(
-    character: String,
+pub fn get_character_metrics(
+    character: &String,
     font: String,
     mode: Mode,
 ) -> Option<CharacterMetrics> {
@@ -101,10 +97,9 @@ pub fn getCharacterMetrics(
     metrics
 }
 
-
 #[wasm_bindgen]
 pub fn wasm_getCharacterMetrics(c: String, f: String, m: String) -> Option<CharacterMetrics> {
-    getCharacterMetrics(c, f, Mode::from_str(m.as_str()).unwrap())
+    get_character_metrics(&c, f, Mode::from_str(m.as_str()).unwrap())
 }
 
 #[wasm_bindgen]
@@ -119,7 +114,6 @@ pub fn getGlobalMetrics(size: f64) -> FontMetrics {
     };
     return sigmasAndXis[sizeIndex].clone();
 }
-
 
 pub fn get_global_metrics(size: f64) -> &'static FontMetrics {
     // console_log!("getGlobalMetrics size = {}",size);

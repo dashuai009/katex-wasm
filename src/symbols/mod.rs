@@ -20,28 +20,27 @@ lazy_static! {
         Mutex::new(define_all_text_symbols());
 }
 
-#[wasm_bindgen]
-pub fn get_symbol(mode: String, name: String) -> Option<js_sys::Object> {
-    match Mode::from_str(mode.as_str()).unwrap() {
+pub fn get_symbol(mode: Mode, name: &String) -> Option<Symbol> {
+    match mode {
         Mode::math => {
             let ms = mathSymbols.lock().unwrap();
-            let sy = ms.get(&name);
-            if sy.is_some() {
-                Some(sy.unwrap().to_js_object())
-            } else {
-                None
-            }
+            let sy = ms.get(name);
+            sy.cloned()
         }
         Mode::text => {
             let tm = textSymbols.lock().unwrap();
-            let sy = tm.get(&name);
-            if sy.is_some() {
-                Some(sy.unwrap().to_js_object())
-            } else {
-                None
-            }
+            let sy = tm.get(name);
+            sy.cloned()
         }
-        _ => None,
+    }
+}
+#[wasm_bindgen]
+pub fn _get_symbol(mode: String, name: String) -> Option<js_sys::Object> {
+    let res = get_symbol(Mode::from_str(mode.as_str()).unwrap(), &name);
+    if let Some(sy) = res {
+        Some(sy.to_js_object())
+    } else {
+        None
     }
 }
 
@@ -59,24 +58,24 @@ pub fn wasm_define_symbol(
             let tmp = Symbol {
                 font: Font::from_str(font.as_str()).unwrap(),
                 group: Group::from_str(group.as_str()).unwrap(),
-                replace:replace.clone(),
+                replace: replace.clone(),
             };
             mathSymbols.lock().unwrap().insert(name, tmp.clone());
 
             if acceptUnicodeChar && replace.is_some() {
-                mathSymbols.lock().unwrap().insert(replace.unwrap(),tmp);
+                mathSymbols.lock().unwrap().insert(replace.unwrap(), tmp);
             }
         }
         Mode::text => {
             let tmp = Symbol {
                 font: Font::from_str(font.as_str()).unwrap(),
                 group: Group::from_str(group.as_str()).unwrap(),
-                replace:replace.clone(),
+                replace: replace.clone(),
             };
             textSymbols.lock().unwrap().insert(name, tmp.clone());
 
             if acceptUnicodeChar && replace.is_some() {
-                textSymbols.lock().unwrap().insert(replace.unwrap(),tmp);
+                textSymbols.lock().unwrap().insert(replace.unwrap(), tmp);
             }
         }
     }

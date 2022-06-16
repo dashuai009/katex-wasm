@@ -1,6 +1,5 @@
 mod settings_types;
 
-use std::cell::Ref;
 use wasm_bindgen::prelude::*;
 
 use crate::token::Token;
@@ -15,14 +14,11 @@ use crate::utils;
 // use crate::{error::Result, js_engine::JsScope};
 // use derive_builder::Builder;
 // use itertools::process_results;
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::default;
-use std::str::FromStr;
-use serde::de::Unexpected::Str;
 use crate::settings::settings_types::{OutputType, StrictType};
 use crate::utils::{console_log, log};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::str::FromStr;
 
 /// Options to be passed to KaTeX.
 ///
@@ -138,7 +134,6 @@ impl Settings {
         self.strict = StrictType::from_str(strict.as_str()).unwrap();
     }
 
-
     #[wasm_bindgen(getter = maxSize)]
     pub fn max_size(&self) -> Option<f64> {
         self.max_size
@@ -149,7 +144,6 @@ impl Settings {
         self.max_size = max_size;
     }
 
-
     #[wasm_bindgen(getter = maxExpand)]
     pub fn max_expand(&self) -> Option<i32> {
         self.max_expand
@@ -159,7 +153,6 @@ impl Settings {
     pub fn set_max_expand(&mut self, max_expand: Option<i32>) {
         self.max_expand = max_expand;
     }
-
 
     #[wasm_bindgen(getter = globalGroup)]
     pub fn global_group(&self) -> bool {
@@ -227,8 +220,10 @@ impl Settings {
         let opt_error_color = Reflect::get(&res, &JsString::from("errorColor")).unwrap();
 
         let opt_macros = Reflect::get(&res, &JsString::from("macros")).unwrap();
-        let opt_min_rule_thickness = Reflect::get(&res, &JsString::from("minRuleThickness")).unwrap();
-        let opt_color_is_text_color = Reflect::get(&res, &JsString::from("colorIsTextColor")).unwrap();
+        let opt_min_rule_thickness =
+            Reflect::get(&res, &JsString::from("minRuleThickness")).unwrap();
+        let opt_color_is_text_color =
+            Reflect::get(&res, &JsString::from("colorIsTextColor")).unwrap();
         let opt_strict = Reflect::get(&res, &JsString::from("strict")).unwrap();
         let opt_trust = Reflect::get(&res, &JsString::from("trust")).unwrap();
         let opt_max_size = Reflect::get(&res, &JsString::from("maxSize")).unwrap();
@@ -267,28 +262,28 @@ impl Settings {
             macros: HashMap::new(),
             min_rule_thickness: match opt_min_rule_thickness.as_f64() {
                 Some(d) => d,
-                None => 0.0
+                None => 0.0,
             },
             color_is_text_color: match opt_color_is_text_color.as_bool() {
                 Some(d) => d,
-                None => false
+                None => false,
             },
             strict: match opt_strict.as_string() {
                 Some(d) => StrictType::from_str(d.as_str()).unwrap(),
-                None => StrictType::Warn
+                None => StrictType::Warn,
             },
             trust: match opt_trust.as_bool() {
                 Some(d) => d,
-                None => false
+                None => false,
             },
-            max_size:  opt_max_size.as_f64() ,
+            max_size: opt_max_size.as_f64(),
             max_expand: match opt_max_expand.as_f64() {
                 Some(d) => Some(d as i32),
-                None => None
+                None => None,
             },
             global_group: match opt_global_group.as_bool() {
                 Some(d) => d,
-                None => false
+                None => false,
             },
         };
         //return tmp.into_serde().unwrap();
@@ -303,7 +298,11 @@ impl Settings {
         match self.strict {
             StrictType::Ignore => {}
             StrictType::Warn => {
-                console_log!("LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",errorCode,errorMsg);
+                console_log!(
+                    "LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",
+                    errorCode,
+                    errorMsg
+                );
             }
             StrictType::Error => {
                 console_log!("error lllll");
@@ -325,7 +324,11 @@ impl Settings {
                 return false;
             }
             StrictType::Warn => {
-                console_log!("LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",errorCode,errorMsg);
+                console_log!(
+                    "LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",
+                    errorCode,
+                    errorMsg
+                );
                 return false;
             }
             StrictType::Error => {

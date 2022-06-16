@@ -1,4 +1,5 @@
 /target
+struct_format/target
 **/*.rs.bk
 Cargo.lock
 bin/

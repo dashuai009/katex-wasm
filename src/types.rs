@@ -4,28 +4,27 @@
  */
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Mode {
     math,
     text,
 }
 impl FromStr for Mode {
-
     type Err = ();
 
     fn from_str(input: &str) -> Result<Mode, Self::Err> {
         match input {
-            "math"  => Ok(Mode::math),
-            "text"  => Ok(Mode::text),
-            _      => Err(()),
+            "math" => Ok(Mode::math),
+            "text" => Ok(Mode::text),
+            _ => Err(()),
         }
     }
 }
-impl Mode{
+impl Mode {
     fn as_str(&self) -> &'static str {
         match self {
             Mode::math => "math",
-            Mode::text => "text"
+            Mode::text => "text",
         }
     }
 }
