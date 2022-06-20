@@ -41,6 +41,7 @@ features = [
   'HtmlElement',
   'Node',
   'Window',
+  'Text'
 ]
 
 [dev-dependencies]

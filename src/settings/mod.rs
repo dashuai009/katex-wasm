@@ -294,7 +294,7 @@ impl Settings {
      * Report nonstrict (non-LaTeX-compatible) input.
      * Can safely not be called if `this.strict` is false in JavaScript.
      */
-    pub fn reportNonstrict(&self, errorCode: String, errorMsg: String, token: &JsValue) {
+    pub fn reportNonstrict(&self, errorCode: String, errorMsg: String, token: Option<Token>) {
         match self.strict {
             StrictType::Ignore => {}
             StrictType::Warn => {

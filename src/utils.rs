@@ -1,6 +1,5 @@
 use wasm_bindgen::prelude::*;
 
-
 #[wasm_bindgen]
 extern "C" {
     // Use `js_namespace` here to bind `console.log(..)` instead of just
@@ -48,26 +47,36 @@ lazy_static! {
     static ref ESCAPE_REGEX: Regex = Regex::new("[&><\"']").unwrap();
 }
 
-
 // hyphenate and escape adapted from Facebook's React under Apache 2 license
 #[wasm_bindgen]
-pub fn hyphenate(s: String)->String {
-    return uppercase.replace_all(s.as_str(), "-$1").to_string().to_lowercase();
+pub fn hyphenate(s: String) -> String {
+    return uppercase
+        .replace_all(s.as_str(), "-$1")
+        .to_string()
+        .to_lowercase();
 }
 
-pub fn ESCAPE_LOOKUP(c:char)-> String {
-    return match c{
+pub fn ESCAPE_LOOKUP(c: char) -> String {
+    return match c {
         '&' => "&amp;".to_string(),
         '>' => "&gt;".to_string(),
         '<' => "&lt;".to_string(),
-        '\"'=>"&quot;".to_string(),
-        '\'' =>"&#x27;".to_string(),
-        _=> c.to_string()
-    }
+        '\"' => "&quot;".to_string(),
+        '\'' => "&#x27;".to_string(),
+        _ => c.to_string(),
+    };
 }
 /**
  * Escapes text to prevent scripting attacks.
  */
-pub fn escape(text: String)->String {
+pub fn escape(text: &String) -> String {
     return text.chars().map(ESCAPE_LOOKUP).collect();
+}
+
+/**
+ * Round `n` to 4 decimal places, or to the nearest 1/10,000th em. See
+ * https://github.com/KaTeX/KaTeX/pull/2460.
+ */
+pub fn make_em(n: f64) -> String {
+    format!("{:.4}em", n)
 }

@@ -9,6 +9,7 @@ mod dom_tree;
 mod metrics;
 //mod ParseError;
 //mod Setting;
+// mod Lexer;
 mod Style;
 mod settings;
 mod sourceLocation;

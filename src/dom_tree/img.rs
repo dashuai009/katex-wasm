@@ -61,10 +61,7 @@ impl Img {
 
     pub fn toMarkup(&self) -> String {
         let mut markup = format!("<img  src='{} 'alt='${}' ", self.src, self.alt);
-        let style_str = escape(format!(
-            "style={}",
-            self.style.to_css_str().replace('_', "-")
-        ));
+        let style_str = escape(&format!("style={}", self.style.to_css_str()));
         markup.push_str(style_str.as_str());
         markup += "'/>";
         return markup;
