@@ -1,3 +1,3 @@
 mod css_style;
 mod img;
-mod symbol_node;
+pub mod symbol_node;

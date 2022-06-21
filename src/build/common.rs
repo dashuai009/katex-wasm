@@ -1,3 +1,4 @@
+use crate::dom_tree::symbol_node::SymbolNode;
 use crate::metrics::public::CharacterMetrics;
 use crate::types::Mode;
 use crate::Options::Options;
@@ -50,58 +51,104 @@ pub fn _lookup_symbol(
     return lookup_symbol(value, font_name, Mode::from_str(mode.as_str()).unwrap());
 }
 
-//
-// /**
-//  * Makes a symbolNode after translation via the list of symbols in symbols.js.
-//  * Correctly pulls out metrics for the character, and optionally takes a list of
-//  * classes to be attached to the node.
-//  *
-//  * TODO: make argument order closer to makeSpan
-//  * TODO: add a separate argument for math class (e.g. `mop`, `mbin`), which
-//  * should if present come first in `classes`.
-//  * TODO(#953): Make `options` mandatory and always pass it in.
-//  */
-// pub fn make_symbol(value:String, font_name:String, mode:Mode, options:Option<Options>, classes:Option<Box<JsValue>>){
-//     let lookup = lookup_symbol(value, fontName, mode);
-//     let metrics = lookup.metrics;
-//     let value = lookup.value;
-//
-//     let symbolNode;
-//     console.log(metrics);
-//     if metrics.is_some() {
-//         let italic = metrics.italic;
-//         if mode == "text" || (options && options.font === "mathit") {
-//             italic = 0;
-//         }
-//         symbolNode = new SymbolNode(
-//             value, metrics.height, metrics.depth, italic, metrics.skew,
-//             metrics.width, classes);
-//     } else {
-// // TODO(emily): Figure out a good way to only print this in development
-//         typeof console !== "undefined" && console.warn("No character metrics " +
-//                                                        `for '${value}' in style '${fontName}' and mode '${mode}'`);
-//         symbolNode = new SymbolNode(value, 0, 0, 0, 0, 0, classes);
-//     }
-//
-//     if (options) {
-//         symbolNode.maxFontSize = options.sizeMultiplier;
-//         if (options.style.isTight()) {
-//             symbolNode.classes.push("mtight");
-//         }
-//         const color = options.getColor();
-//         if (color) {
-//             symbolNode.style.color = color;
-//         }
-//     }
-//
-//     return symbolNode;
-// }
-// const makeSymbol = function(
-//     value: string,
-//     fontName: string,
-//     mode: Mode,
-//     options?: Options,
-//     classes?: string[],
-// ): SymbolNode {
-//
-// };
+/**
+ * Makes a symbolNode after translation via the list of symbols in symbols.js.
+ * Correctly pulls out metrics for the character, and optionally takes a list of
+ * classes to be attached to the node.
+ *
+ * TODO: make argument order closer to makeSpan
+ * TODO: add a separate argument for math class (e.g. `mop`, `mbin`), which
+ * should if present come first in `classes`.
+ * TODO(#953): Make `options` mandatory and always pass it in.
+ */
+pub fn make_symbol(
+    value: String,
+    font_name: String,
+    mode: Mode,
+    options: Option<&Options>,
+    classes: Vec<String>,
+) -> SymbolNode {
+    let lookup = lookup_symbol(value, font_name, mode);
+    let value = lookup.value;
+
+    let mut symbol_node = SymbolNode::new("init_node".to_string());
+    if let Some(metrics) = lookup.metrics {
+        let mut italic = metrics.italic;
+        if let Some(opt) = options.clone() {
+            if opt.font == "mathit" {
+                italic = 0.0;
+            }
+        }
+        if mode == Mode::text {
+            italic = 0.0;
+        }
+        symbol_node = SymbolNode::new(value);
+        symbol_node.height = metrics.height;
+        symbol_node.depth = metrics.depth;
+        symbol_node.italic = italic;
+        symbol_node.skew = metrics.skew;
+        symbol_node.width = metrics.width;
+        symbol_node.set_classes(classes);
+    } else {
+        // TODO(emily): Figure out a good way to only print this in development
+        //         typeof console !== "undefined" && console.warn("No character metrics " +
+        //                                                        `for '${value}' in style '${fontName}' and mode '${mode}'`);
+
+        symbol_node = SymbolNode::new(value);
+        symbol_node.height = 0.0;
+        symbol_node.depth = 0.0;
+        symbol_node.italic = 0.0;
+        symbol_node.skew = 0.0;
+        symbol_node.width = 0.0;
+        symbol_node.set_classes(classes);
+    }
+
+    if let Some(opt) = options {
+        symbol_node.maxFontSize = opt.sizeMultiplier;
+        if (opt.style().isTight()) {
+            symbol_node.push_class("mtight".to_string());
+        }
+        let color = opt.getColor();
+        // if (color) {
+        symbol_node.set_style_color(Some(color));
+        // }
+    }
+
+    return symbol_node;
+}
+
+#[wasm_bindgen]
+pub fn MakeSymbol(
+    value: String,
+    font_name: String,
+    _mode: String,
+    options: &Options,
+    classes: js_sys::Array,
+) -> SymbolNode {
+    let mut c = vec![];
+    for cl in classes.to_vec().iter() {
+        if let Some(t) = cl.as_string() {
+            c.push(t);
+        }
+    }
+    let mode = Mode::from_str(_mode.as_str()).unwrap();
+    make_symbol(value, font_name, mode, Some(options), c)
+}
+
+#[wasm_bindgen]
+pub fn MakeSymbol_none(
+    value: String,
+    font_name: String,
+    _mode: String,
+    classes: js_sys::Array,
+) -> SymbolNode {
+    let mut c = vec![];
+    for cl in classes.to_vec().iter() {
+        //classes fontShape 可能是undefined
+        if let Some(t) = cl.as_string() {
+            c.push(t);
+        }
+    }
+    let mode = Mode::from_str(_mode.as_str()).unwrap();
+    make_symbol(value, font_name, mode, None, c)
+}

@@ -1,3 +1,4 @@
+mod consts;
 /**
  * This file contains information about the options that the Parser carries
  * around with it while parsing. Data is held in an `Options` object, and when
@@ -5,19 +6,17 @@
  * `.reset` functions.
  */
 mod types;
-mod consts;
 
 use serde::{Deserialize, Serialize};
 
-use std::str::FromStr;
-use consts::*;
-use types::{FontWeight, FontShape};
-use crate::Style::StyleInterface;
-use wasm_bindgen::prelude::*;
-use crate::utils::{console_log,log};
 use crate::get_global_metrics;
 use crate::metrics::sigmas_and_xis::FontMetrics;
-
+use crate::utils::{console_log, log};
+use crate::Style::StyleInterface;
+use consts::*;
+use std::str::FromStr;
+use types::{FontShape, FontWeight};
+use wasm_bindgen::prelude::*;
 
 pub fn size_at_style(size: f64, style: &StyleInterface) -> f64 {
     if style.size < 2 {
@@ -26,7 +25,6 @@ pub fn size_at_style(size: f64, style: &StyleInterface) -> f64 {
         SIZE_STYLE_MAP[size as i32 as usize - 1 as usize][style.size as usize - 1] as f64
     }
 }
-
 
 #[derive(Debug, Clone)]
 #[wasm_bindgen(getter_with_clone)]
@@ -37,8 +35,8 @@ pub struct Options {
     pub textSize: f64,
     pub phantom: bool,
     // A font family applies to a group of fonts (i.e. SansSerif), while a font
-// represents a specific font (i.e. SansSerif Bold).
-// See: https://tex.stackexchange.com/questions/22350/difference-between-textrm-and-mathrm
+    // represents a specific font (i.e. SansSerif Bold).
+    // See: https://tex.stackexchange.com/questions/22350/difference-between-textrm-and-mathrm
     pub font: String,
     pub fontFamily: String,
     fontWeight: FontWeight,
@@ -67,19 +65,19 @@ impl Options {
 
     #[wasm_bindgen(getter)]
     pub fn fontShape(&self) -> Option<String> {
-        match self.fontShape{
-            Some(p)=> Some(p.as_str().to_string()),
-            None=>None
+        match self.fontShape {
+            Some(p) => Some(p.as_str().to_string()),
+            None => None,
         }
     }
 
     #[wasm_bindgen(getter)]
-    pub fn style(&self) -> StyleInterface{
+    pub fn style(&self) -> StyleInterface {
         self.style.clone()
     }
 
     #[wasm_bindgen(setter)]
-    pub fn set_style(&mut self,style:&StyleInterface){
+    pub fn set_style(&mut self, style: &StyleInterface) {
         self.style = style.clone()
     }
 
@@ -89,7 +87,11 @@ impl Options {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Options {
         Options {
-            style: StyleInterface { id: 0, size: 0, cramped: false },
+            style: StyleInterface {
+                id: 0,
+                size: 0,
+                cramped: false,
+            },
             color: "".to_string(),
             size: BASESIZE,
             textSize: BASESIZE,
@@ -160,8 +162,7 @@ impl Options {
     pub fn havingBaseStyle(&self, style: &StyleInterface) -> Options {
         //style = style | | this.style.text();TODO
         let wantSize: f64 = size_at_style(BASESIZE, style);
-        if self.size == wantSize && self.textSize == BASESIZE
-            && &self.style == style {
+        if self.size == wantSize && self.textSize == BASESIZE && &self.style == style {
             return self.clone();
         } else {
             return Options {
@@ -177,12 +178,11 @@ impl Options {
      * Keep the effect of the current style, such as \scriptstyle.
      */
     pub fn havingBaseSizing(&self) -> Options {
-        let size =
-            match self.style.id {
-                4 | 5 => 3,
-                6 | 7 => 1,// normalsize in scriptscriptstyle
-                _ => 6// normalsize in textstyle or displaystyle
-            };
+        let size = match self.style.id {
+            4 | 5 => 3,
+            6 | 7 => 1, // normalsize in scriptscriptstyle
+            _ => 6,     // normalsize in textstyle or displaystyle
+        };
         return Options {
             style: self.style.text(),
             size: size as f64,
@@ -205,7 +205,7 @@ impl Options {
      */
     pub fn withPhantom(&self) -> Options {
         return Options {
-            phantom:true,
+            phantom: true,
             ..self.clone()
         };
     }
@@ -248,9 +248,9 @@ impl Options {
      */
     pub fn withTextFontShape(&self, fontShape: Option<String>) -> Options {
         return Options {
-            fontShape: match fontShape{
-                Some(p)=>Some(FontShape::from_str(p.as_str()).unwrap()),
-                None=>None
+            fontShape: match fontShape {
+                Some(p) => Some(FontShape::from_str(p.as_str()).unwrap()),
+                None => None,
             },
             font: "".to_string(),
             ..self.clone()
@@ -263,13 +263,12 @@ impl Options {
      */
     pub fn sizingClasses(&self, oldOptions: &Options) -> JsValue {
         if oldOptions.size != self.size {
-            return JsValue::from_serde(
-                &vec![
-                    "sizing".to_string(),
-                    format!("reset-size{}", oldOptions.size),
-                    format!("size{}", self.size),
-                ]
-            ).unwrap();
+            return JsValue::from_serde(&vec![
+                "sizing".to_string(),
+                format!("reset-size{}", oldOptions.size),
+                format!("size{}", self.size),
+            ])
+            .unwrap();
         } else {
             return JsValue::from_serde(&(vec![] as Vec<String>)).unwrap();
         }
@@ -281,18 +280,16 @@ impl Options {
      */
     pub fn baseSizingClasses(&self) -> JsValue {
         if self.size != BASESIZE {
-            return JsValue::from_serde(
-                &vec![
-                    "sizing".to_string(),
-                    format!("reset-size{}", self.size),
-                    format!("size{}", BASESIZE),
-                ]
-            ).unwrap();
+            return JsValue::from_serde(&vec![
+                "sizing".to_string(),
+                format!("reset-size{}", self.size),
+                format!("size{}", BASESIZE),
+            ])
+            .unwrap();
         } else {
             return JsValue::from_serde(&(vec![] as Vec<String>)).unwrap();
         }
     }
-
 
     // /**
     //  * TODO
@@ -305,7 +302,6 @@ impl Options {
         return self._fontMetrics.unwrap().clone();
     }
 
-
     /**
      * Gets the CSS color of the current options object
      */
@@ -317,8 +313,7 @@ impl Options {
         }
     }
 
-    pub fn log(&self){
-        console_log!("rust: self = {:#?}",self);
+    pub fn log(&self) {
+        console_log!("rust: self = {:#?}", self);
     }
 }
-

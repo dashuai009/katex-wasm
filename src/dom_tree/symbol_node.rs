@@ -32,9 +32,26 @@ pub struct SymbolNode {
     pub width: f64,
     pub maxFontSize: f64,
     classes: Vec<String>,
-    pub style: CssStyle,
+    style: CssStyle,
 }
 
+impl SymbolNode {
+    pub fn set_style_color(&mut self, c: Option<String>) {
+        self.style.color = c;
+    }
+}
+#[wasm_bindgen]
+impl SymbolNode {
+    #[wasm_bindgen(getter)]
+    pub fn style(&self) -> CssStyle {
+        self.style.clone()
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_style(&mut self, style: &CssStyle) {
+        self.style = style.clone()
+    }
+}
 #[wasm_bindgen]
 impl SymbolNode {
     #[wasm_bindgen(constructor)]
@@ -155,5 +172,15 @@ impl SymbolNode {
             arr.set(i as u32, JsValue::from_str(s));
         }
         arr
+    }
+}
+
+impl SymbolNode {
+    pub fn set_classes(&mut self, c: Vec<String>) {
+        self.classes = c;
+    }
+
+    pub fn push_class(&mut self, s: String) {
+        self.classes.push(s);
     }
 }
