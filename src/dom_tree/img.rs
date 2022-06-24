@@ -1,6 +1,6 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::escape;
-use crate::VirturalNode;
+use crate::{HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use wasm_bindgen::prelude::*;
 
@@ -11,7 +11,7 @@ pub struct Img {
     classes: Vec<String>,
     height: f64,
     depth: f64,
-    maxFontSize: f64,
+    max_font_size: f64,
     style: CssStyle,
 }
 
@@ -25,14 +25,9 @@ impl Img {
             classes: vec![String::from("mord")],
             height: 0.0,
             depth: 0.0,
-            maxFontSize: 0.0,
+            max_font_size: 0.0,
             style: style,
         }
-    }
-
-    pub fn hasClass(&self, class_name: String) -> bool {
-        //   TODO interface HtmlDomNode
-        return self.classes.contains(&class_name);
     }
 
     #[wasm_bindgen(getter)]
@@ -45,9 +40,8 @@ impl Img {
     }
 }
 
-#[wasm_bindgen]
-impl Img {
-    pub fn toNode(&self) -> web_sys::Node {
+impl VirtualNode for Img {
+    fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_element("img").expect("");
         web_sys::Element::set_attribute(&node, "src", self.src.as_str());
@@ -59,11 +53,30 @@ impl Img {
         return web_sys::Node::from(node);
     }
 
-    pub fn toMarkup(&self) -> String {
+    fn to_markup(&self) -> String {
         let mut markup = format!("<img  src='{} 'alt='${}' ", self.src, self.alt);
         let style_str = escape(&format!("style={}", self.style.to_css_str()));
         markup.push_str(style_str.as_str());
         markup += "'/>";
         return markup;
+    }
+}
+impl HtmlDomNode for Img {
+    fn has_class(&self, class_name: &String) -> bool {
+        return self.classes.contains(class_name);
+    }
+}
+#[wasm_bindgen]
+impl Img {
+    pub fn toNode(&self) -> web_sys::Node {
+        return self.to_node();
+    }
+
+    pub fn toMarkup(&self) -> String {
+        return self.to_markup();
+    }
+
+    pub fn hasClass(&self, class_name: String) -> bool {
+        return self.has_class(&class_name);
     }
 }

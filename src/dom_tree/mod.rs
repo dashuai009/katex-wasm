@@ -1,5 +1,6 @@
 mod css_style;
 mod img;
-mod path_node;
-pub mod symbol_node;
 mod line_node;
+mod path_node;
+mod svg_node;
+pub mod symbol_node;

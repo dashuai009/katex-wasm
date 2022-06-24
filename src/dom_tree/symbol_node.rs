@@ -1,6 +1,6 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::{escape, make_em};
-use crate::{scriptFromCodepoint, VirturalNode};
+use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -38,6 +38,84 @@ pub struct SymbolNode {
 impl SymbolNode {
     pub fn set_style_color(&mut self, c: Option<String>) {
         self.style.color = c;
+    }
+}
+impl VirtualNode for SymbolNode {
+    /**
+     * Creates a text node or span from a symbol node. Note that a span is only
+     * created if it is needed.
+     */
+    fn to_node(&self) -> web_sys::Node {
+        let document = web_sys::window().expect("").document().expect("");
+        let node = document.create_text_node(&self.text);
+        let st = self.style.to_css_str();
+        if self.italic > 0.0 || self.classes.len() > 0 || st != "" {
+            let mut span_node = document.create_element("span").expect("");
+            if self.italic > 0.0 {
+                web_sys::Element::set_attribute(
+                    &span_node,
+                    "style",
+                    format!("marginRight:{};", make_em(self.italic)).as_str(),
+                );
+            }
+            if self.classes.len() > 0 {
+                web_sys::Element::set_attribute(
+                    &span_node,
+                    "className",
+                    self.classes.join(" ").as_str(),
+                );
+            }
+            if st != "" {
+                web_sys::Element::set_attribute(&span_node, "style", st.as_str());
+            }
+            span_node.append_child(&node);
+            return web_sys::Node::from(span_node);
+        } else {
+            return web_sys::Node::from(node);
+        }
+    }
+
+    /**
+     * Creates markup for a symbol node.
+     */
+    fn to_markup(&self) -> String {
+        // TODO(alpert): More duplication than I'd like from
+        // span.prototype.toMarkup and symbolNode.prototype.toNode...
+        let mut needsSpan = false;
+
+        let mut markup = "<span".to_string();
+
+        if self.classes.len() > 0 {
+            needsSpan = true;
+            markup.push_str(&format!(
+                " class=\"{}\"",
+                escape(&self.classes.join(" ")).as_str()
+            ));
+        }
+
+        let mut styles = String::new();
+
+        if self.italic > 0.0 {
+            styles.push_str(&format!("margin-right:{}em", self.italic).as_str());
+        }
+
+        styles.push_str(&self.style.to_css_str());
+
+        let escaped_text = escape(&self.text);
+        return if styles != "" {
+            markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
+
+            markup.push_str(&format!(">{escaped_text}</span>").as_str());
+            markup.to_string()
+        } else {
+            escaped_text
+        };
+    }
+}
+
+impl HtmlDomNode for SymbolNode {
+    fn has_class(&self, class_name: &String) -> bool {
+        self.classes.contains(class_name)
     }
 }
 #[wasm_bindgen]
@@ -88,78 +166,15 @@ impl SymbolNode {
     }
 
     pub fn hasClass(&self, class_name: String) -> bool {
-        self.classes.contains(&class_name)
+        return self.has_class(&class_name);
     }
 
-    /**
-     * Creates a text node or span from a symbol node. Note that a span is only
-     * created if it is needed.
-     */
     pub fn toNode(&self) -> web_sys::Node {
-        let document = web_sys::window().expect("").document().expect("");
-        let node = document.create_text_node(&self.text);
-        let st = self.style.to_css_str();
-        if self.italic > 0.0 || self.classes.len() > 0 || st != "" {
-            let mut span_node = document.create_element("span").expect("");
-            if self.italic > 0.0 {
-                web_sys::Element::set_attribute(
-                    &span_node,
-                    "style",
-                    format!("marginRight:{};", make_em(self.italic)).as_str(),
-                );
-            }
-            if self.classes.len() > 0 {
-                web_sys::Element::set_attribute(
-                    &span_node,
-                    "className",
-                    self.classes.join(" ").as_str(),
-                );
-            }
-            if st != "" {
-                web_sys::Element::set_attribute(&span_node, "style", st.as_str());
-            }
-            span_node.append_child(&node);
-            return web_sys::Node::from(span_node);
-        } else {
-            return web_sys::Node::from(node);
-        }
+        return self.to_node();
     }
 
-    /**
-     * Creates markup for a symbol node.
-     */
     pub fn toMarkup(&self) -> String {
-        // TODO(alpert): More duplication than I'd like from
-        // span.prototype.toMarkup and symbolNode.prototype.toNode...
-        let mut needsSpan = false;
-
-        let mut markup = "<span".to_string();
-
-        if self.classes.len() > 0 {
-            needsSpan = true;
-            markup.push_str(&format!(
-                " class=\"{}\"",
-                escape(&self.classes.join(" ")).as_str()
-            ));
-        }
-
-        let mut styles = String::new();
-
-        if self.italic > 0.0 {
-            styles.push_str(&format!("margin-right:{}em", self.italic).as_str());
-        }
-
-        styles.push_str(&self.style.to_css_str());
-
-        let escaped_text = escape(&self.text);
-        return if styles != "" {
-            markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
-
-            markup.push_str(&format!(">{escaped_text}</span>").as_str());
-            markup.to_string()
-        } else {
-            escaped_text
-        };
+        return self.to_markup();
     }
 }
 
