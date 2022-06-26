@@ -12,6 +12,7 @@ pub trait VirtualNode {
 //
 //     hasClass(className: string): boolean;
 // }
-pub trait HtmlDomNode {
+pub trait HasClassNode {
     fn has_class(&self, class_name: &String) -> bool;
 }
+pub trait HtmlDomNode: VirtualNode + HasClassNode {}

@@ -1,6 +1,6 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::escape;
-use crate::{HtmlDomNode, VirtualNode};
+use crate::{HasClassNode, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use wasm_bindgen::prelude::*;
 
@@ -61,11 +61,14 @@ impl VirtualNode for Img {
         return markup;
     }
 }
-impl HtmlDomNode for Img {
+
+impl HasClassNode for Img {
     fn has_class(&self, class_name: &String) -> bool {
         return self.classes.contains(class_name);
     }
 }
+
+impl HtmlDomNode for Img {}
 #[wasm_bindgen]
 impl Img {
     pub fn toNode(&self) -> web_sys::Node {

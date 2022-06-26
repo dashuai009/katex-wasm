@@ -1,20 +1,22 @@
 use crate::dom_tree::css_style::CssStyle;
+use crate::dom_tree::line_node::LineNode;
+use crate::dom_tree::path_node::PathNode;
 use crate::utils::{escape, make_em};
 use crate::{path_get, scriptFromCodepoint, VirtualNode};
 use js_sys::Array;
-use std::any::Any;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
+
 /**
  * SVG nodes are used to render stretchy wide elements.
  */
 #[wasm_bindgen]
 pub struct SvgNode {
-    children: Vec<Box<dyn Any>>,
+    children: Vec<Box<dyn VirtualNode>>,
     attributes: HashMap<String, String>,
 }
-
 impl VirtualNode for SvgNode {
     fn to_node(&self) -> web_sys::Node {
         let svgNS = "http://www.w3.org/2000/svg";
@@ -26,7 +28,16 @@ impl VirtualNode for SvgNode {
         for (k, v) in self.attributes.iter() {
             web_sys::Element::set_attribute(&node, k.as_str(), v.as_str());
         }
-        // for child in self.children {}
+        for child in self.children.iter() {
+            node.append_child(&child.to_node());
+            // if let Some(l) = child.downcast_ref::<LineNode>() {
+            //     node.append_child(&l.to_node());
+            // } else if let Some(p) = child.downcast_ref::<LineNode>() {
+            //     node.append_child(&p.to_node());
+            // } else {
+            //     //error
+            // }
+        }
 
         return web_sys::Node::from(node);
     }
@@ -40,7 +51,16 @@ impl VirtualNode for SvgNode {
 
         markup.push_str(">");
 
-        // for child in self.children {}
+        for child in self.children.iter() {
+            markup.push_str(&child.to_markup());
+            // if let Some(l) = child.downcast_ref::<LineNode>() {
+            //     markup.push_str(&l.to_markup());
+            // } else if let Some(p) = child.downcast_ref::<LineNode>() {
+            //     markup.push_str(&p.to_markup());
+            // } else {
+            //     //error
+            // }
+        }
         markup.push_str("</svg>");
 
         return markup;

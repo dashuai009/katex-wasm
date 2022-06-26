@@ -1,6 +1,6 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::{escape, make_em};
-use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
+use crate::{scriptFromCodepoint, HasClassNode, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -113,11 +113,13 @@ impl VirtualNode for SymbolNode {
     }
 }
 
-impl HtmlDomNode for SymbolNode {
+impl HasClassNode for SymbolNode {
     fn has_class(&self, class_name: &String) -> bool {
         self.classes.contains(class_name)
     }
 }
+
+impl HtmlDomNode for SymbolNode {}
 #[wasm_bindgen]
 impl SymbolNode {
     #[wasm_bindgen(getter)]

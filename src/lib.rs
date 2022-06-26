@@ -11,6 +11,7 @@ mod metrics;
 //mod Setting;
 // mod Lexer;
 mod Style;
+mod mathML_tree;
 mod settings;
 mod sourceLocation;
 mod spacingData;
