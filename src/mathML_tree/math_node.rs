@@ -7,7 +7,6 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
-use web_sys::Node;
 /**
  * This node represents a general purpose MathML node of any type. The
  * constructor requires the type of node to create (for example, `"mo"` or
@@ -118,3 +117,4 @@ impl ToText for MathNode {
             .join(" ");
     }
 }
+impl MathDomNode for MathNode{}

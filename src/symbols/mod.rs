@@ -80,3 +80,5 @@ pub fn wasm_define_symbol(
         }
     }
 }
+
+pub const LIGATURES: [&str; 4] = ["--", "---", "``", "''"];
