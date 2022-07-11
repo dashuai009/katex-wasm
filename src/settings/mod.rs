@@ -25,7 +25,7 @@ use std::str::FromStr;
 /// Read <https://katex.org/docs/options.html> for more information.
 ///
 #[non_exhaustive]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 #[wasm_bindgen(getter_with_clone)]
 // #[wasm_bindgen]
 pub struct Settings {
@@ -208,85 +208,83 @@ impl AsRef<Settings> for Settings {
 #[wasm_bindgen]
 impl Settings {
     #[wasm_bindgen(constructor)]
-    pub fn new(res: &JsValue) -> Settings {
+    pub fn new(js_v: &JsValue) -> Settings {
         // console_log!("input setting = {}",res);
+        let mut res = Settings::default();
         use js_sys::{Boolean, JsString, Reflect};
-        let opt_display_mode = Reflect::get(&res, &JsString::from("displayMode")).unwrap();
-        let opt_output = Reflect::get(&res, &JsString::from("output")).unwrap();
+        if let Ok(opt_display_mode) = Reflect::get(&js_v, &JsString::from("displayMode")) {
+            res.display_mode = opt_display_mode.as_bool().unwrap();
+        }
+        console_log!("{}", res.display_mode);
 
-        let opt_leqno = Reflect::get(&res, &JsString::from("leqno")).unwrap();
-        let opt_fleqn = Reflect::get(&res, &JsString::from("fleqn")).unwrap();
-        let opt_throw_on_error = Reflect::get(&res, &JsString::from("throwOnError")).unwrap();
-        let opt_error_color = Reflect::get(&res, &JsString::from("errorColor")).unwrap();
+        if let Ok(opt_output) = Reflect::get(&js_v, &JsString::from("output")) {
+            if let Some(s) = opt_output.as_string() {
+                console_log!("ouput raw str = {}", s);
+                res.output = OutputType::from_str(s.as_str()).unwrap();
+            }
+        }
+        console_log!("{}", res.output.as_str());
 
-        let opt_macros = Reflect::get(&res, &JsString::from("macros")).unwrap();
-        let opt_min_rule_thickness =
-            Reflect::get(&res, &JsString::from("minRuleThickness")).unwrap();
-        let opt_color_is_text_color =
-            Reflect::get(&res, &JsString::from("colorIsTextColor")).unwrap();
-        let opt_strict = Reflect::get(&res, &JsString::from("strict")).unwrap();
-        let opt_trust = Reflect::get(&res, &JsString::from("trust")).unwrap();
-        let opt_max_size = Reflect::get(&res, &JsString::from("maxSize")).unwrap();
-        let opt_max_expand = Reflect::get(&res, &JsString::from("maxExpand")).unwrap();
-        let opt_global_group = Reflect::get(&res, &JsString::from("globalGroup")).unwrap();
+        if let Ok(opt_leqno) = Reflect::get(&js_v, &JsString::from("leqno")) {
+            res.leqno = opt_leqno.as_bool().unwrap_or(false);
+        }
+        console_log!("{}", res.leqno);
+        if let Ok(opt_fleqn) = Reflect::get(&js_v, &JsString::from("fleqn")) {
+            res.fleqn = opt_fleqn.as_bool().unwrap_or_default();
+        }
+        console_log!("{}", res.fleqn);
+        if let Ok(opt_throw_on_error) = Reflect::get(&js_v, &JsString::from("throwOnError")) {
+            res.throw_on_error = opt_throw_on_error.as_bool().unwrap_or_default();
+        }
+        console_log!("{}", res.throw_on_error);
+        if let Ok(opt_error_color) = Reflect::get(&js_v, &JsString::from("errorColor")) {
+            if let Some(c) = opt_error_color.as_string() {
+                res.error_color = c;
+            } else {
+                res.error_color = String::from("#ff000");
+            }
+        } else {
+            res.error_color = String::from("#ff000");
+        }
+        console_log!("{}", res.error_color);
 
-        let res = Settings {
-            display_mode: match opt_display_mode.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-            output: match opt_output.as_string() {
-                Some(d) => {
-                    let o = OutputType::from_str(d.as_str()).unwrap();
-                    // console_log!("output type = {}",o.as_str());
-                    o
-                }
-                None => OutputType::Html,
-            },
-            leqno: match opt_leqno.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-            fleqn: match opt_fleqn.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-            throw_on_error: match opt_throw_on_error.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-            error_color: match opt_error_color.as_string() {
-                Some(d) => d,
-                None => String::from("#cc0000"),
-            },
-            macros: HashMap::new(),
-            min_rule_thickness: match opt_min_rule_thickness.as_f64() {
-                Some(d) => d,
-                None => 0.0,
-            },
-            color_is_text_color: match opt_color_is_text_color.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-            strict: match opt_strict.as_string() {
-                Some(d) => StrictType::from_str(d.as_str()).unwrap(),
-                None => StrictType::Warn,
-            },
-            trust: match opt_trust.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-            max_size: opt_max_size.as_f64(),
-            max_expand: match opt_max_expand.as_f64() {
+        // if let Ok(opt_macros) = Reflect::get(&js_v, &JsString::from("macros")){}
+
+        if let Ok(opt_min_rule_thickness) = Reflect::get(&js_v, &JsString::from("minRuleThickness"))
+        {
+            res.min_rule_thickness = opt_min_rule_thickness.as_f64().unwrap_or_default();
+        }
+        console_log!("{}", res.min_rule_thickness);
+        if let Ok(opt_color_is_text_color) =
+            Reflect::get(&js_v, &JsString::from("colorIsTextColor"))
+        {
+            res.color_is_text_color = opt_color_is_text_color.as_bool().unwrap_or_default();
+        }
+        console_log!("{}", res.color_is_text_color);
+        if let Ok(opt_strict) = Reflect::get(&js_v, &JsString::from("strict")) {
+            res.strict = StrictType::from_str(opt_strict.as_string().unwrap_or_default().as_str())
+                .unwrap_or_default();
+
+            // console_log!("{}", res.strict);
+        }
+        if let Ok(opt_trust) = Reflect::get(&js_v, &JsString::from("trust")) {
+            res.trust = opt_trust.as_bool().unwrap_or_default();
+        }
+        console_log!("{}", res.trust);
+        if let Ok(opt_max_size) = Reflect::get(&js_v, &JsString::from("maxSize")) {
+            res.max_size = opt_max_size.as_f64();
+            // console_log!("{}", res.max_size.u);
+        }
+        if let Ok(opt_max_expand) = Reflect::get(&js_v, &JsString::from("maxExpand")) {
+            res.max_expand = match opt_max_expand.as_f64() {
                 Some(d) => Some(d as i32),
                 None => None,
-            },
-            global_group: match opt_global_group.as_bool() {
-                Some(d) => d,
-                None => false,
-            },
-        };
-        //return tmp.into_serde().unwrap();
+            }
+        }
+        if let Ok(opt_global_group) = Reflect::get(&js_v, &JsString::from("globalGroup")) {
+            res.global_group = opt_global_group.as_bool().unwrap_or_default();
+        }
+        console_log!("{}", res.global_group);
         return res;
     }
 
@@ -346,7 +344,9 @@ impl Settings {
      * If `context` has a `url` field, a `protocol` field will automatically
      * get added by this function (changing the specified object).
      */
-    pub fn isTrusted(context: JsValue) -> bool {
+    #[wasm_bindgen(js_name = isTrusted)]
+    pub fn is_trusted(&self, context: &JsValue) -> bool {
+        web_sys::console::log_1(context);
         // if (context.url && !context.protocol) {
         //     context.protocol = utils.protocolFromUrl(context.url);
         // }
@@ -354,6 +354,6 @@ impl Settings {
         //     ? this.trust(context)
         //     : this.trust;
         // return Boolean(trust);
-        return false;
+        return self.trust;
     }
 }

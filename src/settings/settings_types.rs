@@ -1,40 +1,41 @@
-use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize,Default)]
 pub(crate) enum StrictType {
     Ignore,
+    #[default]
     Warn,
     Error,
 }
 
-impl FromStr for StrictType{
+impl FromStr for StrictType {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s{
-            "ignore"=>Ok(StrictType::Ignore),
+        match s {
+            "ignore" => Ok(StrictType::Ignore),
             "warn" => Ok(StrictType::Warn),
             "error" => Ok(StrictType::Error),
-            _=>Err(())
+            _ => Err(()),
         }
     }
 }
 
-impl StrictType{
-    pub fn as_str(&self)->&'static str{
-        match self{
-            StrictType::Ignore=>"ignore",
-            StrictType::Warn=>"warn",
-            StrictType::Error=>"error"
+impl StrictType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            StrictType::Ignore => "ignore",
+            StrictType::Warn => "warn",
+            StrictType::Error => "error",
         }
     }
 }
-
 
 /// Output type from KaTeX.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub enum OutputType {
     /// Outputs KaTeX in HTML only.
+    #[default]
     Html,
     /// Outputs KaTeX in MathML only.
     Mathml,
@@ -54,12 +55,12 @@ impl FromStr for OutputType {
         }
     }
 }
-impl OutputType{
-    pub(crate) fn as_str(&self) ->&'static str{
-        match self{
-            OutputType::Html=>"html",
-            OutputType::Mathml=>"mathml",
-            OutputType::HtmlAndMathml=>"htmlAndMathml"
+impl OutputType {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            OutputType::Html => "html",
+            OutputType::Mathml => "mathml",
+            OutputType::HtmlAndMathml => "htmlAndMathml",
         }
     }
 }
