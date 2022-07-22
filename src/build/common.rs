@@ -118,6 +118,10 @@ pub fn make_symbol(
 }
 
 #[wasm_bindgen]
+pub fn canCombine(prev: &SymbolNode, next: &SymbolNode) -> bool {
+    return SymbolNode::can_combine(prev, next);
+}
+#[wasm_bindgen]
 pub fn MakeSymbol(
     value: String,
     font_name: String,

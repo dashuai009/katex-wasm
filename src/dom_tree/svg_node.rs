@@ -1,7 +1,8 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::line_node::LineNode;
 use crate::dom_tree::path_node::PathNode;
-use crate::utils::{escape, make_em};
+use crate::utils::{escape};
+use crate::units::make_em;
 use crate::{path_get, scriptFromCodepoint, VirtualNode};
 use js_sys::Array;
 use std::any::{Any, TypeId};

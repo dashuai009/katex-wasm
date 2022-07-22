@@ -54,22 +54,22 @@ lazy_static! {
 // static ref  combiningDiacriticalMarksEndRegex: RegExp =    new RegExp(`${combiningDiacriticalMarkString}+$`);
 static ref tokenRegexString:Mutex<String> = Mutex::new({
         let mut res = format!("({spaceRegexString}+)|");  // whitespace
-    res.push_str(format!("{controlSpaceRegexString}|").as_str()) ;                  // \whitespace
-    res.push_str("([!-\\[\\]-\u{2027}\u{202A}-\u{D7FF}\u{F900}-\u{FFFF}]");  // single codepoint
-res.push_str("{combiningDiacriticalMarkString}*")    ;        // ...plus accents
-// .push_str("|[\u{D800}-\u{DBFF}][\u{DC00}-\u{DFFF}]")               // surrogate pair
-res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())  ;          // ...plus accents
-res.push_str("|\\\\verb\\*([^]).*?\\4")        ;               // \verb*
-res.push_str("|\\\\verb([^*a-zA-Z]).*?\\5")    ;               // \verb unstarred
-res.push_str(format!("|{controlWordWhitespaceRegexString}").as_str())   ;      // \macroName + spaces
-// res.push_str(format!("|{controlSymbolRegexString})"));                  // \\, \', etc.
+        res.push_str(format!("{controlSpaceRegexString}|").as_str()) ;                  // \whitespace
+        res.push_str("([!-\\[\\]-\u{2027}\u{202A}-\u{D7FF}\u{F900}-\u{FFFF}]");  // single codepoint
+        res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())    ;        // ...plus accents
+        // .push_str("|[\u{D800}-\u{DBFF}][\u{DC00}-\u{DFFF}]")               // surrogate pair
+        res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())  ;          // ...plus accents
+        res.push_str("|\\\\verb\\*([^]).*?\\4")        ;               // \verb*
+        res.push_str("|\\\\verb([^*a-zA-Z]).*?\\5")    ;               // \verb unstarred
+        res.push_str(format!("|{controlWordWhitespaceRegexString})").as_str())   ;      // \macroName + spaces
+        // res.push_str(format!("|{controlSymbolRegexString})"));                  // \\, \', etc.
         res
         });
 }
 
 /** Main Lexer class */
 #[wasm_bindgen]
-struct Lexer {
+pub struct Lexer {
     lexer_i: LexerInterface,
     settings: Settings,
     //     Category codes. The lexer only supports comment characters (14) for now.
@@ -95,8 +95,9 @@ struct Lexer {
 #[wasm_bindgen]
 impl Lexer {
     #[wasm_bindgen(constructor)]
-    pub fn new(input: String, settings: Settings) -> Lexer {
+    pub fn new(input: String, settings: &Settings) -> Lexer {
         // Separate accents from characters
+        console_log!("tokenRegexString = {}", tokenRegexString.lock().unwrap());
         Lexer {
             lexer_i: LexerInterface {
                 input,
@@ -110,6 +111,7 @@ impl Lexer {
         }
     }
 
+    #[wasm_bindgen(js_name = setCatcode)]
     pub fn set_catcode(&mut self, char: String, code: f64) {
         self.catcodes.insert(char, code);
     }
@@ -118,8 +120,10 @@ impl Lexer {
      * This function lexes a single token.
      */
     pub fn lex(&self) -> Token {
+        use web_sys::console;
         let input = &self.lexer_i.input;
         let pos = self.lexer_i.tokenRegex.last_index();
+        // console_log!("pos = {}; input = {};", pos, input);
         if pos == input.len() as u32 {
             return Token {
                 text: "EOF".to_string(),
@@ -128,32 +132,46 @@ impl Lexer {
                 treatAsRelax: None,
             };
         }
+
         let _match = self.lexer_i.tokenRegex.exec(input);
-        if !_match.is_none()
+        if _match.is_none()
         /*|| _match.unwrap() != pos*/
         {
             console_log!(
-                "Unexpected character: '${input[pos]}'`,new Token(input[pos], new SourceLocation(this, pos, pos + 1)"
+                "Unexpected character: ,new Token(input[pos], new SourceLocation(this, pos, pos + 1)"
             );
         }
         let _match_u = _match.unwrap();
+        // console::log_2(&"match".into(), &_match_u);
+        // if _match_u.index
+        if _match_u.length() < 7 {
+            console_log!("errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr!");
+        }
+        let text: String = if let Some(m6) = _match_u.at(6).as_string() {
+            m6
+        } else if let Some(m3) = _match_u.at(3).as_string() {
+            m3
+        } else if let Some(m2) = _match_u.at(2).as_string() {
+            "\\ ".to_string()
+        } else {
+            " ".to_string()
+        };
+        // console_log!("text = {}", text);
 
-        let text: String =
-            String::from(" _match_u[6] || _match_u[3] || (_match_u[2] ? \"\\ \" : \" \")");
-
-        if self.catcodes.get(&text) == Some(14.0) {
+        if self.catcodes.get(&text) == Some(&14.0) {
             // comment character
-            let nlIndex = input.indexOf('\n', self.lexer_i.tokenRegex.last_index());
-            if nlIndex == -1 {
-                self.lexer_i.tokenRegex.lastIndex = input.length; // EOF
+            let nl_index = input[self.lexer_i.tokenRegex.last_index() as usize..].find('\n');
+            if nl_index.is_none() {
+                self.lexer_i.tokenRegex.set_last_index(input.len() as u32); // EOF
                 self.settings.reportNonstrict(
                     "commentAtEnd".to_string(),
-                    "% comment has no terminating newline; LaTeX would "
-                        + "fail because of commenting the end of math mode (e.g. $)",
+                    "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)".to_string(),
                     None,
                 );
             } else {
-                self.lexer_i.tokenRegex.set_last_index(nlIndex + 1);
+                self.lexer_i
+                    .tokenRegex
+                    .set_last_index(nl_index.unwrap() as u32 + 1);
             }
             return self.lex();
         }
@@ -162,8 +180,8 @@ impl Lexer {
             text,
             loc: Some(SourceLocation {
                 lexer: self.lexer_i.clone(),
-                start: pos,
-                end: self.lexer_i.tokenRegex.lastIndex,
+                start: pos as i32,
+                end: self.lexer_i.tokenRegex.last_index() as i32,
             }),
             noexpand: None,
 

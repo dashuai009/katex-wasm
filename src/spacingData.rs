@@ -15,7 +15,7 @@ use wasm_bindgen::prelude::*;
 pub type __spacings = HashMap<String, HashMap<String, Measurement>>;
 
 lazy_static! {
-    pub static  ref thinspace: Mutex<Measurement> = Mutex::new(Measurement{
+    pub static ref thinspace: Mutex<Measurement> = Mutex::new(Measurement{
         number: 3.0,
         unit: String::from("mu")
     });
@@ -30,7 +30,7 @@ lazy_static! {
 
 // Spacing relationships for display and text styles
 
-    static ref spacings: __spacings= {
+    static ref spacings:Mutex<__spacings>= Mutex::new({
         let mut m = HashMap::new();
         let mut mord = HashMap::new();
         let thinspace_c = thinspace.lock().unwrap();
@@ -90,9 +90,9 @@ lazy_static! {
         minner.insert(String::from("mpunct"), thinspace_c.clone());
         minner.insert(String::from("minner"), thinspace_c.clone());
         m.insert(String::from("minner"),minner);
-        return m;
-    };
-    static ref tightSpacings: __spacings = {
+        m
+    });
+    static ref tightSpacings:Mutex<__spacings>= Mutex::new({
         let thinspace_c = thinspace.lock().unwrap();
         let mediumspace_c = mediumspace.lock().unwrap();
         let thickspace_c = thickspace.lock().unwrap();
@@ -114,23 +114,22 @@ lazy_static! {
         minner.insert(String::from("mop"),thinspace_c.clone());
         m.insert(String::from("minner"),minner);
         m
-    };
+    });
 // Spacing relationships for script and scriptscript styles
 
 }
 
 #[wasm_bindgen]
-pub fn get_spacings(k1: String, k2: String) -> JsValue {
-    let res = spacings.get(&k1);
+pub fn get_spacings(k1: String, k2: String) -> Option<Measurement> {
+    let _spacings = spacings.lock().unwrap();
+    let res = _spacings.get(&k1);
 
     match res {
-        Some(p) => match p.get(&k2) {
-            Some(q) => {
-                JsValue::from_serde(q).unwrap()
-            }
-            None => JsValue::NULL,
+        Some(p) => match p.get(&k2){
+            Some(q)=>Some(q.clone()),
+            None=>None
         },
-        None => JsValue::NULL,
+        None => None,
     }
 }
 
@@ -161,17 +160,14 @@ macro_rules!  console_log {
 use std::panic;
 
 #[wasm_bindgen]
-pub fn get_tightSpacings(k1: String, k2: String) -> JsValue {
-    let res = tightSpacings.get(&k1);
-    let res = spacings.get(&k1);
-
+pub fn get_tightSpacings(k1: String, k2: String) -> Option<Measurement> {
+    let _tight_spacings = tightSpacings.lock().unwrap();
+    let res = _tight_spacings.get(&k1);
     match res {
         Some(p) => match p.get(&k2) {
-            Some(q) => {
-                JsValue::from_serde(q).unwrap()
-            }
-            None => JsValue::NULL,
+            Some(q) =>Some(q.clone()),
+            None => None,
         },
-        None => JsValue::NULL,
+        None => None,
     }
 }

@@ -1,5 +1,6 @@
 use crate::mathML_tree::public::{MathDomNode, MathNodeType, ToText};
-use crate::utils::{escape, make_em};
+use crate::utils::{escape};
+use crate::units::make_em;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;

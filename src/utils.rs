@@ -73,10 +73,4 @@ pub fn escape(text: &String) -> String {
     return text.chars().map(ESCAPE_LOOKUP).collect();
 }
 
-/**
- * Round `n` to 4 decimal places, or to the nearest 1/10,000th em. See
- * https://github.com/KaTeX/KaTeX/pull/2460.
- */
-pub fn make_em(n: f64) -> String {
-    format!("{:.4}em", n)
-}
+

@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate lazy_static;
+extern crate core;
 
 mod Namespace;
 mod Options;
@@ -10,8 +11,10 @@ mod metrics;
 //mod ParseError;
 //mod Setting;
 // mod Lexer;
+mod Lexer;
 mod Style;
 mod mathML_tree;
+mod parse_node;
 mod settings;
 mod sourceLocation;
 mod spacingData;

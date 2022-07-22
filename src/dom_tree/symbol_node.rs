@@ -1,5 +1,6 @@
 use crate::dom_tree::css_style::CssStyle;
-use crate::utils::{escape, make_em};
+use crate::utils::{escape};
+use crate::units::make_em;
 use crate::{scriptFromCodepoint, HasClassNode, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use std::collections::HashMap;
@@ -38,6 +39,29 @@ pub struct SymbolNode {
 impl SymbolNode {
     pub fn set_style_color(&mut self, c: Option<String>) {
         self.style.color = c;
+    }
+    /**
+     * Returns true if subsequent symbolNodes have the same classes, skew, maxFont,
+     * and styles.
+     */
+    pub fn can_combine(prev: &SymbolNode, next: &SymbolNode) -> bool {
+        if prev.classes.join(" ") != next.classes.join(" ")
+            || prev.skew != next.skew
+            || prev.maxFontSize != next.maxFontSize
+        {
+            return false;
+        }
+
+        // If prev and next both are just "mbin"s or "mord"s we don't combine them
+        // so that the proper spacing can be preserved.
+        if prev.classes.len() == 1 {
+            let cls = &prev.classes[0];
+            if cls == "mbin" || cls == "mord" {
+                return false;
+            }
+        }
+
+        return prev.style != next.style;
     }
 }
 impl VirtualNode for SymbolNode {

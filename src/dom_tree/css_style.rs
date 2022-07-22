@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 /**
  * This node represents an image embed (<img>) element.
  */
-#[derive(Debug, Clone, format, Default)]
+#[derive(Debug, Clone, format, Default, PartialEq)]
 #[wasm_bindgen(getter_with_clone)]
 pub struct CssStyle {
     background_color: Option<String>,

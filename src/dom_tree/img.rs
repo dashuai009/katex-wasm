@@ -46,7 +46,7 @@ impl VirtualNode for Img {
         let node = document.create_element("img").expect("");
         web_sys::Element::set_attribute(&node, "src", self.src.as_str());
         web_sys::Element::set_attribute(&node, "alt", self.alt.as_str());
-        web_sys::Element::set_attribute(&node, "className", "mord");
+        web_sys::Element::set_attribute(&node, "class", "mord");//?
         let style_str = self.style.to_css_str();
         web_sys::Element::set_attribute(&node, "style", style_str.as_str());
 
