@@ -4,6 +4,7 @@ use std::str::FromStr;
 pub enum MathNodeType {
     Math,
     Annotation,
+    Mo
 }
 
 impl FromStr for MathNodeType {
@@ -13,6 +14,7 @@ impl FromStr for MathNodeType {
         match input {
             "math" => Ok(MathNodeType::Math),
             "annotation" => Ok(MathNodeType::Annotation),
+            "mo" => Ok(MathNodeType::Mo),
             _ => Err(()),
         }
     }
@@ -23,6 +25,7 @@ impl MathNodeType {
         match self {
             MathNodeType::Math => "math",
             MathNodeType::Annotation => "annotation",
+            MathNodeType::Mo => "mo"
         }
     }
 }

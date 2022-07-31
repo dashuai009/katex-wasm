@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 mod mathS;
-mod public;
+pub(crate) mod public;
 mod textS;
 use crate::{
     symbols::{

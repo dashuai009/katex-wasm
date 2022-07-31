@@ -13,11 +13,14 @@ use wasm_bindgen::prelude::*;
 /**
  * SVG nodes are used to render stretchy wide elements.
  */
-#[wasm_bindgen]
 pub struct SvgNode {
-    children: Vec<Box<dyn VirtualNode>>,
-    attributes: HashMap<String, String>,
+    pub children: Vec<Box<dyn VirtualNode>>,
+    pub attributes: HashMap<String, String>,
 }
+
+// impl SvgNode{
+//     pub fn new(children:)
+// }
 impl VirtualNode for SvgNode {
     fn to_node(&self) -> web_sys::Node {
         let svgNS = "http://www.w3.org/2000/svg";
@@ -67,28 +70,28 @@ impl VirtualNode for SvgNode {
         return markup;
     }
 }
-#[wasm_bindgen]
-impl SvgNode {
-    #[wasm_bindgen(constructor)]
-    pub fn new(attributes: js_sys::Object) -> SvgNode {
-        let mut res = HashMap::new();
-        for (k, v) in js_sys::Object::keys(&attributes)
-            .iter()
-            .zip(js_sys::Object::values(&attributes).iter())
-        {
-            res.insert(k.as_string().unwrap(), v.as_string().unwrap());
-        }
-        SvgNode {
-            children: vec![],
-            attributes: res,
-        }
-    }
+// #[wasm_bindgen]
+// impl SvgNode {
+//     #[wasm_bindgen(constructor)]
+//     pub fn new(attributes: js_sys::Object) -> SvgNode {
+//         let mut res = HashMap::new();
+//         for (k, v) in js_sys::Object::keys(&attributes)
+//             .iter()
+//             .zip(js_sys::Object::values(&attributes).iter())
+//         {
+//             res.insert(k.as_string().unwrap(), v.as_string().unwrap());
+//         }
+//         SvgNode {
+//             children: vec![],
+//             attributes: res,
+//         }
+//     }
 
-    pub fn toNode(&self) -> web_sys::Node {
-        return self.to_node();
-    }
+//     pub fn toNode(&self) -> web_sys::Node {
+//         return self.to_node();
+//     }
 
-    pub fn toMarkup(&self) -> String {
-        return self.to_markup();
-    }
-}
+//     pub fn toMarkup(&self) -> String {
+//         return self.to_markup();
+//     }
+// }

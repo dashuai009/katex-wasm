@@ -62,46 +62,41 @@ const wideNumeralData: [[&'static str; 3]; 5] = [
     ["mathtt", "texttt", "Typewriter-Regular"],     // 0-9 monospace
 ];
 
-#[wasm_bindgen]
-pub fn wideCharacterFont(wideChar: String, mode: String) -> js_sys::Array {
-    // IE doesn't support codePointAt(). So work with the surrogate pair.
+pub fn wide_character_font(wide_char:String, mode:Mode)->Result<[&'static str;2],String>{
+ // IE doesn't support codePointAt(). So work with the surrogate pair.
     // let H = wideChar[0];    // high surrogate
     // let L = wideChar.charCodeAt(1);    // low surrogate
     // let codePoint = ((H - 0xD800) * 0x400) + (L - 0xDC00) + 0x10000;
-    let codePoint = wideChar.chars().nth(0).unwrap() as usize;
+    let code_point = wide_char.chars().nth(0).unwrap() as usize;
 
-    let j = if Mode::from_str(mode.as_str()).unwrap() == Mode::math { 0 } else { 1 }; // column index for CSS class.
+    let j = if mode == Mode::math { 0 } else { 1 }; // column index for CSS class.
 
-    if 0x1D400 <= codePoint && codePoint < 0x1D6A4 {
+    if 0x1D400 <= code_point && code_point < 0x1D6A4 {
         // wideLatinLetterData contains exactly 26 chars on each row.
         // So we can calculate the relevant row. No traverse necessary.
-        let i = (codePoint - 0x1D400) / 26;
-        return [wideLatinLetterData[i][2], wideLatinLetterData[i][j]]
-            .iter()
-            .map(|s| JsValue::from_str(s))
-            .collect::<js_sys::Array>();
-    } else if 0x1D7CE <= codePoint && codePoint <= 0x1D7FF {
+        let i = (code_point - 0x1D400) / 26;
+        return Ok([wideLatinLetterData[i][2], wideLatinLetterData[i][j]]);
+    } else if 0x1D7CE <= code_point && code_point <= 0x1D7FF {
         // Numerals, ten per row.
-        let i = (codePoint - 0x1D7CE) / 10;
-        return [wideNumeralData[i][2], wideNumeralData[i][j]]
-            .iter()
-            .map(|s| JsValue::from_str(s))
-            .collect::<js_sys::Array>();
-    } else if codePoint == 0x1D6A5 || codePoint == 0x1D6A6 {
+        let i = (code_point - 0x1D7CE) / 10;
+        return Ok([wideNumeralData[i][2], wideNumeralData[i][j]]);
+    } else if code_point == 0x1D6A5 ||code_point == 0x1D6A6 {
         // dotless i or j
-        return [wideLatinLetterData[0][2], wideLatinLetterData[0][j]]
-            .iter()
-            .map(|s| JsValue::from_str(s))
-            .collect::<js_sys::Array>();
-    } else if 0x1D6A6 < codePoint && codePoint < 0x1D7CE {
+        return Ok([wideLatinLetterData[0][2], wideLatinLetterData[0][j]]);
+    } else if 0x1D6A6 < code_point &&code_point < 0x1D7CE {
         // Greek letters. Not supported, yet.
-        return ["", ""]
-            .iter()
-            .map(|s| JsValue::from_str(s))
-            .collect::<js_sys::Array>();
+        return Ok(["", ""]);
     } else {
         // We don't support any wide characters outside 1D400–1D7FF.
-        wasm_bindgen::throw_str(&format!("{}{}", "Unsupported character", wideChar));
+        let err = format!("{}{}", "Unsupported character", wide_char);
+        return Err(err);
         //throw new ParseError();
     }
+}
+#[wasm_bindgen]
+pub fn wideCharacterFont(wide_char: String, mode: String) -> js_sys::Array {
+   return wide_character_font(wide_char, Mode::from_str(mode.as_str()).unwrap()).unwrap()
+    .iter()
+    .map(|s| JsValue::from_str(s))
+    .collect::<js_sys::Array>();
 }

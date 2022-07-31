@@ -1,10 +1,12 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::escape;
-use crate::{HasClassNode, HtmlDomNode, VirtualNode};
+use crate::{HtmlDomNode, VirtualNode};
 use js_sys::Array;
+use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+#[derive(html_dom_node)]
 pub struct Img {
     src: String,
     alt: String,
@@ -46,7 +48,7 @@ impl VirtualNode for Img {
         let node = document.create_element("img").expect("");
         web_sys::Element::set_attribute(&node, "src", self.src.as_str());
         web_sys::Element::set_attribute(&node, "alt", self.alt.as_str());
-        web_sys::Element::set_attribute(&node, "class", "mord");//?
+        web_sys::Element::set_attribute(&node, "class", "mord"); //?
         let style_str = self.style.to_css_str();
         web_sys::Element::set_attribute(&node, "style", style_str.as_str());
 
@@ -62,13 +64,6 @@ impl VirtualNode for Img {
     }
 }
 
-impl HasClassNode for Img {
-    fn has_class(&self, class_name: &String) -> bool {
-        return self.classes.contains(class_name);
-    }
-}
-
-impl HtmlDomNode for Img {}
 #[wasm_bindgen]
 impl Img {
     pub fn toNode(&self) -> web_sys::Node {

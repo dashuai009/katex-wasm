@@ -1,7 +1,8 @@
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::{escape};
+use struct_format::html_dom_node;
 use crate::units::make_em;
-use crate::{scriptFromCodepoint, HasClassNode, HtmlDomNode, VirtualNode};
+use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -24,6 +25,7 @@ lazy_static! {
  * whether it has CSS classes, styles, or needs italic correction.
  */
 #[wasm_bindgen(getter_with_clone)]
+#[derive(html_dom_node)]
 pub struct SymbolNode {
     text: String,
     pub height: f64,
@@ -31,7 +33,7 @@ pub struct SymbolNode {
     pub italic: f64,
     pub skew: f64,
     pub width: f64,
-    pub maxFontSize: f64,
+    pub max_font_size: f64,
     classes: Vec<String>,
     style: CssStyle,
 }
@@ -47,7 +49,7 @@ impl SymbolNode {
     pub fn can_combine(prev: &SymbolNode, next: &SymbolNode) -> bool {
         if prev.classes.join(" ") != next.classes.join(" ")
             || prev.skew != next.skew
-            || prev.maxFontSize != next.maxFontSize
+            || prev.max_font_size != next.max_font_size
         {
             return false;
         }
@@ -137,13 +139,6 @@ impl VirtualNode for SymbolNode {
     }
 }
 
-impl HasClassNode for SymbolNode {
-    fn has_class(&self, class_name: &String) -> bool {
-        self.classes.contains(class_name)
-    }
-}
-
-impl HtmlDomNode for SymbolNode {}
 #[wasm_bindgen]
 impl SymbolNode {
     #[wasm_bindgen(getter)]
@@ -167,7 +162,7 @@ impl SymbolNode {
             italic: 0.0,
             skew: 0.0,
             width: 0.0,
-            maxFontSize: 0.0,
+            max_font_size: 0.0,
             classes: vec![],
             style: CssStyle::default(),
         };
