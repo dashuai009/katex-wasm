@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use wasm_bindgen::prelude::*;
 use crate::utils::{console_log,log};
-use crate::ParseError::parse_error;
+use crate::parse_error::ParseError;
 
 /**
  * A `Namespace` refers to a space of nameable things like macros or lengths,
@@ -13,9 +14,9 @@ use crate::ParseError::parse_error;
 
 type Mapping<T> = std::collections::HashMap<String, T>;
 
-struct Namespace<Value> {
-    current: Mapping<Value>,
-    builtins: Mapping<Value>,
+pub struct Namespace<Value> {
+    current: Arc<Mapping<Value>>,
+    builtins: Arc<Mapping<Value>>,
     undef_stack: Vec<Mapping<Option<Value>>>,
 }
 
@@ -26,8 +27,8 @@ impl<Value: Clone> Namespace<Value> {
      * of initial (global-level) mappings, which will constantly change
      * according to any global/top-level `set`s done.
      */
-    pub fn new(builtins: Mapping<Value>,
-               global_macros: Mapping<Value>) -> Namespace<Value> {
+    pub fn new(builtins: Arc<Mapping<Value>>,
+               global_macros: Arc<Mapping<Value>>) -> Namespace<Value> {
         Namespace {
             current: global_macros,
             builtins: builtins,
@@ -53,9 +54,9 @@ impl<Value: Clone> Namespace<Value> {
         let stack = self.undef_stack.pop().unwrap();
         for (k,v) in stack {
             if v.is_none(){
-                self.current.remove(&k);
+                (*(Arc::get_mut( &mut self.current).unwrap())).remove(&k)  ;
             }else{
-                self.current.insert(k,v.unwrap());
+                (*(Arc::get_mut( &mut self.current).unwrap())).insert(k,v.unwrap());
             }
         }
     }
@@ -74,9 +75,9 @@ impl<Value: Clone> Namespace<Value> {
      * Detect whether `name` has a definition.  Equivalent to
      * `get(name) != null`.
      */
-    pub fn has(&self, name: String) -> bool {
-        return self.current.contains_key(&name) ||
-            self.builtins.contains_key(&name);
+    pub fn has(&self, name: &String) -> bool {
+        return self.current.contains_key(name) ||
+            self.builtins.contains_key(name);
     }
 
     /**
@@ -87,11 +88,11 @@ impl<Value: Clone> Namespace<Value> {
      * to `false` in JavaScript.  Use `if (namespace.get(...) != null)` or
      * `if (namespace.has(...))`.
      */
-    pub fn get(&self, name: String) -> Option<&Value> {
-        if (self.current.contains_key(&name)) {
-            return self.current.get(&name);
+    pub fn get(&self, name: &String) -> Option<&Value> {
+        if (self.current.contains_key(name)) {
+            return self.current.get(name);
         } else {
-            return self.builtins.get(&name);
+            return self.builtins.get(name);
         }
     }
 
@@ -102,14 +103,14 @@ impl<Value: Clone> Namespace<Value> {
      * operation at every level, so takes time linear in their number.
      * A value of undefined means to delete existing definitions.
      */
-    pub fn set(&mut self, name: String, value: Option<Value>, global: bool) {
+    pub fn set(&mut self, name: &String, value: Option<Value>, global: bool) {
         if (global) {
             // Global set is equivalent to setting in all groups.  Simulate this
             // by destroying any undos currently scheduled for this name,
             // and adding an undo with the *new* value (in case it later gets
             // locally reset within this environment).
             for stack in self.undef_stack.iter_mut() {
-                stack.remove(&name);
+                stack.remove(name);
             }
             if self.undef_stack.len() > 0 {
                 self.undef_stack.last_mut().unwrap().insert(name.clone(),value.clone());
@@ -119,16 +120,16 @@ impl<Value: Clone> Namespace<Value> {
             // unless an undo is already in place, in which case that older
             // value is the correct one.
             if let Some(top) = self.undef_stack.last_mut(){
-                if(top.contains_key(&name)){
-                    top.insert(name.clone(), Some((*self.current.get(&name).unwrap()).clone()));
+                if(top.contains_key(name)){
+                    top.insert(name.clone(), Some((*self.current.get(name).unwrap()).clone()));
                 }
             }
         }
 
         if value.is_none(){
-            self.current.remove(&name);
+            (*(Arc::get_mut( &mut self.current).unwrap())).remove(name);
         } else {
-            self.current.insert(name, value.unwrap());
+            (*(Arc::get_mut( &mut self.current).unwrap())).insert(name.clone(), value.unwrap());
         }
     }
 }

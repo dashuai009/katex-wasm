@@ -11,7 +11,6 @@ use crate::{
     utils::log,
 };
 use public::*;
-use regex::internal::Char;
 use std::{collections::HashMap, str::FromStr};
 use wasm_bindgen::prelude::*;
 

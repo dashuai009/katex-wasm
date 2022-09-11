@@ -109,16 +109,25 @@ pub fn derive_format(input: TokenStream) -> TokenStream {
 pub fn derive_node_type(input: TokenStream) ->TokenStream{
     let input = parse_macro_input!(input as DeriveInput);
     let struct_name = input.ident;
+    // let struct_name_str = struct_name.as_str();
     let expended =  quote! {
-        #[wasm_bindgen]
-        impl #struct_name{
-            #[wasm_bindgen(getter = type)]
-            pub fn get_type(&self)->String{
-                return String::from(stringify!(#struct_name));
+        // #[wasm_bindgen]
+        // impl #struct_name{
+        //     #[wasm_bindgen(getter = type)]
+        //     pub fn get_type(&self)->String{
+        //         return String::from(stringify!(#struct_name));
+        //     }
+        // }
+        // impl ParseNodeToAny for #struct_name{
+        //     fn as_any(&self) -> &dyn Any{
+        //         &self
+        //     }
+        // }
+        impl AnyParseNode for #struct_name{
+            fn get_type(&self)->&str{
+                return stringify!(#struct_name);
             }
         }
-
-        // impl AnyParseNode for #struct_name{}
     };
     expended.into()
 }

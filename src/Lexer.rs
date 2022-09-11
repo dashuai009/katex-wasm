@@ -1,6 +1,6 @@
 use crate::settings::Settings;
 use crate::utils::{console_log, log};
-use crate::ParseError::parse_error;
+use crate::parse_error::ParseError;
 use crate::{LexerInterface, SourceLocation, Token};
 /**
  * The Lexer class handles tokenizing the input in various ways. Since our
@@ -51,6 +51,7 @@ lazy_static! {
 // static ref controlSymbolRegexString: &str = "\\\\[^\u{d800}-\u{DFFF}]";
 // static ref controlWordWhitespaceRegexString:String = format!("(${controlWordRegexString})${spaceRegexString}*");
 
+// const token_regex_string :&'static str = "([ \r\n\t]+)|\\\\(\n|[ \r\t]+\n?)[ \r\t]*|([!-\\[\\]-\u2027\u202A-\uD7FF\uF900-\uFFFF][\u0300-\u036f]*[\uD800-\uDBFF][\uDC00-\uDFFF][\u0300-\u036f]*|\\\\verb\\*([^]).*?\\4|\\\\verb([^*a-zA-Z]).*?\\5|(\\\\[a-zA-Z@]+)[ \r\n\t]*|\\\\[^\uD800-\uDFFF]";
 // static ref  combiningDiacriticalMarksEndRegex: RegExp =    new RegExp(`${combiningDiacriticalMarkString}+$`);
 static ref tokenRegexString:Mutex<String> = Mutex::new({
         let mut res = format!("({spaceRegexString}+)|");  // whitespace
@@ -58,11 +59,11 @@ static ref tokenRegexString:Mutex<String> = Mutex::new({
         res.push_str("([!-\\[\\]-\u{2027}\u{202A}-\u{D7FF}\u{F900}-\u{FFFF}]");  // single codepoint
         res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())    ;        // ...plus accents
         // .push_str("|[\u{D800}-\u{DBFF}][\u{DC00}-\u{DFFF}]")               // surrogate pair
-        res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())  ;          // ...plus accents
+        // res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())  ;          // ...plus accents
         res.push_str("|\\\\verb\\*([^]).*?\\4")        ;               // \verb*
         res.push_str("|\\\\verb([^*a-zA-Z]).*?\\5")    ;               // \verb unstarred
-        res.push_str(format!("|{controlWordWhitespaceRegexString})").as_str())   ;      // \macroName + spaces
-        // res.push_str(format!("|{controlSymbolRegexString})"));                  // \\, \', etc.
+        res.push_str(format!("|{controlWordWhitespaceRegexString}").as_str())   ;      // \macroName + spaces
+        res.push_str("|\\\\.)");// res.push_str(format!("|{controlSymbolRegexString})"));                  // \\, \', etc.
         res
         });
 }
@@ -74,7 +75,7 @@ pub struct Lexer {
     settings: Settings,
     //     Category codes. The lexer only supports comment characters (14) for now.
     // MacroExpander additionally distinguishes active (13).
-    catcodes: HashMap<String, f64>,
+    catcodes: HashMap<String, i32>,
 }
 
 //
@@ -97,7 +98,7 @@ impl Lexer {
     #[wasm_bindgen(constructor)]
     pub fn new(input: String, settings: &Settings) -> Lexer {
         // Separate accents from characters
-        console_log!("tokenRegexString = {}", tokenRegexString.lock().unwrap());
+        // console_log!("tokenRegexString = {}", tokenRegexString.lock().unwrap());
         Lexer {
             lexer_i: LexerInterface {
                 input,
@@ -105,14 +106,14 @@ impl Lexer {
             },
             settings: settings.clone(),
             catcodes: HashMap::from([
-                ("%".to_string(), 14.0), // comment character
-                ("~".to_string(), 13.0), // active character
+                ("%".to_string(), 14), // comment character
+                ("~".to_string(), 13), // active character
             ]),
         }
     }
 
     #[wasm_bindgen(js_name = setCatcode)]
-    pub fn set_catcode(&mut self, char: String, code: f64) {
+    pub fn set_catcode(&mut self, char: String, code: i32) {
         self.catcodes.insert(char, code);
     }
 
@@ -158,12 +159,12 @@ impl Lexer {
         };
         // console_log!("text = {}", text);
 
-        if self.catcodes.get(&text) == Some(&14.0) {
+        if self.catcodes.get(&text) == Some(&14) {
             // comment character
             let nl_index = input[self.lexer_i.tokenRegex.last_index() as usize..].find('\n');
             if nl_index.is_none() {
                 self.lexer_i.tokenRegex.set_last_index(input.len() as u32); // EOF
-                self.settings.reportNonstrict(
+                self.settings.report_nonstrict(
                     "commentAtEnd".to_string(),
                     "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)".to_string(),
                     None,
@@ -187,5 +188,12 @@ impl Lexer {
 
             treatAsRelax: None,
         };
+    }
+}
+
+
+impl Lexer{
+    pub fn catcodes_get(&self,name:&String)->Option<&i32>{
+        return self.catcodes.get(name);
     }
 }

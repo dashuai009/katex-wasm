@@ -15,7 +15,7 @@ impl StyleInterface {
 
 
     #[wasm_bindgen(constructor)]
-    pub fn new(id: f64, size: f64, cramped: bool) -> StyleInterface {
+    pub fn new(id: usize, size: i32, cramped: bool) -> StyleInterface {
         StyleInterface {
             id: id as usize,
             size: size as i32,
@@ -136,3 +136,11 @@ const fracNum: [usize; 8] = [T, Tc, S, Sc, SS, SSc, SS, SSc];
 const fracDen: [usize; 8] = [Tc, Tc, Sc, Sc, SSc, SSc, SSc, SSc];
 const cramp: [usize; 8] = [Dc, Dc, Tc, Tc, Sc, Sc, SSc, SSc];
 const text: [usize; 8] = [D, Dc, T, Tc, T, Tc, T, Tc];
+
+
+lazy_static!{
+    pub static ref DISPLAY:StyleInterface = StyleInterface::new(0, 0, false);
+    pub static ref TEXT:StyleInterface = StyleInterface::new(2, 1, false);
+    pub static ref SCRIPT:StyleInterface = StyleInterface::new(4, 2, false);
+    pub static ref SCRIPTSCRIPT:StyleInterface = StyleInterface::new(6, 3, false);
+}
