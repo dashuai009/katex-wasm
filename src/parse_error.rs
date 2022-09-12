@@ -23,7 +23,7 @@ impl fmt::Display for ParseError {
                 // If we have the input and a position, make the error a bit fancier
 
                 // Get the input
-                let input = &loc.lexer.input;
+                let input = loc.lexer.get_input();
 
                 // Prepend some information
                 start = loc.start as usize;

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use unicode_normalization::IsNormalized::No;
 use wasm_bindgen::prelude::*;
 
@@ -25,6 +27,11 @@ pub struct Token {
     pub treatAsRelax: Option<bool>, // used in \noexpand
 }
 
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f , "{} {:?} {:?} {:?}" , self.text, self.loc, self.noexpand,self.treatAsRelax)
+    }
+}
 #[wasm_bindgen]
 impl Token {
     #[wasm_bindgen(constructor)]

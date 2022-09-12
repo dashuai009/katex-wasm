@@ -4,21 +4,24 @@ use struct_format::parse_node_type;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    sourceLocation::SourceLocation, symbols::public::Mode, token::Token, types::StyleStr,
+    sourceLocation::SourceLocation,
+    symbols::public::{Group, Mode},
+    token::Token,
+    types::StyleStr,
     units::Measurement,
 };
 
 pub(crate) trait ParseNodeToAny: 'static {
     fn as_any(&self) -> &dyn Any;
-    
-    fn as_mut_any(&mut self) ->&mut dyn Any;
+
+    fn as_mut_any(&mut self) -> &mut dyn Any;
 }
 
 impl<T: 'static> ParseNodeToAny for T {
     fn as_any(&self) -> &dyn Any {
         self
     }
-    fn as_mut_any(&mut self) ->&mut dyn Any{
+    fn as_mut_any(&mut self) -> &mut dyn Any {
         self
     }
 }
@@ -106,7 +109,7 @@ pub struct color {
     pub mode: Mode,
     pub loc: Option<SourceLocation>,
     pub color: String,
-     pub body: Vec<Box<dyn AnyParseNode>>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone)]
@@ -121,15 +124,15 @@ pub struct color_token {
 // - When `symbol` is true, `body` is set.
 #[derive(parse_node_type, Clone)]
 pub struct op {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
     pub limits: bool,
     pub alwaysHandleSupSub: bool,
-    suppressBaseShift: bool,
-    parentIsSupSub: bool,
-    symbol: bool,
-    name: String,
-    body: Option<Vec<Box<dyn AnyParseNode>>>,
+    pub suppressBaseShift: bool,
+    pub parentIsSupSub: bool,
+    pub symbol: bool,
+    pub name: Option<String>,
+    pub body: Option<Vec<Box<dyn AnyParseNode>>>,
 }
 
 #[derive(parse_node_type, Clone)]
@@ -197,10 +200,10 @@ pub struct url {
 
 #[derive(parse_node_type, Clone)]
 pub struct verb {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: String,
-    star: bool,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: String,
+    pub star: bool,
 }
 
 #[derive(Clone)]
@@ -212,29 +215,47 @@ pub enum Atom {
     punct,
     rel,
 }
+
+impl Atom {
+    pub fn from_group(g: Group) -> Atom {
+        match g {
+            Group::accent => panic!("can't xxxxx"),
+            Group::bin => Atom::bin,
+            Group::close => Atom::close,
+            Group::inner => Atom::inner,
+            Group::mathord => panic!("can't xxxxx"),
+            Group::op => panic!("can't xxxxx"),
+            Group::open => Atom::open,
+            Group::punct => Atom::punct,
+            Group::rel => Atom::rel,
+            Group::spacing => panic!("can't xxxxx"),
+            Group::textord => panic!("can't xxxxx"),
+        }
+    }
+}
 // From symbol groups, constructed in Parser.js via `symbols` lookup.
 // (Some of these have "-token" suffix to distinguish them from existing
 // `ParseNode` types.)
 #[derive(parse_node_type, Clone)]
 pub struct atom {
-    family: Atom,
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    text: String,
+    pub family: Atom,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub text: String,
 }
 
 #[derive(parse_node_type, Clone)]
 pub struct mathord {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    text: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub text: String,
 }
 
 #[derive(parse_node_type, Clone)]
 pub struct spacing {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    text: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub text: String,
 }
 
 #[derive(parse_node_type, Clone)]
@@ -261,12 +282,12 @@ pub struct op_token {
 // and "text" above.
 #[derive(parse_node_type, Clone)]
 pub struct accent {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    label: String,
-    isStretchy: bool,
-    isShifty: bool,
-    base: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub(crate) loc: Option<SourceLocation>,
+    pub label: String,
+    pub isStretchy: bool,
+    pub isShifty: bool,
+    pub base: Option<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone)]

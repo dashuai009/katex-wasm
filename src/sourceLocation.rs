@@ -1,36 +1,59 @@
+use crate::utils::{console_log, log};
+use regex::Regex;
 use wasm_bindgen::prelude::*;
-use crate::utils::{console_log,log};
 
 /**
  * Interface required to break circular dependency between Token, Lexer, and
  * ParseError.
  */
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct LexerInterface {
-     pub input: String,
+    input: String,
     // pub tokenRegx: regex::Regex,
-     pub tokenRegex: js_sys::RegExp
+    token_regex: Regex,
+    last_index: usize,
 }
 
-#[wasm_bindgen]
-impl LexerInterface{
-    #[wasm_bindgen(constructor)]
-    pub fn new(input: String,tokenRegex: js_sys::RegExp) -> LexerInterface {
+impl std::fmt::Display for LexerInterface {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f , "input:{} last_index:{}" , self.input, self.last_index)
+    }
+}
+
+impl LexerInterface {
+    pub fn new(input: String, token_regex: Regex) -> LexerInterface {
         // console_log!("input {}",input);
-        return LexerInterface { input:input,tokenRegex: tokenRegex};
+        return LexerInterface {
+            input,
+            token_regex,
+            last_index: 0,
+        };
     }
 
-    // #[wasm_bindgen(setter)]
-    // pub fn set_input(&mut self,input:String){
-    //     self.input = input;
-    // }
-    //
-    //
-    // #[wasm_bindgen(setter)]
-    // pub fn set_tokenRegex(&mut self,tokenRegex:js_sys::RegExp){
-    //     self.tokenRegex = tokenRegex;
-    // }
+    pub fn get_input(&self)->&String{
+        &self.input
+    }
+
+    pub fn get_last_index(&self) -> usize {
+        self.last_index
+    }
+    pub fn set_last_index(&mut self, index: usize) {
+        self.last_index = index;
+    }
+
+    pub fn captures(&mut self)->std::option::Option<regex::Captures<'_>>{
+        if self.last_index >= self.input.len(){
+            return None;
+        }
+        if let Some(res) = self.token_regex.captures(&self.input[self.last_index..]){
+            self.last_index = res.get(0).unwrap().end() + self.last_index;
+            return Some(res);
+        }else{
+            self.last_index = self.input.len();
+            return None;
+        }
+    }
 }
 //impl Copy for LexerInterface {}
 
@@ -38,7 +61,7 @@ impl LexerInterface{
  * Lexing or parsing positional information for error reporting.
  * This object is immutable.
  */
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 #[wasm_bindgen(getter_with_clone)]
 pub struct SourceLocation {
     // The + prefix indicates that these fields aren't writeable
@@ -51,13 +74,12 @@ pub struct SourceLocation {
 
 #[wasm_bindgen]
 impl SourceLocation {
-
     #[wasm_bindgen(constructor)]
-    pub fn new(lexer: &LexerInterface, start: f64, end: f32)->SourceLocation{
-        SourceLocation{
-             lexer:lexer.clone(),
-             start: start as i32,
-             end: end as i32
+    pub fn new(lexer: &LexerInterface, start: f64, end: f32) -> SourceLocation {
+        SourceLocation {
+            lexer: lexer.clone(),
+            start: start as i32,
+            end: end as i32,
         }
     }
     /**
@@ -68,11 +90,11 @@ impl SourceLocation {
      *   and their lexers match.
      * - Otherwise, returns null.
      */
-    pub fn range(first:&SourceLocation , second: &SourceLocation) -> SourceLocation {
-        return SourceLocation{
-            lexer:first.lexer.clone(),
-            start:first.start,
-            end:second.end
+    pub fn range(first: &SourceLocation, second: &SourceLocation) -> SourceLocation {
+        return SourceLocation {
+            lexer: first.lexer.clone(),
+            start: first.start,
+            end: second.end,
         };
     }
 }

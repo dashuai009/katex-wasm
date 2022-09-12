@@ -1,7 +1,8 @@
+use crate::parse_error::ParseError;
 use crate::settings::Settings;
 use crate::utils::{console_log, log};
-use crate::parse_error::ParseError;
 use crate::{LexerInterface, SourceLocation, Token};
+use regex::Regex;
 /**
  * The Lexer class handles tokenizing the input in various ways. Since our
  * parser expects us to be able to backtrack, the lexer allows lexing from any
@@ -17,7 +18,6 @@ use crate::{LexerInterface, SourceLocation, Token};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
-
 /* The following tokenRegex
  * - matches typical whitespace (but not NBSP etc.) using its first group
  * - does not match any control character \x00-\x1f except whitespace
@@ -60,8 +60,8 @@ static ref tokenRegexString:Mutex<String> = Mutex::new({
         res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())    ;        // ...plus accents
         // .push_str("|[\u{D800}-\u{DBFF}][\u{DC00}-\u{DFFF}]")               // surrogate pair
         // res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())  ;          // ...plus accents
-        res.push_str("|\\\\verb\\*([^]).*?\\4")        ;               // \verb*
-        res.push_str("|\\\\verb([^*a-zA-Z]).*?\\5")    ;               // \verb unstarred
+        res.push_str("|\\\\verb\\*([^.]).*?\u{4}")        ;               // \verb*
+        res.push_str("|\\\\verb([^*a-zA-Z]).*?\u{5}")    ;               // \verb unstarred
         res.push_str(format!("|{controlWordWhitespaceRegexString}").as_str())   ;      // \macroName + spaces
         res.push_str("|\\\\.)");// res.push_str(format!("|{controlSymbolRegexString})"));                  // \\, \', etc.
         res
@@ -100,10 +100,10 @@ impl Lexer {
         // Separate accents from characters
         // console_log!("tokenRegexString = {}", tokenRegexString.lock().unwrap());
         Lexer {
-            lexer_i: LexerInterface {
+            lexer_i: LexerInterface::new(
                 input,
-                tokenRegex: js_sys::RegExp::new(&tokenRegexString.lock().unwrap(), "g"),
-            },
+                Regex::new(&tokenRegexString.lock().unwrap()).unwrap(),
+            ),
             settings: settings.clone(),
             catcodes: HashMap::from([
                 ("%".to_string(), 14), // comment character
@@ -120,12 +120,12 @@ impl Lexer {
     /**
      * This function lexes a single token.
      */
-    pub fn lex(&self) -> Token {
+    pub fn lex(&mut self) -> Token {
         use web_sys::console;
-        let input = &self.lexer_i.input;
-        let pos = self.lexer_i.tokenRegex.last_index();
-        // console_log!("pos = {}; input = {};", pos, input);
-        if pos == input.len() as u32 {
+        // let input = self.lexer_i.get_input();
+        let pos = { self.lexer_i.get_last_index().clone() };
+        // println!("pos = {}; input = {};", pos, input);
+        if pos == self.lexer_i.get_input().len() {
             return Token {
                 text: "EOF".to_string(),
                 loc: Some(SourceLocation::new(&self.lexer_i, pos as f64, pos as f32)),
@@ -134,55 +134,51 @@ impl Lexer {
             };
         }
 
-        let _match = self.lexer_i.tokenRegex.exec(input);
+        let _match = self.lexer_i.captures();
         if _match.is_none()
         /*|| _match.unwrap() != pos*/
         {
-            console_log!(
+            panic!(
                 "Unexpected character: ,new Token(input[pos], new SourceLocation(this, pos, pos + 1)"
             );
         }
         let _match_u = _match.unwrap();
-        // console::log_2(&"match".into(), &_match_u);
-        // if _match_u.index
-        if _match_u.length() < 7 {
-            console_log!("errorrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr!");
-        }
-        let text: String = if let Some(m6) = _match_u.at(6).as_string() {
-            m6
-        } else if let Some(m3) = _match_u.at(3).as_string() {
-            m3
-        } else if let Some(m2) = _match_u.at(2).as_string() {
-            "\\ ".to_string()
+        let text: String = if let Some(m6) = _match_u.get(6) {
+            m6.as_str()
+        } else if let Some(m3) = _match_u.get(3) {
+            m3.as_str()
+        } else if let Some(m2) = _match_u.get(2) {
+            "\\ "
         } else {
-            " ".to_string()
-        };
+            " "
+        }
+        .clone()
+        .to_string();
+        println!("{} {}", text, pos);
         // console_log!("text = {}", text);
 
         if self.catcodes.get(&text) == Some(&14) {
             // comment character
-            let nl_index = input[self.lexer_i.tokenRegex.last_index() as usize..].find('\n');
+            let nl_index = self.lexer_i.get_input()[self.lexer_i.get_last_index()..].find('\n');
             if nl_index.is_none() {
-                self.lexer_i.tokenRegex.set_last_index(input.len() as u32); // EOF
+                self.lexer_i.set_last_index(self.lexer_i.get_input().len()); // EOF
                 self.settings.report_nonstrict(
                     "commentAtEnd".to_string(),
                     "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)".to_string(),
                     None,
                 );
             } else {
-                self.lexer_i
-                    .tokenRegex
-                    .set_last_index(nl_index.unwrap() as u32 + 1);
+                self.lexer_i.set_last_index(nl_index.unwrap() + 1);
             }
             return self.lex();
         }
 
         return Token {
-            text,
+            text: text,
             loc: Some(SourceLocation {
                 lexer: self.lexer_i.clone(),
                 start: pos as i32,
-                end: self.lexer_i.tokenRegex.last_index() as i32,
+                end: self.lexer_i.get_last_index() as i32,
             }),
             noexpand: None,
 
@@ -191,9 +187,8 @@ impl Lexer {
     }
 }
 
-
-impl Lexer{
-    pub fn catcodes_get(&self,name:&String)->Option<&i32>{
+impl Lexer {
+    pub fn catcodes_get(&self, name: &String) -> Option<&i32> {
         return self.catcodes.get(name);
     }
 }

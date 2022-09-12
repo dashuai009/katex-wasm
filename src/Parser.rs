@@ -36,11 +36,11 @@ use crate::{
     },
     parse_node::{
         self,
-        types::{AnyParseNode, Atom, ordgroup},
+        types::{ordgroup, AnyParseNode, Atom},
     },
     settings::Settings,
     sourceLocation::SourceLocation,
-    symbols::public::Mode,
+    symbols::public::{Group, Mode},
     token::Token,
     types::{ArgType, BreakToken},
     unicodeSupOrSub::U_SUBS_AND_SUPS,
@@ -80,7 +80,7 @@ impl Parser<'_> {
             // throw new ParseError(
             //     `Expected '${text}', got '${self.fetch().text}'`, self.fetch()
             // );
-            panic!("error ");
+            panic!("Expected '{text}', got '{} ", self.fetch().text);
         }
         if (consume) {
             self.consume();
@@ -137,6 +137,9 @@ impl Parser<'_> {
 
         // Try to parse the input
         let parse = self.parse_expression(false, None);
+        for t in parse.iter() {
+            print!("{},", t.get_type());
+        }
 
         // If we succeeded, make sure there's an EOF at the end
         self.expect("EOF".to_string(), true);
@@ -199,6 +202,7 @@ impl Parser<'_> {
                 self.consume_spaces();
             }
             let lex = self.fetch();
+            println!("lex = {}", lex);
             if (END_OF_EXPRESSION.contains(&lex.text.as_str())) {
                 break;
             }
@@ -207,8 +211,8 @@ impl Parser<'_> {
                     break;
                 }
             }
-            let funcs = crate::define::functions::public::_functions.lock().unwrap();
             if (break_on_infix) {
+                let funcs = crate::define::functions::public::_functions.lock().unwrap();
                 if let Some((f1, f2)) = funcs.get(&lex.text) {
                     if f1.get_infix() {
                         break;
@@ -216,12 +220,15 @@ impl Parser<'_> {
                 }
             }
             let atom = self.parse_atom(break_on_token_text.clone());
+            // println!("atom = {:?}",atom);
             if let Some(_atom) = atom {
+                println!("atom = {}", _atom.get_type());
                 if _atom.get_type() == "internal" {
                     continue;
                 }
                 body.push(_atom);
             } else {
+                println!("_atom is None");
                 break;
             }
         }
@@ -387,7 +394,8 @@ impl Parser<'_> {
                 if let Some(mut base) = _base {
                     _base = match base.get_type() {
                         "op" => {
-                            if let Some(op) = base.as_mut_any().downcast_mut::<parse_node::types::op>()
+                            if let Some(op) =
+                                base.as_mut_any().downcast_mut::<parse_node::types::op>()
                             {
                                 let limits = lex.text == "\\limits";
                                 op.limits = limits;
@@ -497,7 +505,7 @@ impl Parser<'_> {
                     // Now create a (sub|super)script.
                     let body = (Parser::new(_str.to_string(), self.settings)).parse();
                     if (isSub) {
-                        subscript = Some(Box::new( ordgroup {
+                        subscript = Some(Box::new(ordgroup {
                             mode: Mode::math,
                             body,
                             loc: None,
@@ -546,27 +554,28 @@ impl Parser<'_> {
         let token = self.fetch();
         let func = &token.text.clone();
         let functions = _functions.lock().unwrap();
-        let mut funcData = functions.get(func).unwrap();
+        if let Some(mut funcData) = functions.get(func) {
+            self.consume(); // consume command token
 
-        self.consume(); // consume command token
-
-        if (name != "atom" && !funcData.0.get_allowed_in_argument()) {
-            panic!("Got function  + func +  with no arguments");
-            // throw new ParseError(
-            //     "Got function '" + func + "' with no arguments" +
-            //     (name ? " as " + name : ""), token);
-        } else if (self.mode == Mode::text && !funcData.0.get_allowed_in_text()) {
-            panic!("Can't use function ");
-            // throw new ParseError(
-            // "Can't use function '" + func + "' in text mode", token);
-        } else if (self.mode == Mode::math && funcData.0.get_allowed_in_math() == false) {
-            panic!("canlsss");
-            // throw new ParseError(
-            //     "Can't use function '" + func + "' in math mode", token);
+            if (name != "atom" && !funcData.0.get_allowed_in_argument()) {
+                panic!("Got function  + func +  with no arguments");
+                // throw new ParseError(
+                //     "Got function '" + func + "' with no arguments" +
+                //     (name ? " as " + name : ""), token);
+            } else if (self.mode == Mode::text && !funcData.0.get_allowed_in_text()) {
+                panic!("Can't use function ");
+                // throw new ParseError(
+                // "Can't use function '" + func + "' in text mode", token);
+            } else if (self.mode == Mode::math && funcData.0.get_allowed_in_math() == false) {
+                panic!("canlsss");
+                // throw new ParseError(
+                //     "Can't use function '" + func + "' in math mode", token);
+            }
+            let (args, optArgs) = self.parse_arguments(func, funcData);
+            return Some(self.call_function(func, args, optArgs, Some(token), breakOnTokenText));
+        } else {
+            return None;
         }
-
-        let (args, optArgs) = self.parse_arguments(func, funcData);
-        return Some(self.call_function(func, args, optArgs, Some(token), breakOnTokenText));
     }
 
     /**
@@ -575,6 +584,7 @@ impl Parser<'_> {
     pub fn call_function(
         &mut self,
         name: &String,
+        // func: &&FunctionSpec,
         args: Vec<Box<dyn AnyParseNode>>,
         optArgs: Vec<Option<Box<dyn AnyParseNode>>>,
         token: Option<Token>,
@@ -602,7 +612,7 @@ impl Parser<'_> {
     pub fn parse_arguments(
         &mut self,
         func: &String, // Should look like "\name" or "\begin{name}".
-        mut funcData:&FunctionSpec,
+        mut funcData: &FunctionSpec,
     ) -> (
         Vec<Box<dyn AnyParseNode>>,
         Vec<Option<Box<dyn AnyParseNode>>>,
@@ -678,8 +688,9 @@ impl Parser<'_> {
                     // \hbox, which is like \text but switching to \textstyle size.
 
                     if let Some(mut group) = self.parse_argument_group(optional, Some(Mode::text)) {
-                        if let Some(_group) =
-                            group.as_mut_any().downcast_mut::<parse_node::types::ordgroup>()
+                        if let Some(_group) = group
+                            .as_mut_any()
+                            .downcast_mut::<parse_node::types::ordgroup>()
                         {
                             Some(Box::new(parse_node::types::styling {
                                 mode: _group.mode,
@@ -940,8 +951,8 @@ impl Parser<'_> {
         name: String, // For error reporting.
         breakOnTokenText: Option<BreakToken>,
     ) -> Option<Box<dyn AnyParseNode>> {
-        let firstToken = self.fetch();
-        let text = firstToken.text;
+        let first_token = self.fetch();
+        let text = first_token.text;
 
         let mut result;
         // Try to parse an open brace or \begingroup
@@ -962,7 +973,7 @@ impl Parser<'_> {
             result = Some(Box::new(parse_node::types::ordgroup {
                 mode: self.mode,
                 loc: Some(SourceLocation::range(
-                    &firstToken.loc.unwrap(),
+                    &first_token.loc.unwrap(),
                     &lastToken.loc.unwrap(),
                 )),
                 body: expression,
@@ -1051,149 +1062,190 @@ impl Parser<'_> {
      * symbols and special functions like \verb.
      */
     pub fn parse_symbol(&mut self) -> Option<Box<dyn AnyParseNode>> {
-        return None;
-        // let nucleus = self.fetch();
-        // let text = nucleus.text;
+        let nucleus = self.fetch();
+        let mut text = nucleus.text.clone();
 
-        // lazy_static!{
-        //     static ref RE:regex::Regex = regex::Regex::new(r"^\\verb[^a-zA-Z]").unwrap();
-        // }
-        // if RE.is_match(&text){
-        //     self.consume();
-        //     let mut arg = &text[5..];
-        //     let star = arg.starts_with('*');
-        //     if (star) {
-        //         arg = &text[6..];
-        //     }
-        //     // Lexer's tokenRegex is letructed to always have matching
-        //     // first/last characters.
-        //     if (arg.len() < 2 || arg.chars().nth(0) != arg.slice(-1)) {
-        //         panic!("\\verb assertion failed --");
-        //         // throw new ParseError(`\\verb assertion failed --
-        //         //     please report what input caused this bug`);
-        //     }
-        //     arg = arg.slice(1, -1);  // remove first and last char
-        //     return Some(Box::new(parse_node::types::verb{
-        //         mode: Mode::text,
-        //         body: arg.to_string(),
-        //         star,
-        //         loc: None,
-        //     }) as Box<dyn AnyParseNode>);
+        lazy_static! {
+            static ref RE: regex::Regex = regex::Regex::new(r"^\\verb[^a-zA-Z]").unwrap();
+        }
+        if RE.is_match(&text) {
+            self.consume();
+            let mut arg = &text[5..];
+            let star = arg.starts_with('*');
+            if (star) {
+                arg = &text[6..];
+            }
+            // Lexer's tokenRegex is letructed to always have matching
+            // first/last characters.
+            if (arg.len() < 2 || arg.chars().nth(0) != arg.chars().last()) {
+                panic!("\\verb assertion failed --");
+                // throw new ParseError(`\\verb assertion failed --
+                //     please report what input caused this bug`);
+            }
+            arg = &arg[1..arg.len() - 1]; // remove first and last char
+            return Some(Box::new(parse_node::types::verb {
+                mode: Mode::text,
+                body: arg.to_string(),
+                star,
+                loc: None,
+            }) as Box<dyn AnyParseNode>);
+        }
+        // At this point, we should have a symbol, possibly with accents.
+        // First expand any accented base symbol according to unicodeSymbols.
+        if let Some(tmp) =
+            crate::unicodeSysmbols::unicode_sysmbols_result_get(text[0..1].to_string())
+        {
+            if crate::symbols::get_symbol(self.mode, &text[0..1].to_string()).is_none() {
+                // This behavior is not strict (XeTeX-compatible) in math mode.
+                if (/*self.settings.get_strict() && */self.mode == Mode::math) {
+                    self.settings.report_nonstrict(
+                        "unicodeTextInMathMode".to_string(),
+                        format!(
+                            "Accented Unicode text character \"{}\" used in math mode",
+                            text
+                        ),
+                        Some(nucleus.clone()),
+                    );
+                }
+                text = format!("{}{}", tmp, &text[1..]);
+            }
+        }
 
-        // }
-        // // At this point, we should have a symbol, possibly with accents.
-        // // First expand any accented base symbol according to unicodeSymbols.
-        // let tmp = crate::unicodeSysmbols::unicode_sysmbols_result_get(text[0..1].to_string());
-        // if tmp.is_some() &&
-        //     crate::symbols::get_symbol(self.mode,&text[0..1].to_string()).is_none()
-        // {
-        //     // This behavior is not strict (XeTeX-compatible) in math mode.
-        //     if (/*self.settings.get_strict() && */self.mode == Mode::math) {
-        //         self.settings.report_nonstrict("unicodeTextInMathMode".to_string(),
-        //             format!("Accented Unicode text character \"{}\" used in math mode",text), nucleus);
-        //     }
-        //     text = tmp + text.substr(1);
-        // }
-        // // Strip off any combining characters
-        // lazy_static!{
-        //     static ref combiningDiacriticalMarksEndRegex : regex::Regex  = regex::Regex::new(r"[\u{0300}-\u{036f}]+$").unwrap();
-        // }
-        // if let Some(_match) = combiningDiacriticalMarksEndRegex.find(&text){
-        //     text = text.subString(0, _match.start());
-        //     if (text == 'i') {
-        //         text = '\u{0131}';  // dotless i, in math and text mode
-        //     } else if (text == 'j') {
-        //         text = '\u{0237}';  // dotless j, in math and text mode
-        //     }
-
-        // }
-        // // Recognize base symbol
-        // let symbol: AnyParseNode;
-        // if (crate::symbols::get_symbol(self.mode,&text).is_some()) {
-        //     if (self.settings.strict && self.mode == Mode::math &&
-        //         extraLatin.indexOf(text) >= 0) {
-        //         self.settings.report_nonstrict("unicodeTextInMathMode".to_string(),
-        //             format!("Latin-1/Unicode text character \"{}\" used in  math mode",text[0]), nucleus);
-        //     }
-        //     let group  = crate::symbols::get_symbol(self.mode,&text).unwrap().group;
-        //     let loc = nucleus.loc;
-        //     let s: SymbolParseNode;
-        //     if (ATOMS.hasOwnProperty(group)) {
-        //         // $FlowFixMe
-        //         let family: Atom = group;
-        //         s = parse_node::types::atom{
-        //             mode: self.mode,
-        //             family,
-        //             loc,
-        //             text,
-        //         };
-        //     } else {
-        //         // $FlowFixMe
-        //         s = parse_node::types::group{
-        //             mode: self.mode,
-        //             loc,
-        //             text,
-        //         };
-        //     }
-        //     // $FlowFixMe
-        //     symbol = s;
-        // } else if (text.charCodeAt(0) >= 0x80) { // no symbol for e.g. ^
-        //     if (self.settings.strict) {
-        //         if (!crate::unicodeScripts::supportedCodepoint(text.charCodeAt(0))) {
-        //             self.settings.report_nonstrict("unknownSymbol".to_string(),
-        //                 format!("Unrecognized Unicode character \"{}\"  ({})",text[0],text.charCodeAt(0)), nucleus);
-        //         } else if (self.mode == Mode::math) {
-        //             self.settings.report_nonstrict(
-        //                 "unicodeTextInMathMode".to_string(),
-        //                 format!("Unicode text character \"{}\" used in math mode",text[0]),
-        //                 nucleus);
-        //         }
-        //     }
-        //     // All nonmathematical Unicode characters are rendered as if they
-        //     // are in text mode (wrapped in \text) because that's what it
-        //     // takes to render them in LaTeX.  Setting `mode: self.mode` is
-        //     // another natural choice (the user requested math mode), but
-        //     // this makes it more difficult for getCharacterMetrics() to
-        //     // distinguish Unicode characters without metrics and those for
-        //     // which we want to simulate the letter M.
-        //     symbol = parse_node::types::textord{
-        //         mode: Mode::text,
-        //         loc:  SourceLocation::range(nucleus),
-        //         text,
-        //         loc:None
-        //     };
-        // } else {
-        //     return null;  // EOF, ^, _, {, }, etc.
-        // }
-        // self.consume();
-        // // Transform combining characters into accents
-        // if (match) {
-        //     for (let i = 0; i < match[0].length; i++) {
-        //         let accent: String = match[0][i];
-        //         if (!unicodeAccents[accent]) {
-        //             panic!("Unknown accent {}", &accent);
-        //             // throw new ParseError(`Unknown accent ' ${accent}'`, nucleus);
-        //         }
-        //         let command = unicodeAccents[accent][self.mode] ||
-        //             unicodeAccents[accent].text;
-        //         if (!command) {
-        //             panic!("asdfasd");
-        //             // throw new ParseError(
-        //             //     `Accent ${accent} unsupported in ${self.mode} mode`,
-        //             //     nucleus);
-        //         }
-        //         symbol = parse_node::types::accent{
-        //             mode: self.mode,
-        //             loc: nucleus,
-        //             label: command,
-        //             isStretchy: false,
-        //             isShifty: true,
-        //             // $FlowFixMe
-        //             base: symbol,
-        //         };
-        //     }
-        // }
-        // // $FlowFixMe
-        // return symbol;
+        // Strip off any combining characters
+        lazy_static! {
+            static ref combiningDiacriticalMarksEndRegex: regex::Regex =
+                regex::Regex::new(r"[\u{0300}-\u{036f}]+$").unwrap();
+        }
+        let _match = combiningDiacriticalMarksEndRegex.find(&text);
+        let mut text2 = text.clone();
+        if let Some(_match_some) = _match {
+            text2 = text[.._match_some.start()].to_string();
+            if (text2 == "i") {
+                text2 = "\u{0131}".to_string(); // dotless i, in math and text mode
+            } else if (text2 == "j") {
+                text2 = "\u{0237}".to_string(); // dotless j, in math and text mode
+            }
+        }
+        let x = text.chars().nth(0).unwrap() as u32;
+        // Recognize base symbol
+        let mut symbol;
+        if let Some(sym) = crate::symbols::get_symbol(self.mode, &text2) {
+            // if (  self.mode == Mode::math &&
+            //     extraLatin.indexOf(text) >= 0) {
+            //     self.settings.report_nonstrict("unicodeTextInMathMode".to_string(),
+            //         format!("Latin-1/Unicode text character \"{}\" used in  math mode",text), Some(nucleus));
+            // }
+            let group = sym.group;
+            let loc = nucleus.loc.clone();
+            let s = match group {
+                Group::bin
+                | Group::close
+                | Group::inner
+                | Group::open
+                | Group::punct
+                | Group::rel => Box::new(parse_node::types::atom {
+                    mode: self.mode,
+                    family: Atom::from_group(group),
+                    loc,
+                    text: text2,
+                }) as Box<dyn AnyParseNode>,
+                Group::accent => Box::new(parse_node::types::accent {
+                    mode:  self.mode,
+                    loc,
+                    label: "todo!()".to_string(),
+                    isStretchy: false,
+                    isShifty: false,
+                    base: None,
+                }) as Box<dyn AnyParseNode> ,
+                Group::mathord =>Box::new(parse_node::types::mathord{
+                    mode:  self.mode,
+                    loc,
+                    text:text2,
+                }),
+                Group::op => Box::new(parse_node::types::op{
+                    mode:  self.mode,
+                    loc,
+                    limits: false,
+                    alwaysHandleSupSub: false,
+                    suppressBaseShift: false,
+                    parentIsSupSub: false,
+                    symbol:false,
+                    name: None,
+                    body: None,
+                })as Box<dyn AnyParseNode>,
+                Group::spacing =>  Box::new(parse_node::types::spacing{
+                    mode:  self.mode,
+                    loc,
+                    text:text2,
+                })as Box<dyn AnyParseNode>,
+                Group::textord =>  Box::new(parse_node::types::textord{
+                    mode: self.mode,
+                    loc,
+                    text:text2,
+                })as Box<dyn AnyParseNode>,
+            };
+            symbol = s;
+        } else if (text.chars().nth(0).unwrap() as u32 >= 0x80) {
+            // no symbol for e.g. ^
+            // if (self.settings.strict) {
+            if (!crate::unicodeScripts::supportedCodepoint(
+                (text.chars().nth(0).unwrap() as u32).into(),
+            )) {
+                self.settings.report_nonstrict(
+                    "unknownSymbol".to_string(),
+                    format!("Unrecognized Unicode character \"{}\"  ({})", text, text),
+                    Some(nucleus.clone()),
+                );
+            } else if (self.mode == Mode::math) {
+                self.settings.report_nonstrict(
+                    "unicodeTextInMathMode".to_string(),
+                    format!("Unicode text character \"{}\" used in math mode", text2),
+                    Some(nucleus.clone()),
+                );
+            }
+            // }
+            // All nonmathematical Unicode characters are rendered as if they
+            // are in text mode (wrapped in \text) because that's what it
+            // takes to render them in LaTeX.  Setting `mode: self.mode` is
+            // another natural choice (the user requested math mode), but
+            // this makes it more difficult for getCharacterMetrics() to
+            // distinguish Unicode characters without metrics and those for
+            // which we want to simulate the letter M.
+            symbol = (Box::new(parse_node::types::textord {
+                mode: Mode::text,
+                loc: nucleus.loc.clone(),
+                text: text2,
+            }) as Box<dyn AnyParseNode>);
+        } else {
+            return None; // EOF, ^, _, {, }, etc.
+        }
+        self.consume();
+        // Transform combining characters into accents
+        if let Some(_match_some) = _match {
+            for accent in _match_some.as_str().chars() {
+                if let Some(acc) = crate::unicodeAccents::unicodeAccents.get(&accent) {
+                    let command = acc.get(self.mode);
+                    //||  unicodeAccents[accent].text;
+                    // if (!command) {
+                    // panic!("asdfasd");
+                    // throw new ParseError(
+                    //     `Accent ${accent} unsupported in ${self.mode} mode`,
+                    //     nucleus);
+                    // }
+                    symbol = Box::new(parse_node::types::accent {
+                        mode: self.mode,
+                        loc: nucleus.loc.clone(),
+                        label: command.to_string(),
+                        isStretchy: false,
+                        isShifty: true,
+                        // $FlowFixMe
+                        base: Some(symbol),
+                    }) as Box<dyn AnyParseNode>;
+                } else {
+                    panic!("Unknown accent {}", accent);
+                }
+            }
+        }
+        return Some(symbol);
     }
 }

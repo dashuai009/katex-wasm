@@ -97,10 +97,10 @@ impl MacroExpander<'_> {
     pub fn future(&mut self) -> Token {
         if (self.stack.len() == 0) {
             let t = self.lexer.lex();
-            // console.log("MacroExpander future(): ",t)
+            // println!("MacroExpander future(): {}",t);
             self.push_token(t);
         }
-        return self.stack[(self.stack.len() - 1) as usize].clone();
+        return self.stack.last().unwrap().clone();
     }
 
     /**
@@ -515,12 +515,14 @@ impl MacroExpander<'_> {
                         numArgs += 1;
                     }
                 }
-                let bodyLexer = Lexer::new(s, &self.settings);
+                let mut bodyLexer = Lexer::new(s, &self.settings);
                 let mut tokens = vec![];
                 let mut tok = bodyLexer.lex();
+                println!("tok = {}",tok);
                 while (tok.text != "EOF") {
                     tokens.push(tok.clone());
                     tok = bodyLexer.lex();
+                    println!("tok = {}",tok);
                 }
                 // console.log("_getExpansion",tokens);
                 tokens.reverse(); // to fit in with stack using push and pop
