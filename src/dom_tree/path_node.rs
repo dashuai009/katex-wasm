@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(getter_with_clone)]
+#[derive(Clone)]
 pub struct PathNode /* implements VirtualNode*/ {
     pub pathName: String,
     pub alternate: Option<String>,

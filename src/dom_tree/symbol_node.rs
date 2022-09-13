@@ -25,7 +25,7 @@ lazy_static! {
  * whether it has CSS classes, styles, or needs italic correction.
  */
 #[wasm_bindgen(getter_with_clone)]
-#[derive(html_dom_node)]
+#[derive(html_dom_node,Clone)]
 pub struct SymbolNode {
     text: String,
     pub height: f64,

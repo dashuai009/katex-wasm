@@ -13,6 +13,7 @@ use wasm_bindgen::prelude::*;
 /**
  * SVG nodes are used to render stretchy wide elements.
  */
+#[derive(Clone)]
 pub struct SvgNode {
     pub children: Vec<Box<dyn VirtualNode>>,
     pub attributes: HashMap<String, String>,

@@ -13,7 +13,7 @@ use super::utils::{this_init_node, this_to_markup, this_to_node};
  * This node represents an anchor (<a>) element with a hyperlink.  See `span`
  * for further details.
  */
-#[derive(html_dom_node)]
+#[derive(html_dom_node,Clone)]
 pub struct Anchor {
     children: Vec<Box<dyn HtmlDomNode>>,
     attributes: HashMap<String, String>,

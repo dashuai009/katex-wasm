@@ -8,6 +8,7 @@ use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct LineNode {
     attributes: HashMap<String, String>,
 }
