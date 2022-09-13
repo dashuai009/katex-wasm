@@ -1,4 +1,4 @@
-use crate::mathML_tree::public::{MathDomNode, MathNodeType, ToText};
+use crate::mathML_tree::public::{MathDomNode, MathNodeType};
 use crate::utils::{escape};
 use crate::units::make_em;
 use crate::Options::Options;
@@ -13,6 +13,7 @@ use wasm_bindgen::prelude::*;
  * constructor requires the type of node to create (for example, `"mo"` or
  * `"mspace"`, corresponding to `<mo>` and `<mspace>` tags).
  */
+#[derive(Clone)]
 pub struct MathNode {
     node_type: MathNodeType,
     attributes: HashMap<String, String>,
@@ -105,7 +106,7 @@ impl VirtualNode for MathNode {
         markup
     }
 }
-impl ToText for MathNode {
+impl MathDomNode for MathNode{
     /**
      * Converts the math node into a string, similar to innerText, but escaped.
      */
@@ -116,6 +117,4 @@ impl ToText for MathNode {
             .map(|child| child.to_text())
             .collect::<Vec<String>>()
             .join(" ");
-    }
-}
-impl MathDomNode for MathNode{}
+    }}

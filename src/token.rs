@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use unicode_normalization::IsNormalized::No;
 use wasm_bindgen::prelude::*;
 
@@ -17,6 +19,7 @@ use wasm_bindgen::prelude::*;
 use super::sourceLocation::SourceLocation;
 
 #[wasm_bindgen(getter_with_clone)]
+#[derive(Clone)]
 pub struct Token {
     pub text: String,
     pub loc: Option<SourceLocation>,
@@ -24,19 +27,23 @@ pub struct Token {
     pub treatAsRelax: Option<bool>, // used in \noexpand
 }
 
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f , "{} {:?} {:?} {:?}" , self.text, self.loc, self.noexpand,self.treatAsRelax)
+    }
+}
 #[wasm_bindgen]
 impl Token {
-
     #[wasm_bindgen(constructor)]
     pub fn new(
-        text: String,           // the text of this token
+        text: String, // the text of this token
         loc: Option<SourceLocation>,
-    )->Token {
-        Token{
+    ) -> Token {
+        Token {
             text,
             loc,
-            noexpand:None,
-            treatAsRelax:None
+            noexpand: None,
+            treatAsRelax: None,
         }
     }
     /**
@@ -46,12 +53,15 @@ impl Token {
     pub fn range(
         &self,
         endToken: &Token, // last token of the range, inclusive
-        text: String,    // the text of the newly constructed token
+        text: String,     // the text of the newly constructed token
     ) -> Token {
         if self.loc.is_some() && endToken.loc.is_some() {
             return Token {
                 text,
-                loc: Some(SourceLocation::range(self.loc.as_ref().unwrap(), endToken.loc.as_ref().unwrap())),
+                loc: Some(SourceLocation::range(
+                    self.loc.as_ref().unwrap(),
+                    endToken.loc.as_ref().unwrap(),
+                )),
                 noexpand: None,
                 treatAsRelax: None,
             };

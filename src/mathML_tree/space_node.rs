@@ -1,6 +1,6 @@
-use crate::mathML_tree::public::{MathDomNode, MathNodeType, ToText};
-use crate::utils::{escape};
+use crate::mathML_tree::public::{MathDomNode, MathNodeType};
 use crate::units::make_em;
+use crate::utils::escape;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
@@ -14,6 +14,7 @@ use wasm_bindgen::prelude::*;
  * depending on the width.
  */
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct SpaceNode {
     width: f64,
     character: Option<String>,
@@ -74,7 +75,7 @@ impl VirtualNode for SpaceNode {
         };
     }
 }
-impl ToText for SpaceNode {
+impl MathDomNode for SpaceNode {
     fn to_text(&self) -> String {
         match self.character.clone() {
             Some(c) => c,
@@ -82,7 +83,6 @@ impl ToText for SpaceNode {
         }
     }
 }
-impl MathDomNode for SpaceNode {}
 
 #[wasm_bindgen]
 impl SpaceNode {

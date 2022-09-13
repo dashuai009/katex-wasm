@@ -6,7 +6,7 @@ use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(html_dom_node)]
+#[derive(html_dom_node, Clone)]
 pub struct Img {
     src: String,
     alt: String,

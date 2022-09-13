@@ -1,13 +1,13 @@
 mod settings_types;
 
-use wasm_bindgen::prelude::*;
-
+use crate::define::macros::public::MacroDefinition;
 use crate::token::Token;
 /**
  * This is a module for storing settings passed into KaTeX. It correctly handles
  * default settings.
  */
 use crate::utils;
+use wasm_bindgen::prelude::*;
 
 // Custom KaTeX behaviors.
 
@@ -16,16 +16,17 @@ use crate::utils;
 // use itertools::process_results;
 use crate::settings::settings_types::{OutputType, StrictType};
 use crate::utils::{console_log, log};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 /// Options to be passed to KaTeX.
 ///
 /// Read <https://katex.org/docs/options.html> for more information.
 ///
 #[non_exhaustive]
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(Clone)]
 #[wasm_bindgen(getter_with_clone)]
 // #[wasm_bindgen]
 pub struct Settings {
@@ -42,7 +43,7 @@ pub struct Settings {
     /// Color used for invalid LaTeX.
     error_color: String,
     /// Collection of custom macros.
-    macros: HashMap<String, String>,
+    macros: Arc<HashMap<String, MacroDefinition>>,
     /// Specifies a minimum thickness, in ems.
     min_rule_thickness: f64,
     color_is_text_color: bool,
@@ -61,10 +62,16 @@ pub struct Settings {
     global_group: bool,
 }
 
+impl Settings{
+    pub fn get_ref_macros(&self)-> Arc<HashMap<String, MacroDefinition>>{
+        return Arc::clone(&self.macros);
+    }
+}
+
 #[wasm_bindgen]
 impl Settings {
     #[wasm_bindgen(getter = displayMode)]
-    pub fn display_mode(&self) -> bool {
+    pub fn get_display_mode(&self) -> bool {
         self.display_mode
     }
 
@@ -74,7 +81,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter)]
-    pub fn output(&self) -> String {
+    pub fn get_output(&self) -> String {
         self.output.as_str().to_string()
     }
 
@@ -84,7 +91,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = throwOnError)]
-    pub fn throw_on_error(&self) -> bool {
+    pub fn get_throw_on_error(&self) -> bool {
         self.throw_on_error
     }
 
@@ -94,7 +101,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = errorColor)]
-    pub fn error_color(&self) -> String {
+    pub fn get_error_color(&self) -> String {
         self.error_color.clone()
     }
 
@@ -104,7 +111,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = minRuleThickness)]
-    pub fn min_rule_thickness(&self) -> f64 {
+    pub fn get_min_rule_thickness(&self) -> f64 {
         self.min_rule_thickness
     }
 
@@ -114,7 +121,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = colorIsTextColor)]
-    pub fn color_is_text_color(&self) -> bool {
+    pub fn get_color_is_text_color(&self) -> bool {
         self.color_is_text_color
     }
 
@@ -124,7 +131,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = strict)]
-    pub fn strict(&self) -> String {
+    pub fn get_strict(&self) -> String {
         self.strict.as_str().to_string()
     }
 
@@ -135,7 +142,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = maxSize)]
-    pub fn max_size(&self) -> Option<f64> {
+    pub fn get_max_size(&self) -> Option<f64> {
         self.max_size
     }
 
@@ -145,7 +152,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = maxExpand)]
-    pub fn max_expand(&self) -> Option<i32> {
+    pub fn get_max_expand(&self) -> Option<i32> {
         self.max_expand
     }
 
@@ -155,7 +162,7 @@ impl Settings {
     }
 
     #[wasm_bindgen(getter = globalGroup)]
-    pub fn global_group(&self) -> bool {
+    pub fn get_global_group(&self) -> bool {
         self.color_is_text_color
     }
 
@@ -165,12 +172,12 @@ impl Settings {
     }
 }
 
-#[wasm_bindgen]
-impl Settings {
-    pub(crate) fn to_js_value(&self) -> JsValue {
-        return JsValue::from_serde(&self).unwrap();
-    }
-}
+// #[wasm_bindgen]
+// impl Settings {
+//     pub(crate) fn to_js_value(&self) -> JsValue {
+//         return JsValue::from_serde(&self).unwrap();
+//     }
+// }
 
 impl AsRef<Settings> for Settings {
     fn as_ref(&self) -> &Settings {
@@ -210,7 +217,26 @@ impl Settings {
     #[wasm_bindgen(constructor)]
     pub fn new(js_v: &JsValue) -> Settings {
         // console_log!("input setting = {}",res);
-        let mut res = Settings::default();
+        let mut res = Settings {
+            display_mode: false,
+            output: OutputType::Html,
+            leqno: false,
+            /// Whether to make display math flush left.
+            fleqn: false,
+            /// Whether to let KaTeX throw a ParseError for invalid LaTeX.
+            throw_on_error: false,
+            /// Color used for invalid LaTeX.
+            error_color: String::new(),
+            /// Collection of custom macros.
+            macros: Arc::new(HashMap::<String, MacroDefinition>::new()),
+            min_rule_thickness: 0.0,
+            color_is_text_color: false,
+            strict: StrictType::Warn,
+            trust: false,
+            max_size: None,
+            max_expand: None,
+            global_group: false,
+        };
         use js_sys::{Boolean, JsString, Reflect};
         if let Ok(opt_display_mode) = Reflect::get(&js_v, &JsString::from("displayMode")) {
             res.display_mode = opt_display_mode.as_bool().unwrap();
@@ -288,11 +314,34 @@ impl Settings {
         return res;
     }
 
+    pub fn new_rust()->Settings{
+        let mut res = Settings {
+            display_mode: false,
+            output: OutputType::Html,
+            leqno: false,
+            /// Whether to make display math flush left.
+            fleqn: false,
+            /// Whether to let KaTeX throw a ParseError for invalid LaTeX.
+            throw_on_error: false,
+            /// Color used for invalid LaTeX.
+            error_color: String::new(),
+            /// Collection of custom macros.
+            macros: Arc::new(HashMap::<String, MacroDefinition>::new()),
+            min_rule_thickness: 0.0,
+            color_is_text_color: false,
+            strict: StrictType::Warn,
+            trust: false,
+            max_size: None,
+            max_expand: None,
+            global_group: false,
+        };
+        res
+    }
     /**
      * Report nonstrict (non-LaTeX-compatible) input.
      * Can safely not be called if `this.strict` is false in JavaScript.
      */
-    pub fn reportNonstrict(&self, errorCode: String, errorMsg: String, token: Option<Token>) {
+    pub fn report_nonstrict(&self, errorCode: String, errorMsg: String, token: Option<Token>) {
         match self.strict {
             StrictType::Ignore => {}
             StrictType::Warn => {

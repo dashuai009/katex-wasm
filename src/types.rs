@@ -27,6 +27,12 @@ impl Mode {
             Mode::text => "text",
         }
     }
+    fn as_arg_type(&self) -> ArgType {
+        match self {
+            Mode::math => ArgType::math,
+            Mode::text => ArgType::text,
+        }
+    }
 }
 // LaTeX argument type.
 //   - "size": A size-like thing, such as "1em" or "5ex"
@@ -41,6 +47,7 @@ impl Mode {
 //                 first argument is special and the second
 //                 argument is parsed normally)
 //   - Mode: Node group parsed in given mode.
+#[derive(Clone, Copy)]
 pub enum ArgType {
     color,
     size,
@@ -54,6 +61,7 @@ pub enum ArgType {
 }
 
 // LaTeX display style.
+#[derive(Clone)]
 pub enum StyleStr {
     text,
     display,
@@ -62,15 +70,47 @@ pub enum StyleStr {
 }
 
 // Allowable token text for "break" arguments in parser.
+#[derive(Clone,PartialEq)]
 pub enum BreakToken {
-    rightBracket,     // "]"
-    rightBrace,       // "}"
-    endgroup,         // "\\endgroup"
-    dollar,           // "$"
-    rightParentheses, // "\\)"
-    doubleSlash,      // "\\\\"
-    end,              // "\\end"
-    EOF,              // "EOF"
+    RightBracket,     // "]"
+    RightBrace,       // "}"
+    Endgroup,         // "\\endgroup"
+    Dollar,           // "$"
+    RightParentheses, // "\\)"
+    DoubleSlash,      // "\\\\"
+    End,              // "\\end"
+    Eof,              // "EOF"
+}
+impl FromStr for BreakToken {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<BreakToken, Self::Err> {
+        match input {
+            "]" => Ok(BreakToken::RightBracket),
+            "}" => Ok(BreakToken::RightBrace),
+            "\\endgroup" => Ok(BreakToken::Endgroup),
+            "$" => Ok(BreakToken::Dollar),
+            "\\)" => Ok(BreakToken::RightParentheses),
+            "\\\\" => Ok(BreakToken::DoubleSlash),
+            "\\end" => Ok(BreakToken::End),
+            "EOF" => Ok(BreakToken::Eof),
+            _ => Err(()),
+        }
+    }
+}
+impl BreakToken {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            BreakToken::RightBracket => "]",
+            BreakToken::RightBrace => "}",
+            BreakToken::Endgroup => "\\endgroup",
+            BreakToken::Dollar => "$",
+            BreakToken::RightParentheses => "\\)",
+            BreakToken::DoubleSlash => "\\\\",
+            BreakToken::End => "\\end",
+            BreakToken::Eof => "EOF",
+        }
+    }
 }
 
 // Math font variants.

@@ -1,6 +1,6 @@
-use crate::mathML_tree::public::{MathDomNode, MathNodeType, ToText};
-use crate::utils::{escape};
+use crate::mathML_tree::public::{MathDomNode, MathNodeType};
 use crate::units::make_em;
+use crate::utils::escape;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
@@ -10,6 +10,7 @@ use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct TextNode {
     text: String,
 }
@@ -47,7 +48,7 @@ impl VirtualNode for TextNode {
         return escape(&self.to_text());
     }
 }
-impl ToText for TextNode {
+impl MathDomNode for TextNode {
     /**
      * Converts the math node into a string, similar to innerText, but escaped.
      */
@@ -55,4 +56,3 @@ impl ToText for TextNode {
         return self.text.clone();
     }
 }
-impl MathDomNode for TextNode {}

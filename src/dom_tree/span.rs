@@ -11,7 +11,8 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
-pub struct Span<ChildType: VirtualNode> {
+#[derive(Clone)]
+pub struct Span<ChildType: VirtualNode + Clone> {
     children: Vec<ChildType>,
     attributes: HashMap<String, String>,
     classes: Vec<String>,
@@ -22,7 +23,7 @@ pub struct Span<ChildType: VirtualNode> {
     max_font_size: f64,
 }
 
-impl<ChildType: VirtualNode> Span<ChildType> {
+impl<ChildType: VirtualNode + Clone> Span<ChildType> {
     pub fn new(
         classes: Vec<String>,
         children: Vec<ChildType>,
@@ -48,54 +49,54 @@ impl<ChildType: VirtualNode> Span<ChildType> {
     }
 }
 
-impl<ChildType: VirtualNode> HtmlDomNode for Span<ChildType> {
-        fn get_classes(&self) -> &Vec<String> {
-            return &self.classes;
-        }
-        fn get_mut_classes(&mut self) -> &mut Vec<String> {
-            return &mut self.classes;
-        }
-        fn set_classes(&mut self, _classes: Vec<String>) {
-            self.classes = _classes;
-        }
-    
-        fn get_height(&self) -> f64 {
-            return self.height;
-        }
-        fn set_height(&mut self, _height: f64) {
-            self.height = _height;
-        }
-    
-        fn get_depth(&self) -> f64 {
-            return self.depth;
-        }
-    
-        fn set_depth(&mut self, _depth: f64) {
-            self.depth = _depth;
-        }
-    
-        fn get_max_font_size(&self) -> f64 {
-            return self.max_font_size;
-        }
-        fn set_max_font_size(&mut self, _max_font_size: f64) {
-            self.max_font_size = _max_font_size;
-        }
-    
-        fn get_style(&self) -> &CssStyle {
-            return &self.style;
-        }
-        fn get_mut_style(&mut self) -> &mut CssStyle {
-            return &mut self.style;
-        }
-        fn set_style(&mut self, _style: CssStyle) {
-            self.style = _style;
-        }
-    
-        fn has_class(&self, class_name: &String) -> bool {
-            return self.classes.contains(class_name);
-        }
+impl<ChildType: VirtualNode + Clone + 'static> HtmlDomNode for Span<ChildType> {
+    fn get_classes(&self) -> &Vec<String> {
+        return &self.classes;
     }
-impl<ChildType: VirtualNode> VirtualNode for Span<ChildType> {
+    fn get_mut_classes(&mut self) -> &mut Vec<String> {
+        return &mut self.classes;
+    }
+    fn set_classes(&mut self, _classes: Vec<String>) {
+        self.classes = _classes;
+    }
+
+    fn get_height(&self) -> f64 {
+        return self.height;
+    }
+    fn set_height(&mut self, _height: f64) {
+        self.height = _height;
+    }
+
+    fn get_depth(&self) -> f64 {
+        return self.depth;
+    }
+
+    fn set_depth(&mut self, _depth: f64) {
+        self.depth = _depth;
+    }
+
+    fn get_max_font_size(&self) -> f64 {
+        return self.max_font_size;
+    }
+    fn set_max_font_size(&mut self, _max_font_size: f64) {
+        self.max_font_size = _max_font_size;
+    }
+
+    fn get_style(&self) -> &CssStyle {
+        return &self.style;
+    }
+    fn get_mut_style(&mut self) -> &mut CssStyle {
+        return &mut self.style;
+    }
+    fn set_style(&mut self, _style: CssStyle) {
+        self.style = _style;
+    }
+
+    fn has_class(&self, class_name: &String) -> bool {
+        return self.classes.contains(class_name);
+    }
+}
+impl<ChildType: VirtualNode + Clone + 'static> VirtualNode for Span<ChildType> {
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "span")
     }
@@ -104,7 +105,7 @@ impl<ChildType: VirtualNode> VirtualNode for Span<ChildType> {
         this_to_markup!(self, "span")
     }
 }
-impl<ChildType: HtmlDomNode> Span<ChildType> {
+impl<ChildType: HtmlDomNode + Clone> Span<ChildType> {
     /**
      * Calculate the height, depth, and maxFontSize of an element based on its
      * children.

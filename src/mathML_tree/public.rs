@@ -1,6 +1,7 @@
 use crate::VirtualNode;
 use std::str::FromStr;
 
+#[derive(Clone)]
 pub enum MathNodeType {
     Math,
     Annotation,
@@ -37,7 +38,27 @@ impl MathNodeType {
 // "mtable" | "mtr" | "mtd" | "mlabeledtr" |
 // "mrow" | "menclose" |
 // "mstyle" | "mpadded" | "mphantom" | "mglyph";
-pub trait ToText {
+
+pub trait MathDomNodeClone {
+    fn clone_math_dom_node(&self) -> Box<dyn MathDomNode>;
+}
+
+impl<T> MathDomNodeClone for T
+where
+    T: 'static + MathDomNode + Clone,
+{
+    fn clone_math_dom_node(&self) -> Box<dyn MathDomNode> {
+        Box::new(self.clone())
+    }
+}
+
+// We can now implement Clone manually by forwarding to clone_box.
+impl Clone for Box<dyn MathDomNode> {
+    fn clone(&self) -> Box<dyn MathDomNode> {
+        self.clone_math_dom_node()
+    }
+}
+
+pub trait MathDomNode: VirtualNode + MathDomNodeClone {
     fn to_text(&self) -> String;
 }
-pub trait MathDomNode: ToText + VirtualNode {}
