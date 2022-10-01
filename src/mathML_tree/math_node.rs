@@ -1,6 +1,6 @@
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
-use crate::utils::{escape};
 use crate::units::make_em;
+use crate::utils::escape;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
@@ -48,6 +48,11 @@ impl MathNode {
      */
     pub fn get_attribute(&self, name: &String) -> Option<&String> {
         return self.attributes.get(name);
+    }
+
+
+    pub fn get_node_type(&self)->MathNodeType{
+        self.node_type.clone()
     }
 }
 impl VirtualNode for MathNode {
@@ -106,7 +111,7 @@ impl VirtualNode for MathNode {
         markup
     }
 }
-impl MathDomNode for MathNode{
+impl MathDomNode for MathNode {
     /**
      * Converts the math node into a string, similar to innerText, but escaped.
      */
@@ -117,4 +122,5 @@ impl MathDomNode for MathNode{
             .map(|child| child.to_text())
             .collect::<Vec<String>>()
             .join(" ");
-    }}
+    }
+}

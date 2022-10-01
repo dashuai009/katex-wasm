@@ -1,11 +1,11 @@
 use crate::dom_tree::css_style::CssStyle;
-use crate::utils::{escape};
-use struct_format::html_dom_node;
 use crate::units::make_em;
+use crate::utils::escape;
 use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use std::collections::HashMap;
 use std::sync::Mutex;
+use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
 lazy_static! {
     static ref iCombinations:Mutex<HashMap<&'static str,&'static str> >  = Mutex::new({
@@ -19,13 +19,11 @@ lazy_static! {
     });
 }
 
-/**
- * A symbol node contains information about a single symbol. It either renders
- * to a single text node, or a span with a single text node in it, depending on
- * whether it has CSS classes, styles, or needs italic correction.
- */
-#[wasm_bindgen(getter_with_clone)]
-#[derive(html_dom_node,Clone)]
+///A symbol node contains information about a single symbol. It either renders
+///to a single text node, or a span with a single text node in it, depending on
+///whether it has CSS classes, styles, or needs italic correction.
+
+#[derive(html_dom_node, Clone)]
 pub struct SymbolNode {
     text: String,
     pub height: f64,
@@ -38,14 +36,43 @@ pub struct SymbolNode {
     style: CssStyle,
 }
 
+/// 构造函数
+/// 一些成员方法
 impl SymbolNode {
-    pub fn set_style_color(&mut self, c: Option<String>) {
-        self.style.color = c;
+    pub fn new(text: String) -> SymbolNode {
+        let mut res = SymbolNode {
+            text,
+            height: 0.0,
+            depth: 0.0,
+            italic: 0.0,
+            skew: 0.0,
+            width: 0.0,
+            max_font_size: 0.0,
+            classes: vec![],
+            style: CssStyle::default(),
+        };
+
+        // Mark text from non-Latin scripts with specific classes so that we
+        // can specify which fonts to use.  This allows us to render these
+        // characters with a serif font in situations where the browser would
+        // either default to a sans serif or render a placeholder character.
+        // We use CSS class names like cjk_fallback, hangul_fallback and
+        // brahmic_fallback. See ./unicodeScripts.js for the set of possible
+        // script names
+        if let Some(script) = scriptFromCodepoint(res.text.chars().next().unwrap() as u32 as f64) {
+            res.classes.push(script + "_fallback");
+        }
+
+        let i_comb = iCombinations.lock().unwrap();
+        if i_comb.contains_key(res.text.as_str()) {
+            // add ī when we add Extended Latin
+            res.text = i_comb.get(&*res.text).unwrap().to_string();
+        }
+        res
     }
-    /**
-     * Returns true if subsequent symbolNodes have the same classes, skew, maxFont,
-     * and styles.
-     */
+
+    ///Returns true if subsequent symbolNodes have the same classes, skew, maxFont,
+    ///and styles.
     pub fn can_combine(prev: &SymbolNode, next: &SymbolNode) -> bool {
         if prev.classes.join(" ") != next.classes.join(" ")
             || prev.skew != next.skew
@@ -66,10 +93,38 @@ impl SymbolNode {
         return prev.style != next.style;
     }
 }
+
+/// getter and setter
+impl SymbolNode {
+    pub fn get_text(&self) -> &String {
+        return &self.text;
+    }
+    pub fn set_text(&mut self, text: String) {
+        self.text = text;
+    }
+    pub fn set_style_color(&mut self, c: Option<String>) {
+        self.style.color = c;
+    }
+
+    pub fn get_style(&self) -> CssStyle {
+        self.style.clone()
+    }
+
+    pub fn set_style(&mut self, style: &CssStyle) {
+        self.style = style.clone()
+    }
+    pub fn set_classes(&mut self, c: Vec<String>) {
+        self.classes = c;
+    }
+
+    pub fn push_class(&mut self, s: String) {
+        self.classes.push(s);
+    }
+}
 impl VirtualNode for SymbolNode {
     /**
-     * Creates a text node or span from a symbol node. Note that a span is only
-     * created if it is needed.
+    ///Creates a text node or span from a symbol node. Note that a span is only
+    ///created if it is needed.
      */
     fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
@@ -102,7 +157,7 @@ impl VirtualNode for SymbolNode {
     }
 
     /**
-     * Creates markup for a symbol node.
+    ///Creates markup for a symbol node.
      */
     fn to_markup(&self) -> String {
         // TODO(alpert): More duplication than I'd like from
@@ -136,87 +191,5 @@ impl VirtualNode for SymbolNode {
         } else {
             escaped_text
         };
-    }
-}
-
-#[wasm_bindgen]
-impl SymbolNode {
-    #[wasm_bindgen(getter)]
-    pub fn style(&self) -> CssStyle {
-        self.style.clone()
-    }
-
-    #[wasm_bindgen(setter)]
-    pub fn set_style(&mut self, style: &CssStyle) {
-        self.style = style.clone()
-    }
-}
-#[wasm_bindgen]
-impl SymbolNode {
-    #[wasm_bindgen(constructor)]
-    pub fn new(text: String) -> SymbolNode {
-        let mut res = SymbolNode {
-            text,
-            height: 0.0,
-            depth: 0.0,
-            italic: 0.0,
-            skew: 0.0,
-            width: 0.0,
-            max_font_size: 0.0,
-            classes: vec![],
-            style: CssStyle::default(),
-        };
-
-        // Mark text from non-Latin scripts with specific classes so that we
-        // can specify which fonts to use.  This allows us to render these
-        // characters with a serif font in situations where the browser would
-        // either default to a sans serif or render a placeholder character.
-        // We use CSS class names like cjk_fallback, hangul_fallback and
-        // brahmic_fallback. See ./unicodeScripts.js for the set of possible
-        // script names
-        if let Some(script) = scriptFromCodepoint(res.text.chars().next().unwrap() as u32 as f64) {
-            res.classes.push(script + "_fallback");
-        }
-
-        let i_comb = iCombinations.lock().unwrap();
-        if i_comb.contains_key(res.text.as_str()) {
-            // add ī when we add Extended Latin
-            res.text = i_comb.get(&*res.text).unwrap().to_string();
-        }
-        res
-    }
-
-    pub fn hasClass(&self, class_name: String) -> bool {
-        return self.has_class(&class_name);
-    }
-
-    pub fn toNode(&self) -> web_sys::Node {
-        return self.to_node();
-    }
-
-    pub fn toMarkup(&self) -> String {
-        return self.to_markup();
-    }
-}
-
-#[wasm_bindgen]
-impl SymbolNode {
-    #[wasm_bindgen(getter)]
-    pub fn classes(&self) -> Array {
-        let arr = Array::new_with_length(self.classes.len() as u32);
-        for (i, s) in self.classes.iter().enumerate() {
-            arr.set(i as u32, JsValue::from_str(s));
-        }
-        arr
-    }
-}
-
-impl SymbolNode {
-    pub fn set_classes(&mut self, c: Vec<String>) {
-        self.classes = c;
-    }
-
-    pub fn push_class(&mut self, s: String) {
-        self.classes.push(s);
     }
 }

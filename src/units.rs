@@ -63,9 +63,9 @@ impl Measurement {
         return ptPerUnit.get(self.unit.as_str()).is_some()
             || relativeUnit.get(self.unit.as_str()).is_some();
     }
-    
+
     #[wasm_bindgen(constructor)]
-    pub fn new(number:f64,unit:String)->Measurement{
+    pub fn new(number: f64, unit: String) -> Measurement {
         Measurement { number, unit }
     }
 }
@@ -87,7 +87,6 @@ pub fn validUnit(unit: &js_sys::Object) -> bool {
  * as parsed by functions.js argType "size") into a CSS em value for the
  * current style/scale.  `options` gives the current options.
  */
-#[wasm_bindgen(js_name = calculateSize)]
 pub fn calculate_size(sizeValue: &Measurement, options: &Options) -> f64 {
     let mut scale = 1.0;
     if let Some(u) = ptPerUnit.get(sizeValue.unit.as_str()) {

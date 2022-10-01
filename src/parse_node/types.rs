@@ -177,10 +177,10 @@ pub struct supsub {
 
 #[derive(parse_node_type, Clone)]
 pub struct tag {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
-    tag: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
+    pub tag: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone)]

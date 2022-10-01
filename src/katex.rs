@@ -2,26 +2,29 @@
  * Generates and returns the katex build tree. This is used for advanced
  * use cases (like rendering to custom output).
  */
-const renderToDomTree = function(
-    expression: string,
+pub fn renderToDomTree(    expression: String,
     options: SettingsOptions,
-): DomSpan {
-    const settings = new Settings(options);
-    try {
-        const tree = parseTree(expression, settings);
+)-> DomSpan {
+    let settings = Settings::new(options);
+        let tree = parseTree(expression, settings);
         return buildTree(tree, expression, settings);
-    } catch (error) {
-        return renderError(error, expression, settings);
-    }
-};
+}
 
 
-let render: (string, Node, SettingsOptions) => void = function(
-    expression: string,
-    baseNode: Node,
-    options: SettingsOptions,
-) {
-    baseNode.textContent = "";
-    const node = renderToDomTree(expression, options).toNode();
-    baseNode.appendChild(node);
-};
+// pub fn render(
+//     expression: string,
+//     baseNode: Node,
+//     options: SettingsOptions,
+// ) {
+//     baseNode.textContent = "";
+//     let node = renderToDomTree(expression, options).toNode();
+//     baseNode.appendChild(node);
+// }
+
+
+/**
+ * Parse and build an expression, and return the markup for that.
+ */
+pub fn render_to_string(    expression: String,    options: SettingsOptions)-> String {
+    return renderToDomTree(expression, options).toMarkup();
+}

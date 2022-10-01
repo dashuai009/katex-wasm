@@ -21,14 +21,14 @@ pub struct CssStyle {
     pub left: Option<String>,
     pub margin: Option<String>,
     margin_left: Option<String>,
-    margin_right: Option<String>,
+    pub margin_right: Option<String>,
     margin_top: Option<String>,
     min_width: Option<String>,
     padding_left: Option<String>,
     pub position: Option<String>,
     pub top: Option<String>,
     pub width: Option<String>,
-    vertical_align: Option<String>,
+    pub(crate) vertical_align: Option<String>,
 }
 
 #[wasm_bindgen]

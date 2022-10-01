@@ -4,15 +4,16 @@ use crate::dom_tree::path_node::PathNode;
 use crate::dom_tree::svg_node::SvgNode;
 use crate::dom_tree::{span::Span, symbol_node::SymbolNode};
 use crate::metrics::public::CharacterMetrics;
-use crate::parse_node::types::{AnyParseNode, GetMode, GetText};
+use crate::parse_node::types::{AnyParseNode, GetMode, GetText, ParseNodeToAny};
 use crate::symbols::public::Font;
 use crate::symbols::LIGATURES;
-use crate::tree::{DocumentFragment, HtmlDomNode, VirtualNode};
+use crate::tree::{HtmlDomNode, VirtualNode};
 use crate::types::{FontVariant, Mode};
 use crate::units::make_em;
 use crate::wideCharacter::{wideCharacterFont, wide_character_font};
 use crate::Options::Options;
 use crate::{get_character_metrics, get_symbol};
+use std::any::Any;
 use std::collections::HashMap;
 use std::str::FromStr;
 use wasm_bindgen::prelude::*;
@@ -26,13 +27,9 @@ pub struct TmpSymbol {
 /**
  * Looks up the given symbol in fontMetrics, after applying any symbol
  * replacements defined in symbol.js
+ * TODO(#963): Use a union type for font_name.
  */
-pub fn lookup_symbol(
-    value: String,
-    // TODO(#963): Use a union type for this.
-    font_name: String,
-    mode: Mode,
-) -> TmpSymbol {
+pub fn lookup_symbol(value: String, font_name: String, mode: Mode) -> TmpSymbol {
     // Replace the value with its replaced value from symbol.js
     let tmp_metrics = get_character_metrics(&value, font_name, mode);
 
@@ -50,16 +47,6 @@ pub fn lookup_symbol(
         value: value,
         metrics: tmp_metrics,
     };
-}
-
-#[wasm_bindgen]
-pub fn _lookup_symbol(
-    value: String,
-    // TODO(#963): Use a union type for this.
-    font_name: String,
-    mode: String,
-) -> TmpSymbol {
-    return lookup_symbol(value, font_name, Mode::from_str(mode.as_str()).unwrap());
 }
 
 /**
@@ -115,8 +102,8 @@ pub fn make_symbol(
     }
 
     if let Some(opt) = options {
-        symbol_node.max_font_size = opt.sizeMultiplier;
-        if (opt.style().isTight()) {
+        symbol_node.max_font_size = opt.sizeMultiplier.clone();
+        if opt.style().isTight() {
             symbol_node.push_class("mtight".to_string());
         }
         let color = opt.getColor();
@@ -126,46 +113,6 @@ pub fn make_symbol(
     }
 
     return symbol_node;
-}
-
-#[wasm_bindgen]
-pub fn canCombine(prev: &SymbolNode, next: &SymbolNode) -> bool {
-    return SymbolNode::can_combine(prev, next);
-}
-#[wasm_bindgen]
-pub fn MakeSymbol(
-    value: String,
-    font_name: String,
-    _mode: String,
-    options: &Options,
-    classes: js_sys::Array,
-) -> SymbolNode {
-    let mut c = vec![];
-    for cl in classes.to_vec().iter() {
-        if let Some(t) = cl.as_string() {
-            c.push(t);
-        }
-    }
-    let mode = Mode::from_str(_mode.as_str()).unwrap();
-    make_symbol(value, font_name, mode, Some(options), c)
-}
-
-#[wasm_bindgen]
-pub fn MakeSymbol_none(
-    value: String,
-    font_name: String,
-    _mode: String,
-    classes: js_sys::Array,
-) -> SymbolNode {
-    let mut c = vec![];
-    for cl in classes.to_vec().iter() {
-        //classes fontShape 可能是undefined
-        if let Some(t) = cl.as_string() {
-            c.push(t);
-        }
-    }
-    let mode = Mode::from_str(_mode.as_str()).unwrap();
-    make_symbol(value, font_name, mode, None, c)
 }
 
 /**
@@ -281,7 +228,7 @@ pub fn bold_symbol(
 //                 [classes,fontClasses].concat());
 //         } else if (LIGATURES.contains(text) &&
 //                    fontName[0:10] == "Typewriter") {
-//             // Deconstruct ligatures in monospace fonts (\texttt, \tt).
+//             // Deletruct ligatures in monospace fonts (\texttt, \tt).
 //             let parts =  text.chars().map(|c|{
 //                 make_symbol(c.to_string(), fontName.to_string(), mode, options,
 //                     [classes,fontClasses].concat())
@@ -327,6 +274,59 @@ pub fn bold_symbol(
 //     // }
 // }
 
+// // SVG one is simpler -- doesn't require height, depth, max-font setting.
+// // This is also a separate method for typesafety.
+// let makeSvgSpan = (
+//     classes?: string[],
+//     children?: SvgNode[],
+//     options?: Options,
+//     style?: CssStyle,
+// ): SvgSpan => new Span(classes, children, options, style);
+
+// let makeLineSpan = function(
+//     className: string,
+//     options: Options,
+//     thickness?: number,
+// ): DomSpan {
+//     let line = makeSpan([className], [], options);
+//     line.height = Math.max(
+//         thickness || options.fontMetrics().defaultRuleThickness,
+//         options.minRuleThickness,
+//     );
+//     line.style.borderBottomWidth = makeEm(line.height);
+//     line.maxFontSize = 1.0;
+//     return line;
+// };
+
+/**
+ * Combine consecutive domTree.symbolNodes into a single symbolNode.
+ * Note: this function mutates the argument.
+ */
+pub fn try_combine_chars(mut chars: Vec<Box<dyn HtmlDomNode>>) -> Vec<Box<dyn HtmlDomNode>> {
+    // let mut res = vec![];
+    // let mut pairs = chars.windows(2);
+    // while let Some([_prev, _nxt]) = pairs.next() {
+    //     if let Some(prev) = _prev.as_any().downcast_ref::<SymbolNode>() {
+    //         if let Some(nxt) = _nxt.as_any().downcast_ref::<SymbolNode>() {
+    //             let mut x = prev.clone();
+    //             x.set_text(format!("{}{}", prev.get_text(), nxt.get_text()));
+    //             x.set_height(f64::max(prev.get_height(), nxt.get_height()));
+    //             x.set_depth(f64::max(prev.get_depth(), nxt.get_depth()));
+    //             // Use the last character's italic correction since we use
+    //             // it to add padding to the right of the span created from
+    //             // the combined characters.
+    //             x.italic = nxt.italic;
+    //             res.push(x);
+    //             if pairs.next().is_none() {
+    //                 //跳走一个
+    //                 break;
+    //             }
+    //         }
+    //     }
+    // }
+    return chars;
+}
+
 /**
  * Makes a span with the given list of classes, list of children, and options.
  *
@@ -335,13 +335,22 @@ pub fn bold_symbol(
  * TODO: add a separate argument for math class (e.g. `mop`, `mbin`), which
  * should if present come first in `classes`.
  */
-pub fn make_span<T: HtmlDomNode>(
+pub fn make_span(
     classes: Vec<String>,
-    children: Vec<T>,
-    options: Options,
+    children: Vec<Box<dyn HtmlDomNode>>,
+    options: Option<&Options>,
     style: CssStyle,
-) -> Span<T> {
-    let mut span = Span::new(classes, children, Some(options), style);
+) -> Span {
+    let mut span = Span::new(
+        classes,
+        children,
+        if let Some(o) = options {
+            Some(o.clone())
+        } else {
+            None
+        },
+        style,
+    );
 
     span.size_element_from_children();
 
@@ -388,6 +397,248 @@ pub fn make_anchor(
 
 //     return fragment;
 // }
+
+// These are exact object types to catch typos in the names of the optional fields.
+#[derive(Clone)]
+pub enum VListChild {
+    Elem {
+        // type: "elem",
+        elem: Box<dyn HtmlDomNode>,
+        margin_left: Option<String>,
+        margin_right: Option<String>,
+        wrapper_classes: Option<Vec<String>>,
+        wrapper_style: Option<CssStyle>,
+        shift: Option<i32>, //only for individual_shift
+    },
+    Kern {
+        size: i32,
+    },
+}
+pub enum PositionType {
+    IndividualShift, // Each child contains how much it should be shifted downward.
+    Top,             // "top": The positionData specifies the topmost point of the vlist (note this
+    //        is expected to be a height, so positive values move up).
+    Bottom, // "bottom": The positionData specifies the bottommost point of the vlist (note
+    //           this is expected to be a depth, so positive values move down).
+    Shift, // "shift": The vlist will be positioned such that its baseline is positionData
+    //          away from the baseline of the first child which MUST be an
+    //          "elem". Positive values move downwards.
+    FirstBaseline, // The vlist is positioned so that its baseline is aligned with the baseline
+                   // of the first child which MUST be an "elem". This is equivalent to "shift"
+                   // with positionData=0.
+}
+pub struct VListParam {
+    position_type: PositionType,
+    children: Vec<VListChild>,
+    position_data: Option<i32>,
+}
+
+// Computes the updated `children` list and the overall depth.
+//
+// This helper function for makeVList makes it easier to enforce type safety by
+// allowing early exits (returns) in the logic.
+pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32) {
+    let mut depth = 0;
+    match params.position_type {
+        PositionType::IndividualShift => {
+            // Add in kerns to the list of params.children to get each element to be
+            // shifted to the correct specified shift
+            let mut children_iter = params.children.iter();
+            let mut pre_child = children_iter.next().unwrap();
+            let mut children = vec![pre_child.clone()];
+            depth = match pre_child {
+                VListChild::Elem {
+                    elem,
+                    margin_left,
+                    margin_right,
+                    wrapper_classes,
+                    wrapper_style,
+                    shift,
+                } => shift.unwrap() - elem.get_depth() as i32,
+                VListChild::Kern { size } => unreachable!(),
+            };
+            let mut currPos = depth;
+            for cur_child in children_iter {
+                match cur_child {
+                    VListChild::Elem {
+                        elem,
+                        margin_left,
+                        margin_right,
+                        wrapper_classes,
+                        wrapper_style,
+                        shift,
+                    } => {
+                        let diff = -(shift.unwrap()) - currPos - elem.get_depth() as i32;
+                        let size = match pre_child {
+                            VListChild::Elem {
+                                elem,
+                                margin_left,
+                                margin_right,
+                                wrapper_classes,
+                                wrapper_style,
+                                shift,
+                            } => diff - (elem.get_height() + elem.get_depth()) as i32,
+                            VListChild::Kern { size } => todo!(),
+                        };
+
+                        currPos = currPos + diff;
+                        children.push(VListChild::Kern { size });
+                        children.push(cur_child.clone());
+                        pre_child = cur_child;
+                    }
+                    VListChild::Kern { size } => unreachable!(),
+                };
+            }
+            return (children, depth);
+        }
+        PositionType::Top => {
+            // We always start at the bottom, so calculate the bottom by adding up
+            // all the sizes
+            let mut bottom = params.position_data.unwrap();
+            for child in params.children.iter() {
+                bottom -= match child {
+                    VListChild::Elem {
+                        elem,
+                        margin_left,
+                        margin_right,
+                        wrapper_classes,
+                        wrapper_style,
+                        shift,
+                    } => (elem.get_height() - elem.get_depth()) as i32,
+                    VListChild::Kern { size } => *size,
+                };
+            }
+            depth = bottom;
+        }
+        PositionType::Bottom => {
+            depth = -params.position_data.unwrap();
+        }
+        PositionType::Shift | PositionType::FirstBaseline => match &params.children[0] {
+            VListChild::Elem {
+                elem,
+                margin_left,
+                margin_right,
+                wrapper_classes,
+                wrapper_style,
+                shift,
+            } => {
+                depth = match params.position_type {
+                    PositionType::Shift => -elem.get_depth() as i32 - params.position_data.unwrap(),
+                    PositionType::FirstBaseline => elem.get_depth() as i32,
+                    _ => {
+                        panic!("Invalid positionType")
+                    }
+                };
+            }
+            VListChild::Kern { size } => {
+                panic!("First child must have type \"elem\".")
+            }
+        },
+    }
+    return (params.children, depth);
+}
+
+// /**
+//  * Makes a vertical list by stacking elements and kerns on top of each other.
+//  * Allows for many different ways of specifying the positioning method.
+//  *
+//  * See VListParam documentation above.
+//  */
+// pub fn make_vlist(params: VListParam, options: Options)-> DomSpan {
+//     let (children, depth) = get_vlist_children_and_depth(params);
+//     // Create a strut that is taller than any list item. The strut is added to
+//     // each item, where it will determine the item's baseline. Since it has
+//     // `overflow:hidden`, the strut's top edge will sit on the item's line box's
+//     // top edge and the strut's bottom edge will sit on the item's baseline,
+//     // with no additional line-height spacing. This allows the item baseline to
+//     // be positioned precisely without worrying about font ascent and
+//     // line-height.
+//     let pstrutSize = 0;
+//     for (let i = 0; i < children.length; i++) {
+//         let child = children[i];
+//         if (child.type === "elem") {
+//             let elem = child.elem;
+//             pstrutSize = Math.max(pstrutSize, elem.maxFontSize, elem.height);
+//         }
+//     }
+//     pstrutSize += 2;
+//     let pstrut = makeSpan(["pstrut"], []);
+//     pstrut.style.height = makeEm(pstrutSize);
+//     // Create a new list of actual children at the correct offsets
+//     let realChildren = [];
+//     let minPos = depth;
+//     let maxPos = depth;
+//     let currPos = depth;
+//     for (let i = 0; i < children.length; i++) {
+//         let child = children[i];
+//         if (child.type === "kern") {
+//             currPos += child.size;
+//         } else {
+//             let elem = child.elem;
+//             let classes = child.wrapperClasses || [];
+//             let style = child.wrapperStyle || {};
+//             let childWrap = makeSpan(classes, [pstrut, elem], undefined, style);
+//             childWrap.style.top = makeEm(-pstrutSize - currPos - elem.depth);
+//             if (child.marginLeft) {
+//                 childWrap.style.marginLeft = child.marginLeft;
+//             }
+//             if (child.marginRight) {
+//                 childWrap.style.marginRight = child.marginRight;
+//             }
+//             realChildren.push(childWrap);
+//             currPos += elem.height + elem.depth;
+//         }
+//         minPos = Math.min(minPos, currPos);
+//         maxPos = Math.max(maxPos, currPos);
+//     }
+//     // The vlist contents go in a table-cell with `vertical-align:bottom`.
+//     // This cell's bottom edge will determine the containing table's baseline
+//     // without overly expanding the containing line-box.
+//     let vlist = makeSpan(["vlist"], realChildren);
+//     vlist.style.height = makeEm(maxPos);
+//     // A second row is used if necessary to represent the vlist's depth.
+//     let rows;
+//     if (minPos < 0) {
+//         // We will define depth in an empty span with display: table-cell.
+//         // It should render with the height that we define. But Chrome, in
+//         // contenteditable mode only, treats that span as if it contains some
+//         // text content. And that min-height over-rides our desired height.
+//         // So we put another empty span inside the depth strut span.
+//         let emptySpan = makeSpan([], []);
+//         let depthStrut = makeSpan(["vlist"], [emptySpan]);
+//         depthStrut.style.height = makeEm(-minPos);
+//         // Safari wants the first row to have inline content; otherwise it
+//         // puts the bottom of the *second* row on the baseline.
+//         let topStrut = makeSpan(["vlist-s"], [new SymbolNode("\u200b")]);
+//         rows = [makeSpan(["vlist-r"], [vlist, topStrut]),
+//             makeSpan(["vlist-r"], [depthStrut])];
+//     } else {
+//         rows = [makeSpan(["vlist-r"], [vlist])];
+//     }
+//     let vtable = makeSpan(["vlist-t"], rows);
+//     if (rows.length === 2) {
+//         vtable.classes.push("vlist-t2");
+//     }
+//     vtable.height = maxPos;
+//     vtable.depth = -minPos;
+//     return vtable;
+// };
+
+/// Glue is a concept from TeX which is a flexible space between elements in
+/// either a vertical or horizontal list. In KaTeX, at least for now, it's
+/// static space between elements in a horizontal layout.
+pub fn make_glue(measurement: crate::units::Measurement, options: &Options) -> Span {
+    // Make an empty span for the space
+    let mut rule = make_span(
+        vec!["mspace".to_string()],
+        Vec::<_>::new(),
+        Some(&options.clone()),
+        CssStyle::default(),
+    );
+    let size = crate::units::calculate_size(&measurement, &options);
+    rule.get_mut_style().margin_right = Some(make_em(size));
+    return rule;
+}
 
 // Takes font options, and returns the appropriate fontLookup name
 fn retrieve_text_font_name(font_family: String, font_weight: String, font_shape: String) -> String {
@@ -493,7 +744,7 @@ lazy_static! {
 
 }
 
-pub fn static_svg(value: String, options: Options) -> Span<SvgNode> {
+pub fn static_svg(value: String, options: Options) -> Span {
     // Create a span with inline SVG for the element.
     let svg_data = SVG_DATA.lock().unwrap();
     let (pathName, width, height) = svg_data.get(value.as_str()).unwrap();
@@ -514,7 +765,7 @@ pub fn static_svg(value: String, options: Options) -> Span<SvgNode> {
     };
     let mut span = Span::new(
         vec!["overlay".to_string()],
-        vec![svgNode],
+        vec![/*Box::new(svgNode) as Box<dyn HtmlDomNode>*/],
         Some(options),
         CssStyle::new(),
     );

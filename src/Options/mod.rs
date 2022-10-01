@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::get_global_metrics;
 use crate::metrics::sigmas_and_xis::FontMetrics;
+use crate::settings::Settings;
 use crate::utils::{console_log, log};
 use crate::Style::StyleInterface;
 use consts::*;
@@ -27,7 +28,6 @@ pub fn size_at_style(size: f64, style: &StyleInterface) -> f64 {
 }
 
 #[derive(Debug, Clone)]
-#[wasm_bindgen(getter_with_clone)]
 pub struct Options {
     style: StyleInterface,
     pub color: String,
@@ -56,14 +56,29 @@ pub struct Options {
  */
 static BASESIZE: f64 = 6.0;
 
-#[wasm_bindgen]
 impl Options {
-    #[wasm_bindgen(getter)]
+    pub fn from_settings(settings: &Settings) -> Options {
+        let mut res = Options::new();
+        res.style = if settings.get_display_mode() {
+            let r = crate::Style::DISPLAY.lock().unwrap();
+            r.clone()
+        } else {
+            let r = crate::Style::TEXT.lock().unwrap();
+            r.clone()
+        };
+        // console.log(`maxSiz === ${settings.maxSize}`)
+        res.maxSize = settings.get_max_size().unwrap_or(100000.0);
+        res.minRuleThickness = settings.get_min_rule_thickness();
+        res.log();
+        return res;
+    }
+}
+
+impl Options {
     pub fn fontWeight(&self) -> String {
         self.fontWeight.as_str().to_string()
     }
 
-    #[wasm_bindgen(getter)]
     pub fn fontShape(&self) -> Option<String> {
         match self.fontShape {
             Some(p) => Some(p.as_str().to_string()),
@@ -71,12 +86,10 @@ impl Options {
         }
     }
 
-    #[wasm_bindgen(getter)]
     pub fn style(&self) -> StyleInterface {
         self.style.clone()
     }
 
-    #[wasm_bindgen(setter)]
     pub fn set_style(&mut self, style: &StyleInterface) {
         self.style = style.clone()
     }
@@ -84,7 +97,6 @@ impl Options {
     /**
      * The base size index.
      */
-    #[wasm_bindgen(constructor)]
     pub fn new() -> Options {
         Options {
             style: StyleInterface {
@@ -261,16 +273,15 @@ impl Options {
      * Return the CSS sizing classes required to switch from enclosing options
      * `oldOptions` to `this`. Returns an array of classes.
      */
-    pub fn sizingClasses(&self, oldOptions: &Options) -> JsValue {
+    pub fn sizingClasses(&self, oldOptions: &Options) -> Vec<String> {
         if oldOptions.size != self.size {
-            return JsValue::from_serde(&vec![
+            return vec![
                 "sizing".to_string(),
                 format!("reset-size{}", oldOptions.size),
                 format!("size{}", self.size),
-            ])
-            .unwrap();
+            ];
         } else {
-            return JsValue::from_serde(&(vec![] as Vec<String>)).unwrap();
+            return vec![];
         }
     }
 

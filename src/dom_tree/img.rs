@@ -63,18 +63,3 @@ impl VirtualNode for Img {
         return markup;
     }
 }
-
-#[wasm_bindgen]
-impl Img {
-    pub fn toNode(&self) -> web_sys::Node {
-        return self.to_node();
-    }
-
-    pub fn toMarkup(&self) -> String {
-        return self.to_markup();
-    }
-
-    pub fn hasClass(&self, class_name: String) -> bool {
-        return self.has_class(&class_name);
-    }
-}
