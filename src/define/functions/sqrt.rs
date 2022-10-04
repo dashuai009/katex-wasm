@@ -144,8 +144,8 @@ fn f() -> FunctionDefSpec {
 //         numArgs: 1,
 //         numOptionalArgs: 1,
 //     },
-//     handler({parser}, args, optArgs) {
-//         const index = optArgs[0];
+//     handler({parser}, args, opt_args) {
+//         const index = opt_args[0];
 //         const body = args[0];
 //         return {
 //             type: "sqrt",

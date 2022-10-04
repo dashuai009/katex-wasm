@@ -13,7 +13,7 @@ use crate::parse_error::ParseError;
  */
 
 type Mapping<T> = std::collections::HashMap<String, T>;
-
+#[derive(Debug)]
 pub struct Namespace<Value> {
     current: Arc<Mapping<Value>>,
     builtins: Arc<Mapping<Value>>,

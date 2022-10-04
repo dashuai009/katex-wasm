@@ -50,9 +50,11 @@ impl MathNode {
         return self.attributes.get(name);
     }
 
-
-    pub fn get_node_type(&self)->MathNodeType{
+    pub fn get_node_type(&self) -> MathNodeType {
         self.node_type.clone()
+    }
+    pub fn set_node_type(&mut self, t: MathNodeType) {
+        self.node_type = t;
     }
 }
 impl VirtualNode for MathNode {

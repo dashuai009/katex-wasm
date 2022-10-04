@@ -20,7 +20,7 @@ impl FromStr for Font {
     }
 }
 impl Font {
-    fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             Font::main => "main",
             Font::ams => "ams",

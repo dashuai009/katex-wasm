@@ -142,6 +142,6 @@ use std::sync::Mutex;
 lazy_static!{
     pub static ref DISPLAY:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(0, 0, false));
     pub static ref TEXT:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(2, 1, false));
-    pub static ref SCRIPT:StyleInterface = StyleInterface::new(4, 2, false);
-    pub static ref SCRIPTSCRIPT:StyleInterface = StyleInterface::new(6, 3, false);
+    pub static ref SCRIPT:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(4, 2, false));
+    pub static ref SCRIPTSCRIPT:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(6, 3, false));
 }

@@ -40,6 +40,8 @@ pub fn set_panic_hook() {
     console_log!("console_error_panic_hook has set!");
 }
 
+use crate::parse_node::types::ParseNodeToAny;
+use crate::{parse_node, AnyParseNode};
 use regex::Regex;
 use std::collections::HashMap;
 lazy_static! {
@@ -73,4 +75,42 @@ pub fn escape(text: &String) -> String {
     return text.chars().map(ESCAPE_LOOKUP).collect();
 }
 
-
+/**
+ * Sometimes we want to pull out the innermost element of a group. In most
+ * cases, this will just be the group itself, but when ordgroups and colors have
+ * a single element, we want to pull that out.
+ */
+pub fn get_base_elem(_group: &Box<dyn AnyParseNode>) -> &Box<dyn AnyParseNode> {
+    if let Some(group) = _group
+        .as_any()
+        .downcast_ref::<parse_node::types::ordgroup>()
+    {
+        if group.body.len() == 1 {
+            return get_base_elem(&group.body[0]);
+        } else {
+            return _group;
+        }
+    } else if let Some(color) = _group.as_any().downcast_ref::<parse_node::types::color>() {
+        if color.body.len() == 1 {
+            return get_base_elem(&color.body[0]);
+        } else {
+            return _group;
+        }
+    } else if let Some(font) = _group.as_any().downcast_ref::<parse_node::types::font>() {
+        return get_base_elem(&font.body);
+    } else {
+        return _group;
+    }
+}
+/**
+ * TeXbook algorithms often reference "character boxes", which are simply groups
+ * with a single character in them. To decide if something is a character box,
+ * we find its innermost group, and see if it is a single character.
+ */
+pub fn is_character_box(group: &Box<dyn AnyParseNode>) -> bool {
+    let base_elem = get_base_elem(group);
+    // These are all they types of groups which hold single characters
+    return base_elem.get_type() == "mathord"
+        || base_elem.get_type() == "textord"
+        || base_elem.get_type() == "atom";
+}

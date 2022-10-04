@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
-use wasm_bindgen::prelude::*;
 use crate::types::Mode;
+use wasm_bindgen::prelude::*;
 /**
  * This file provides support for Unicode range U+1D400 to U+1D7FF,
  * Mathematical Alphanumeric Symbols.
@@ -62,8 +62,8 @@ const wideNumeralData: [[&'static str; 3]; 5] = [
     ["mathtt", "texttt", "Typewriter-Regular"],     // 0-9 monospace
 ];
 
-pub fn wide_character_font(wide_char:String, mode:Mode)->Result<[&'static str;2],String>{
- // IE doesn't support codePointAt(). So work with the surrogate pair.
+pub fn wide_character_font(wide_char: &String, mode: Mode) -> Result<[&'static str; 2], String> {
+    // IE doesn't support codePointAt(). So work with the surrogate pair.
     // let H = wideChar[0];    // high surrogate
     // let L = wideChar.charCodeAt(1);    // low surrogate
     // let codePoint = ((H - 0xD800) * 0x400) + (L - 0xDC00) + 0x10000;
@@ -80,10 +80,10 @@ pub fn wide_character_font(wide_char:String, mode:Mode)->Result<[&'static str;2]
         // Numerals, ten per row.
         let i = (code_point - 0x1D7CE) / 10;
         return Ok([wideNumeralData[i][2], wideNumeralData[i][j]]);
-    } else if code_point == 0x1D6A5 ||code_point == 0x1D6A6 {
+    } else if code_point == 0x1D6A5 || code_point == 0x1D6A6 {
         // dotless i or j
         return Ok([wideLatinLetterData[0][2], wideLatinLetterData[0][j]]);
-    } else if 0x1D6A6 < code_point &&code_point < 0x1D7CE {
+    } else if 0x1D6A6 < code_point && code_point < 0x1D7CE {
         // Greek letters. Not supported, yet.
         return Ok(["", ""]);
     } else {
@@ -93,10 +93,10 @@ pub fn wide_character_font(wide_char:String, mode:Mode)->Result<[&'static str;2]
         //throw new ParseError();
     }
 }
-#[wasm_bindgen]
-pub fn wideCharacterFont(wide_char: String, mode: String) -> js_sys::Array {
-   return wide_character_font(wide_char, Mode::from_str(mode.as_str()).unwrap()).unwrap()
-    .iter()
-    .map(|s| JsValue::from_str(s))
-    .collect::<js_sys::Array>();
-}
+// #[wasm_bindgen]
+// pub fn wideCharacterFont(wide_char: String, mode: String) -> js_sys::Array {
+//    return wide_character_font(wide_char, Mode::from_str(mode.as_str()).unwrap()).unwrap()
+//     .iter()
+//     .map(|s| JsValue::from_str(s))
+//     .collect::<js_sys::Array>();
+// }

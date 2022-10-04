@@ -1,3 +1,4 @@
+use crate::parse_node::types::ParseNodeToAny;
 pub(crate) use crate::AnyParseNode;
 use crate::{
     mathML_tree::public::MathDomNode,
@@ -10,6 +11,7 @@ use crate::{
 };
 use lazy_static::lazy_static;
 use std::collections::HashMap;
+
 /** Context provided to function pub(crate) handlers for error messages. */
 pub struct FunctionContext<'a> {
     pub func_name: String,
@@ -21,7 +23,7 @@ pub struct FunctionContext<'a> {
 type FunctionHandler = fn(
     context: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
-    optArgs: Vec<Option<Box<dyn AnyParseNode>>>,
+    opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode>;
 // Note: reverse the order of the return type union will cause a flow error.
 // See https://github.com/facebook/flow/issues/3663.
@@ -85,90 +87,90 @@ impl FunctionPropSpec {
             primitive: false,
         };
     }
-    pub fn  set_num_args(&mut self,num_args:i32)->&mut Self{
+    pub fn set_num_args(&mut self, num_args: i32) -> &mut Self {
         self.num_args = num_args;
         self
     }
-    pub fn  get_num_args(&self )->i32{
-        self.num_args  
+    pub fn get_num_args(&self) -> i32 {
+        self.num_args
     }
-    pub fn  set_arg_types(&mut self,arg_types:Vec<ArgType>)->&mut Self{
+    pub fn set_arg_types(&mut self, arg_types: Vec<ArgType>) -> &mut Self {
         self.arg_types = arg_types;
         self
     }
-    pub fn  get_arg_types(&self )->&Vec<ArgType>{
-        &self.arg_types  
+    pub fn get_arg_types(&self) -> &Vec<ArgType> {
+        &self.arg_types
     }
-    pub fn  set_allowed_in_argument(&mut self,allowed_in_argument:bool)->&mut Self{
+    pub fn set_allowed_in_argument(&mut self, allowed_in_argument: bool) -> &mut Self {
         self.allowed_in_argument = allowed_in_argument;
         self
     }
-    pub fn  get_allowed_in_argument(&self)->bool{
+    pub fn get_allowed_in_argument(&self) -> bool {
         self.allowed_in_argument
     }
 
-
-    pub fn  set_allowed_in_text(&mut self,allowed_in_text:bool)->&mut Self{
+    pub fn set_allowed_in_text(&mut self, allowed_in_text: bool) -> &mut Self {
         self.allowed_in_text = allowed_in_text;
         self
     }
-    pub fn  get_allowed_in_text(&self)->bool{
+    pub fn get_allowed_in_text(&self) -> bool {
         self.allowed_in_text
     }
-    pub fn  set_allowed_in_math(&mut self,allowed_in_math:bool)->&mut Self{
+    pub fn set_allowed_in_math(&mut self, allowed_in_math: bool) -> &mut Self {
         self.allowed_in_math = allowed_in_math;
         self
     }
-    pub fn  get_allowed_in_math(&self)->bool{
+    pub fn get_allowed_in_math(&self) -> bool {
         self.allowed_in_math
     }
-    pub fn  set_num_optional_args(&mut self,num_optional_args:i32)->&mut Self{
+    pub fn set_num_optional_args(&mut self, num_optional_args: i32) -> &mut Self {
         self.num_optional_args = num_optional_args;
         self
     }
-    pub fn  get_num_optional_args(&self )->i32{
-        self.num_optional_args 
+    pub fn get_num_optional_args(&self) -> i32 {
+        self.num_optional_args
     }
 
-    pub fn  get_infix(&self)->bool{
-        self.infix 
+    pub fn get_infix(&self) -> bool {
+        self.infix
     }
-    pub fn  set_infix(&mut self,infix:bool)->&mut Self{
+    pub fn set_infix(&mut self, infix: bool) -> &mut Self {
         self.infix = infix;
         self
     }
-    pub fn  set_primitive(&mut self,primitive:bool)->&mut Self{
+    pub fn set_primitive(&mut self, primitive: bool) -> &mut Self {
         self.primitive = primitive;
         self
     }
-    pub fn  get_primitive(&self )->bool{
-        self.primitive 
+    pub fn get_primitive(&self) -> bool {
+        self.primitive
     }
 }
-
+#[derive(Clone)]
 pub struct FunctionDefSpec {
+    pub def_type: String,
+
     // The first argument to defineFunction is a single name or a list of names.
     // All functions named in such a list will share a single implementation.
-    names: Vec<String>,
+    pub names: Vec<String>,
 
     // Properties that control how the functions are parsed.
-    props: FunctionPropSpec,
+    pub props: FunctionPropSpec,
 
     // The handler is called to handle these functions and their arguments and
     // returns a `ParseNode`.
-    handler: FunctionHandler,
+    pub handler: FunctionHandler,
 
     // This function returns an object representing the DOM structure to be
     // created when rendering the defined LaTeX function.
     // This should not modify the `ParseNode`.
-    htmlBuilder: Option<HtmlBuilder>,
+    pub html_builder: Option<HtmlBuilder>,
 
     // This function returns an object representing the MathML structure to be
     // created when rendering the defined LaTeX function.
     // This should not modify the `ParseNode`.
-    mathmlBuilder: Option<MathMLBuilder>,
+    pub mathml_builder: Option<MathMLBuilder>,
 }
-
 
 pub type FunctionSpec = (FunctionPropSpec, FunctionHandler);
 /**
@@ -185,39 +187,57 @@ lazy_static! {
      * `Parser.js` requires this dictionary.
      */
     pub static ref _functions: std::sync::Mutex<HashMap<String,FunctionSpec>> =  std::sync::Mutex::new({
-        HashMap::new()
+        let mut res = HashMap::new();
+        for data in super::def_spec::FUNCS.lock().unwrap().iter(){
+             for name in data.names.iter() {
+                res.insert(name.clone(), (data.props.clone(), data.handler));
+            }
+        }
+        res
     });
     /**
      * All HTML builders. Should be only used in the `define*` and the `build*ML`
      * functions.
      */
     pub static ref _HTML_GROUP_BUILDERS: std::sync::Mutex<HashMap<String, HtmlBuilder>> =  std::sync::Mutex::new({
-        HashMap::new()
+        let mut res = HashMap::new();
+        for data in super::def_spec::FUNCS.lock().unwrap().iter(){
+            if let Some(h) = data.html_builder{
+                res.insert(data.def_type.clone(),h);
+            }
+        }
+        res
     });
     /**
      * All MathML builders. Should be only used in the `define*` and the `build*ML`
      * functions.
      */
     pub static ref _mathmlGroupBuilders: std::sync::Mutex<HashMap<String,MathMLBuilder>> =  std::sync::Mutex::new({
-        HashMap::new()
+        let mut res = HashMap::new();
+        for data in super::def_spec::FUNCS.lock().unwrap().iter(){
+            if let Some(h) = data.mathml_builder{
+                res.insert(data.def_type.clone(),h);
+            }
+        }
+        res
     });
 }
 
 // pub fn get_function(name:&String)->Option<&(FunctionPropSpec, FunctionHandler)>{
 //     let funcs = _functions.lock().unwrap();
 //     return funcs.get(name);
-// }
+//
 
-pub fn define_function<NODETYPE: AnyParseNode>(data: FunctionDefSpec) {
+pub fn define_function(data: FunctionDefSpec) {
     for name in data.names {
         let mut _f = _functions.lock().unwrap();
         _f.insert(name, (data.props.clone(), data.handler));
     }
-    if let Some(hB) = data.htmlBuilder {
+    if let Some(hB) = data.html_builder {
         let _h = _HTML_GROUP_BUILDERS.lock().unwrap();
         // _h.insert(NODETYPE::as_str(), hB);
     }
-    if let Some(mB) = data.mathmlBuilder {
+    if let Some(mB) = data.mathml_builder {
         let _m = _mathmlGroupBuilders.lock().unwrap();
         // _m.insert(NODETYPE::as_str(), mB);
     }
@@ -255,6 +275,10 @@ pub fn test(a: i32, b: i32) -> i32 {
 
 // Since the corresponding buildHTML/buildMathML function expects a
 // list of elements, we normalize for different kinds of arguments
-// export const ordargument = function(arg: AnyParseNode): AnyParseNode[] {
-//     return arg.type === "ordgroup" ? arg.body : [arg];
-// };
+pub fn ord_argument(arg: &Box<dyn AnyParseNode>) -> Vec<Box<dyn AnyParseNode>> {
+    if let Some(ord_group) = arg.as_any().downcast_ref::<parse_node::types::ordgroup>() {
+        return ord_group.body.clone();
+    } else {
+        return vec![arg.clone()];
+    }
+}

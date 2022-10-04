@@ -1,5 +1,6 @@
 use crate::dom_tree::anchor::Anchor;
 use crate::dom_tree::css_style::CssStyle;
+use crate::dom_tree::document_fragment::DocumentFragment;
 use crate::dom_tree::path_node::PathNode;
 use crate::dom_tree::svg_node::SvgNode;
 use crate::dom_tree::{span::Span, symbol_node::SymbolNode};
@@ -10,9 +11,9 @@ use crate::symbols::LIGATURES;
 use crate::tree::{HtmlDomNode, VirtualNode};
 use crate::types::{FontVariant, Mode};
 use crate::units::make_em;
-use crate::wideCharacter::{wideCharacterFont, wide_character_font};
+use crate::wideCharacter::wide_character_font;
 use crate::Options::Options;
-use crate::{get_character_metrics, get_symbol};
+use crate::{get_character_metrics, get_symbol, parse_node};
 use std::any::Any;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -171,10 +172,10 @@ pub fn bold_symbol(
     classes: Vec<String>,
     _type: String,
 ) -> [&'static str; 2] /*{ fontName: String, fontClass: String }*/ {
-    if (_type != "textord"
+    if _type != "textord"
         && lookup_symbol(value, "Math-BoldItalic".to_string(), mode)
             .metrics
-            .is_some())
+            .is_some()
     {
         return ["Math-BoldItalic", "boldsymbol"];
     } else {
@@ -184,95 +185,149 @@ pub fn bold_symbol(
     }
 }
 
+impl Options {}
 /**
  * Makes either a mathord or textord in the correct font and color.
  */
-// pub fn make_ord<T:GetMode + GetText>(
-//     group: T,
-//     options: Options,
-//     _type: String,
-// )->impl VirtualNode/*  HtmlDocumentFragment | SymbolNode */{
-//     let mode = group.get_mode();
-//     let text = group.get_text();
-
-//     let classes = ["mord".to_string()];
-
-//     // Math mode or Old font (i.e. \rm)
-//     let isFont = mode == Mode::math || (mode == Mode::text && options.font != "");
-//     let fontOrFamily = if isFont { options.font }else  {options.fontFamily};
-//     let code_point = text.chars().nth(0).unwrap() as usize;
-//     if code_point == 0xD835 {
-//         // surrogate pairs get special treatment
-//         let [wideFontName, wideFontClass] = wide_character_font(text, mode).unwrap();
-//         return make_symbol(text, wideFontName.to_string(), mode, options,
-//             [classes,[wideFontClass.to_string()]].concat());
-//     } else {//if (fontOrFamily) {
-//         let mut fontName = "";
-//         let fontClasses:Vec<String> = Vec::new();
-//         if (fontOrFamily == "boldsymbol") {
-//             let fontData = bold_symbol(text, mode, options, classes, _type);
-//             fontName = fontData.fontName;
-//             fontClasses.push(fontData.fontClass);
-//         } else if (isFont) {
-//             let f = FONT_MAP.lock().unwrap();
-//             fontName = f.get(fontOrFamily).unwrap();
-//             fontClasses = [fontOrFamily];
-//         } else {
-//             fontName = &retrieve_text_font_name(fontOrFamily, options.fontWeight,
-//                                             options.font_shape.unwrap());
-//             fontClasses = [fontOrFamily, options.fontWeight, options.fontShape];
-//         }
-
-//         if (lookup_symbol(text, fontName.to_string(), mode).metrics.is_some()) {
-//             return make_symbol(text, fontName.to_string(), mode, options,
-//                 [classes,fontClasses].concat());
-//         } else if (LIGATURES.contains(text) &&
-//                    fontName[0:10] == "Typewriter") {
-//             // Deletruct ligatures in monospace fonts (\texttt, \tt).
-//             let parts =  text.chars().map(|c|{
-//                 make_symbol(c.to_string(), fontName.to_string(), mode, options,
-//                     [classes,fontClasses].concat())
-//             });
-//             return make_fragment(parts);
-//         }
-//     }
-
-//     // Makes a symbol in the default font for mathords and textords.
-//     if _type == "mathord" {
-//         return make_symbol(text, "Math-Italic".to_string(), mode, options,
-//             [classes,["mathnormal".to_string()]].concat());
-//     } else if (_type == "textord") {
-//         if let Some(sym) = get_symbol(mode,&text){
-//             match sym.font{
-//                 Font::main => todo!(),
-//                 Font::ams => todo!(),
-//             }
-//         }
-//         if (font == "ams") {
-//             let fontName = retrieve_text_font_name("amsrm".to_string(), options.fontWeight,
-//                   options.fontShape().unwrap());
-//             return make_symbol(
-//                 text, fontName, mode, Some(&options),
-//                 [classes,["amsrm".to_string(), options.fontWeight(), options.fontShape()]].concat());
-//         } else if (font == "main" || !font) {
-//             let fontName = retrieve_text_font_name("textrm".to_string(), options.fontWeight,
-//                   options.fontShape().unwrap());
-//             return make_symbol(
-//                 text, fontName, mode, Some(&options),
-//                 [classes,[options.fontWeight(), options.fontShape().unwrap()].concat());
-//         } else { // fonts added by plugins
-//             let fontName = retrieve_text_font_name(font, options.fontWeight,
-//                   options.fontShape());
-//             // We add font name as a css class
-//             return make_symbol(
-//                 text, fontName, mode, Some(&options),
-//                 [classes,[fontName, options.fontWeight(), options.fontShape].concat());
-//         }
-//     }
-//     // else {
-//     //     throw new Error("unexpected type: " + type + " in makeOrd");
-//     // }
-// }
+pub fn make_ord(
+    //<NODETYPE: "spacing" | "mathord" | "textord">
+    group: Box<dyn AnyParseNode>,
+    options: Options,
+    _type: String,
+) -> SymbolNode {
+    let (mode, text) = if let Some(s) = group.as_any().downcast_ref::<parse_node::types::spacing>()
+    {
+        (s.mode, s.text.clone())
+    } else if let Some(m) = group.as_any().downcast_ref::<parse_node::types::mathord>() {
+        (m.mode, m.text.clone())
+    } else if let Some(t) = group.as_any().downcast_ref::<parse_node::types::textord>() {
+        (t.mode, t.text.clone())
+    } else {
+        panic!("make_ord {}", group.get_type());
+    };
+    let mut classes = vec!["mord".to_string()];
+    // Math mode or Old font (i.e. \rm)
+    let is_font = mode == Mode::math || (mode == Mode::text); //TODO && options.font);
+    let font_or_family = if is_font {
+        options.font.clone()
+    } else {
+        options.fontFamily.clone()
+    };
+    if text.clone().chars().nth(0).unwrap() as u32 == 0xD835 {
+        // surrogate pairs get special treatment
+        let [wide_font_name, wide_font_class] = wide_character_font(&text, mode).unwrap();
+        classes.push(wide_font_class.to_string());
+        return make_symbol(
+            text.clone(),
+            wide_font_name.to_string(),
+            mode,
+            Some(&options),
+            classes,
+        );
+    } else if font_or_family != "" {
+        let font_name;
+        let font_classes;
+        if font_or_family == "boldsymbol" {
+            let font_data =
+                bold_symbol(text.clone(), mode, options.clone(), classes.clone(), _type.clone());
+            font_name = font_data[0].to_string();
+            font_classes = vec![font_data[1].to_string()];
+        } else if is_font {
+            let font_map = FONT_MAP.lock().unwrap();
+            font_name = font_map
+                .get(&font_or_family.as_str())
+                .unwrap()
+                .fontName
+                .clone()
+                .to_string();
+            font_classes = vec![font_or_family];
+        } else {
+            font_name = options.retrieve_text_font_name(font_or_family.clone());
+            font_classes = vec![font_or_family, options.fontWeight(), options.fontShape()];
+        }
+        if lookup_symbol(text.clone(), font_name.clone(), mode)
+            .metrics
+            .is_some()
+        {
+            return make_symbol(
+                text.clone(),
+                font_name.clone(),
+                mode,
+                Some(&options),
+                [classes, font_classes].concat(),
+            );
+        } else if LIGATURES.contains(&text.as_str()) && font_name.starts_with("Typewriter") {
+            // Deconstruct ligatures in monospace fonts (\texttt, \tt).
+            let mut parts = vec![];
+            for c in text.clone().chars() {
+                parts.push(make_symbol(
+                    c.to_string(),
+                    font_name.clone(),
+                    mode,
+                    Some(&options),
+                    [classes.clone(), font_classes.clone()].concat(),
+                ));
+            }
+            // return makeFragment(parts);
+        }
+    }
+    // Makes a symbol in the default font for mathords and textords.
+    if _type == "mathord" {
+        return make_symbol(
+            text.clone(),
+            "Math-Italic".to_string(),
+            mode,
+            Some(&options),
+            vec![classes, vec!["mathnormal".to_string()]].concat(),
+        );
+    } else if _type == "textord" {
+        let font = get_symbol(mode, &text).unwrap().font;
+        if font == Font::ams {
+            let font_name = options.retrieve_text_font_name("amsrm".to_string());
+            return make_symbol(
+                text.clone(),
+                font_name,
+                mode,
+                Some(&options),
+                vec![
+                    classes,
+                    vec![
+                        "amsrm".to_string(),
+                        options.fontWeight(),
+                        options.fontShape(),
+                    ],
+                ]
+                .concat(),
+            );
+        } else if font == Font::main {
+            let font_name = options.retrieve_text_font_name("textrm".to_string());
+            return make_symbol(
+                text.clone(),
+                font_name,
+                mode,
+                Some(&options),
+                vec![classes, vec![options.fontWeight(), options.fontShape()]].concat(),
+            );
+        } else {
+            // fonts added by plugins
+            let font_name = options.retrieve_text_font_name(font.as_str().to_string());
+            // We add font name as a css class
+            return make_symbol(
+                text.clone(),
+                font_name.clone(),
+                mode,
+                Some(&options),
+                [
+                    classes,
+                    vec![font_name, options.fontWeight(), options.fontShape()],
+                ]
+                .concat(),
+            );
+        }
+    } else {
+        panic!("unexpected type: {} in make_ord", _type);
+    }
+}
 
 // // SVG one is simpler -- doesn't require height, depth, max-font setting.
 // // This is also a separate method for typesafety.
@@ -302,7 +357,7 @@ pub fn bold_symbol(
  * Combine consecutive domTree.symbolNodes into a single symbolNode.
  * Note: this function mutates the argument.
  */
-pub fn try_combine_chars(mut chars: Vec<Box<dyn HtmlDomNode>>) -> Vec<Box<dyn HtmlDomNode>> {
+pub fn try_combine_chars(mut chars: &Vec<Box<dyn HtmlDomNode>>) -> &Vec<Box<dyn HtmlDomNode>> {
     // let mut res = vec![];
     // let mut pairs = chars.windows(2);
     // while let Some([_prev, _nxt]) = pairs.next() {
@@ -640,42 +695,18 @@ pub fn make_glue(measurement: crate::units::Measurement, options: &Options) -> S
     return rule;
 }
 
-// Takes font options, and returns the appropriate fontLookup name
-fn retrieve_text_font_name(font_family: String, font_weight: String, font_shape: String) -> String {
-    let base_font_name = match font_family.as_str() {
-        "amsrm" => "AMS",
-        "textrm" => "Main",
-        "textsf" => "SansSerif",
-        "texttt" => "Typewriter",
-        _ => &font_family, // use fonts added by a plugin
-    };
-
-    let font_styles_name;
-    if (font_weight == "textbf" && font_shape == "textit") {
-        font_styles_name = "BoldItalic";
-    } else if (font_weight == "textbf") {
-        font_styles_name = "Bold";
-    } else if (font_weight == "textit") {
-        font_styles_name = "Italic";
-    } else {
-        font_styles_name = "Regular";
-    }
-
-    return format!("{base_font_name}-{font_styles_name}");
-}
-
 /**
  * Maps TeX font commands to objects containing:
  * - variant: string used for "mathvariant" attribute in buildMathML.js
  * - fontName: the "style" parameter to fontMetrics.getCharacterMetrics
  */
-struct FontInfo {
-    variant: FontVariant,
-    fontName: &'static str,
+pub struct FontInfo {
+    pub variant: FontVariant,
+    pub fontName: &'static str,
 }
 // A map between tex font commands an MathML mathvariant attribute values
 lazy_static! {
-    static ref FONT_MAP: std::sync::Mutex< HashMap<&'static str, FontInfo> >= std::sync::Mutex::new({
+    pub static ref FONT_MAP: std::sync::Mutex< HashMap<&'static str, FontInfo> >= std::sync::Mutex::new({
         HashMap::from([
         ("mathbf",FontInfo{
             variant: FontVariant::bold,

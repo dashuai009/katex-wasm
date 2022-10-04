@@ -3,13 +3,10 @@ use crate::dom_tree::span::Span;
 use crate::mathML_tree::math_node::MathNode;
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
 use crate::mathML_tree::text_node::TextNode;
-use crate::parse_node::types::AnyParseNode;
-use crate::tree::HtmlDomNode;
-use crate::types::Mode;
+use crate::parse_node::types::{AnyParseNode, ParseNodeToAny};
+use crate::types::{FontVariant, Mode};
 use crate::Options::Options;
-use crate::{get_symbol, LIGATURES};
-use std::str::FromStr;
-use wasm_bindgen::prelude::*;
+use crate::{get_character_metrics, get_symbol, parse_node, LIGATURES};
 
 /**
  * Takes a symbol and converts it into a MathML text node after performing
@@ -48,8 +45,8 @@ pub fn make_text(text: String, mode: Mode, options: Option<&Options>) -> TextNod
 //     ligatures.hasOwnProperty(text) &&
 //     options &&
 //     (
-//         (options.fontFamily && options.fontFamily.substr(4, 2) === "tt") ||
-//         (options.font && options.font.substr(4, 2) === "tt")
+//         (options.fontFamily && options.fontFamily.substr(4, 2) == "tt") ||
+//         (options.font && options.font.substr(4, 2) == "tt")
 //     )
 // )
 
@@ -58,86 +55,110 @@ pub fn make_text(text: String, mode: Mode, options: Option<&Options>) -> TextNod
 //  * unless the array has length 1.  Always returns a single node.
 //  */
 // pub fn makeRow(body: $ReadOnlyArray<MathDomNode>)->MathDomNode {
-//     if (body.length === 1) {
+//     if (body.length == 1) {
 //         return body[0];
 //     } else {
 //         return MathNode::new("mrow", body);
 //     }
 // };
 
-// /**
-//  * Returns the math variant as a String or null if none is required.
-//  */
-// pub fn getVariant(
-//     group: SymbolParseNode,
-//     options: Options,
-// )->?FontVariant {
-//     // Handle \text... font specifiers as best we can.
-//     // MathML has a limited list of allowable mathvariant specifiers; see
-//     // https://www.w3.org/TR/MathML3/chapter3.html#presm.commatt
-//     if (options.fontFamily === "texttt") {
-//         return "monospace";
-//     } else if (options.fontFamily === "textsf") {
-//         if (options.fontShape === "textit" &&
-//             options.fontWeight === "textbf") {
-//             return "sans-serif-bold-italic";
-//         } else if (options.fontShape === "textit") {
-//             return "sans-serif-italic";
-//         } else if (options.fontWeight === "textbf") {
-//             return "bold-sans-serif";
-//         } else {
-//             return "sans-serif";
-//         }
-//     } else if (options.fontShape === "textit" &&
-//                options.fontWeight === "textbf") {
-//         return "bold-italic";
-//     } else if (options.fontShape === "textit") {
-//         return "italic";
-//     } else if (options.fontWeight === "textbf") {
-//         return "bold";
-//     }
+/**
+ * Returns the math variant as a String or null if none is required.
+ */
+pub fn get_variant(_group: &Box<dyn AnyParseNode>, options: &Options) -> Option<FontVariant> {
+    // Handle \text... font specifiers as best we can.
+    // MathML has a limited list of allowable mathvariant specifiers; see
+    // https://www.w3.org/TR/MathML3/chapter3.html#presm.commatt
+    if options.fontFamily == "texttt" {
+        return Some(FontVariant::monospace);
+    } else if options.fontFamily == "textsf" {
+        if options.fontShape() == "textit" && options.fontWeight() == "textbf" {
+            return Some(FontVariant::sans_serif_bold_italic);
+        } else if options.fontShape() == "textit" {
+            return Some(FontVariant::sans_serif_italic);
+        } else if options.fontWeight() == "textbf" {
+            return Some(FontVariant::bold_sans_serif);
+        } else {
+            return Some(FontVariant::sans_serif);
+        }
+    } else if options.fontShape() == "textit" && options.fontWeight() == "textbf" {
+        return Some(FontVariant::bold_italic);
+    } else if options.fontShape() == "textit" {
+        return Some(FontVariant::italic);
+    } else if options.fontWeight() == "textbf" {
+        return Some(FontVariant::bold);
+    }
 
-//     let font = options.font;
-//     if (!font || font === "mathnormal") {
-//         return null;
-//     }
+    let font = &options.font;
+    if (font == "" || font == "mathnormal") {
+        return None;
+    }
 
-//     let mode = group.mode;
-//     if (font === "mathit") {
-//         return "italic";
-//     } else if (font === "boldsymbol") {
-//         return group.type === "textord" ? "bold" : "bold-italic";
-//     } else if (font === "mathbf") {
-//         return "bold";
-//     } else if (font === "mathbb") {
-//         return "double-struck";
-//     } else if (font === "mathfrak") {
-//         return "fraktur";
-//     } else if (font === "mathscr" || font === "mathcal") {
-//         // MathML makes no distinction between script and caligrahpic
-//         return "script";
-//     } else if (font === "mathsf") {
-//         return "sans-serif";
-//     } else if (font === "mathtt") {
-//         return "monospace";
-//     }
+    let (mode, text) =
+        if let Some(group) = _group.as_any().downcast_ref::<parse_node::types::atom>() {
+            (group.mode, &group.text)
+        } else if let Some(group) = _group
+            .as_any()
+            .downcast_ref::<parse_node::types::accent_token>()
+        {
+            (group.mode, &group.text)
+        } else if let Some(group) = _group.as_any().downcast_ref::<parse_node::types::mathord>() {
+            (group.mode, &group.text)
+        } else if let Some(group) = _group
+            .as_any()
+            .downcast_ref::<parse_node::types::op_token>()
+        {
+            (group.mode, &group.text)
+        } else if let Some(group) = _group.as_any().downcast_ref::<parse_node::types::spacing>() {
+            (group.mode, &group.text)
+        } else if let Some(group) = _group.as_any().downcast_ref::<parse_node::types::atom>() {
+            (group.mode, &group.text)
+        } else {
+            panic!("get_variant error type = {}", _group.get_type());
+        };
+    if font == "mathit" {
+        return Some(FontVariant::italic);
+    } else if font == "boldsymbol" {
+        return if _group.get_type() == "textord" {
+            Some(FontVariant::bold)
+        } else {
+            Some(FontVariant::bold_italic)
+        };
+    } else if font == "mathbf" {
+        return Some(FontVariant::bold);
+    } else if font == "mathbb" {
+        return Some(FontVariant::double_struck);
+    } else if font == "mathfrak" {
+        return Some(FontVariant::fraktur);
+    } else if font == "mathscr" || font == "mathcal" {
+        // MathML makes no distinction between script and caligrahpic
+        return Some(FontVariant::script);
+    } else if font == "mathsf" {
+        return Some(FontVariant::sans_serif);
+    } else if font == "mathtt" {
+        return Some(FontVariant::monospace);
+    }
 
-//     let text = group.text;
-//     if (utils.contains(["\\imath", "\\jmath"], text)) {
-//         return null;
-//     }
+    if ["\\imath", "\\jmath"].contains(&text.as_str()) {
+        return None;
+    }
 
-//     if (symbols[mode][text] && symbols[mode][text].replace) {
-//         text = symbols[mode][text].replace;
-//     }
+    let font_map = crate::build::common::FONT_MAP.lock().unwrap();
+    let font_info = font_map.get(&font.as_str()).unwrap();
+    if let Some(sym) = get_symbol(mode, text) {
+        if let Some(s) = sym.replace {
+            if get_character_metrics(&s, font_info.fontName.to_string(), mode).is_some() {
+                return Some(font_info.variant);
+            }
+        }
+    }
 
-//     let fontName = buildCommon.fontMap[font].fontName;
-//     if (getCharacterMetrics(text, fontName, mode)) {
-//         return buildCommon.fontMap[font].variant;
-//     }
+    if get_character_metrics(text, font_info.fontName.to_string(), mode).is_some() {
+        return Some(font_info.variant);
+    }
 
-//     return null;
-// };
+    return None;
+}
 
 /**
  * Takes a list of nodes, builds them, and returns a list of the generated
@@ -152,7 +173,7 @@ pub fn build_expression(
     return vec![];
     // if (expression.len() == 1) {
     //     let group = buildGroup(expression[0], options);
-    //     if (isOrdgroup && group instanceof MathNode && group.type === "mo") {
+    //     if (isOrdgroup && group instanceof MathNode && group.type == "mo") {
     //         // When TeX writers want to suppress spacing on an operator,
     //         // they often put the operator by itself inside braces.
     //         group.set_attribute("lspace", "0em");
@@ -167,28 +188,28 @@ pub fn build_expression(
     //     let group = buildGroup(expression[i], options);
     //     if (group instanceof MathNode && lastGroup instanceof MathNode) {
     //         // Concatenate adjacent <mtext>s
-    //         if (group.type === 'mtext' && lastGroup.type === 'mtext'
+    //         if (group.type == 'mtext' && lastGroup.type == 'mtext'
     //             && group.getAttribute('mathvariant') ===
     //                lastGroup.getAttribute('mathvariant')) {
     //             lastGroup.children.push(...group.children);
     //             continue;
     //         // Concatenate adjacent <mn>s
-    //         } else if (group.type === 'mn' && lastGroup.type === 'mn') {
+    //         } else if (group.type == 'mn' && lastGroup.type == 'mn') {
     //             lastGroup.children.push(...group.children);
     //             continue;
     //         // Concatenate <mn>...</mn> followed by <mi>.</mi>
-    //         } else if (group.type === 'mi' && group.children.length === 1 &&
-    //                    lastGroup.type === 'mn') {
+    //         } else if (group.type == 'mi' && group.children.length == 1 &&
+    //                    lastGroup.type == 'mn') {
     //             let child = group.children[0];
-    //             if (child instanceof TextNode && child.text === '.') {
+    //             if (child instanceof TextNode && child.text == '.') {
     //                 lastGroup.children.push(...group.children);
     //                 continue;
     //             }
-    //         } else if (lastGroup.type === 'mi' && lastGroup.children.length === 1) {
+    //         } else if (lastGroup.type == 'mi' && lastGroup.children.length == 1) {
     //             let lastChild = lastGroup.children[0];
-    //             if (lastChild instanceof TextNode && lastChild.text === '\u0338' &&
-    //                 (group.type === 'mo' || group.type === 'mi' ||
-    //                     group.type === 'mn')) {
+    //             if (lastChild instanceof TextNode && lastChild.text == '\u0338' &&
+    //                 (group.type == 'mo' || group.type == 'mi' ||
+    //                     group.type == 'mn')) {
     //                 let child = group.children[0];
     //                 if (child instanceof TextNode && child.text.length > 0) {
     //                     // Overlay with combining character long solidus

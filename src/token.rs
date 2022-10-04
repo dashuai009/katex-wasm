@@ -19,7 +19,7 @@ use wasm_bindgen::prelude::*;
 use super::sourceLocation::SourceLocation;
 
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Token {
     pub text: String,
     pub loc: Option<SourceLocation>,

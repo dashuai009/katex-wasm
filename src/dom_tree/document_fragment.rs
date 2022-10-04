@@ -9,8 +9,8 @@ use web_sys::Node;
  * children and doesn't have any DOM node properties.
  */
 #[derive(Clone)]
-pub struct DocumentFragment<ChildType: VirtualNode> {
-    children: Vec<ChildType>,
+pub struct DocumentFragment {
+    children: Vec<Box<dyn HtmlDomNode>>,
     // HtmlDomNode
     classes: Vec<String>,
     height: f64,
@@ -19,9 +19,9 @@ pub struct DocumentFragment<ChildType: VirtualNode> {
     style: CssStyle, // Never used; needed for satisfying interface.
 }
 
-impl<ChildType: VirtualNode> DocumentFragment<ChildType> {
-    pub fn new(children: Vec<ChildType>) -> DocumentFragment<ChildType> {
-        DocumentFragment::<ChildType> {
+impl DocumentFragment {
+    pub fn new(children: Vec<Box<dyn HtmlDomNode>>) -> DocumentFragment {
+        DocumentFragment {
             children,
             classes: Vec::new(),
             height: 0.0,
@@ -32,7 +32,7 @@ impl<ChildType: VirtualNode> DocumentFragment<ChildType> {
     }
 }
 
-impl<ChildType: VirtualNode + Clone + 'static> HtmlDomNode for DocumentFragment<ChildType> {
+impl HtmlDomNode for DocumentFragment {
     fn get_classes(&self) -> &Vec<String> {
         return &self.classes;
     }
@@ -84,7 +84,7 @@ impl<ChildType: VirtualNode + Clone + 'static> HtmlDomNode for DocumentFragment<
     }
 }
 
-impl<ChildType: VirtualNode + Clone + 'static> VirtualNode for DocumentFragment<ChildType> {
+impl VirtualNode for DocumentFragment  {
     /** Convert the fragment into a node. */
     fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
@@ -106,23 +106,23 @@ impl<ChildType: VirtualNode + Clone + 'static> VirtualNode for DocumentFragment<
     }
 }
 
-impl<ChildType: VirtualNode + MathDomNode + Clone + 'static> MathDomNode
-    for DocumentFragment<ChildType>
-{
-    /**
-     * Converts the math node into a string, similar to innerText. Applies to
-     * MathDomNode's only.
-     */
-    fn to_text(self: &DocumentFragment<ChildType>) -> String {
-        // To avoid this, we would subclass documentFragment separately for
-        // MathML, but polyfills for subclassing is expensive per PR 1469.
-        // $FlowFixMe: Only works for ChildType = MathDomNode.
-        //const toText = (child: ChildType): string => child.toText();
-        return self
-            .children
-            .iter()
-            .map(|child| child.to_text())
-            .collect::<Vec<String>>()
-            .join("");
-    }
-}
+// impl<ChildType: VirtualNode + MathDomNode + Clone + 'static> MathDomNode
+//     for DocumentFragment
+// {
+//     /**
+//      * Converts the math node into a string, similar to innerText. Applies to
+//      * MathDomNode's only.
+//      */
+//     fn to_text(self: &DocumentFragment<ChildType>) -> String {
+//         // To avoid this, we would subclass documentFragment separately for
+//         // MathML, but polyfills for subclassing is expensive per PR 1469.
+//         // $FlowFixMe: Only works for ChildType = MathDomNode.
+//         //const toText = (child: ChildType): string => child.toText();
+//         return self
+//             .children
+//             .iter()
+//             .map(|child| child.to_text())
+//             .collect::<Vec<String>>()
+//             .join("");
+//     }
+// }

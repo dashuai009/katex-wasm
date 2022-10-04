@@ -108,7 +108,7 @@ pub struct MacroArg{
 }
 
 /** Macro tokens (in reverse order). */
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct MacroExpansion {
     pub tokens: Vec<Token>,
     pub num_args: i32,

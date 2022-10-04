@@ -267,16 +267,16 @@ pub struct textord {
 // These "-token" types don't have corresponding HTML/MathML builders.
 #[derive(parse_node_type, Clone)]
 pub struct accent_token {
-    mode: Mode,
+    pub mode: Mode,
     loc: Option<SourceLocation>,
-    text: String,
+    pub text: String,
 }
 
 #[derive(parse_node_type, Clone)]
 pub struct op_token {
-    mode: Mode,
+    pub mode: Mode,
     loc: Option<SourceLocation>,
-    text: String,
+    pub text: String,
 }
 // From functions.js and functions/*.js. See also "color", "op", "styling",
 // and "text" above.
@@ -340,7 +340,7 @@ pub struct font {
     mode: Mode,
     loc: Option<SourceLocation>,
     font: String,
-    body: Box<dyn AnyParseNode>,
+    pub(crate) body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone)]
@@ -481,11 +481,11 @@ pub struct middle {
 
 #[derive(parse_node_type, Clone)]
 pub struct mclass {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    mclass: String,
-    body: Vec<Box<dyn AnyParseNode>>,
-    isCharacterBox: bool,
+    pub(crate) mode: Mode,
+    pub(crate) loc: Option<SourceLocation>,
+    pub mclass: String,
+    pub body: Vec<Box<dyn AnyParseNode>>,
+    pub is_character_box: bool,
 }
 
 #[derive(parse_node_type, Clone)]
@@ -555,8 +555,8 @@ pub struct rule {
 pub struct sizing {
     mode: Mode,
     loc: Option<SourceLocation>,
-    size: usize,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub size: usize,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone)]

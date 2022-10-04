@@ -1,6 +1,6 @@
 pub(crate) mod anchor;
 pub mod css_style;
-mod document_fragment;
+pub(crate) mod document_fragment;
 mod img;
 mod line_node;
 pub(crate) mod path_node;

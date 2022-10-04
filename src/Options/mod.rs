@@ -39,8 +39,8 @@ pub struct Options {
     // See: https://tex.stackexchange.com/questions/22350/difference-between-textrm-and-mathrm
     pub font: String,
     pub fontFamily: String,
-    fontWeight: FontWeight,
-    fontShape: Option<FontShape>,
+    font_weight: FontWeight,
+    font_shape: FontShape,
     pub sizeMultiplier: f64,
     pub maxSize: f64,
     pub minRuleThickness: f64,
@@ -72,18 +72,40 @@ impl Options {
         res.log();
         return res;
     }
+
+    // Takes font options, and returns the appropriate fontLookup name
+    pub(crate) fn retrieve_text_font_name(&self, font_family: String) -> String {
+        let base_font_name = match font_family.as_str() {
+            "amsrm" => "AMS",
+            "textrm" => "Main",
+            "textsf" => "SansSerif",
+            "texttt" => "Typewriter",
+            _ => &font_family, // use fonts added by a plugin
+        };
+
+        let font_styles_name = if self.font_weight == FontWeight::Textbf
+            && self.font_shape == FontShape::Textit
+        {
+            "BoldItalic"
+        } else if (self.font_weight == FontWeight::Textbf) {
+            "Bold"
+        } else if (self.font_weight == FontWeight::Textbf) {
+            "Italic"
+        } else {
+            "Regular"
+        };
+
+        return format!("{base_font_name}-{font_styles_name}");
+    }
 }
 
 impl Options {
     pub fn fontWeight(&self) -> String {
-        self.fontWeight.as_str().to_string()
+        self.font_weight.as_str().to_string()
     }
 
-    pub fn fontShape(&self) -> Option<String> {
-        match self.fontShape {
-            Some(p) => Some(p.as_str().to_string()),
-            None => None,
-        }
+    pub fn fontShape(&self) -> String {
+        self.font_shape.as_str().to_string()
     }
 
     pub fn style(&self) -> StyleInterface {
@@ -110,8 +132,8 @@ impl Options {
             phantom: false,
             font: String::from(""),
             fontFamily: String::from(""),
-            fontWeight: FontWeight::NoChange,
-            fontShape: Some(FontShape::NoChange),
+            font_weight: FontWeight::NoChange,
+            font_shape: FontShape::NoChange,
             sizeMultiplier: SIZE_MULTIPLIERS[BASESIZE as i32 as usize - 1],
             maxSize: 0.0,
             minRuleThickness: 0.0,
@@ -249,7 +271,7 @@ impl Options {
      */
     pub fn withTextFontWeight(&self, fontWeight: String) -> Options {
         return Options {
-            fontWeight: FontWeight::from_str(fontWeight.as_str()).unwrap(),
+            font_weight: FontWeight::from_str(fontWeight.as_str()).unwrap(),
             font: "".to_string(),
             ..self.clone()
         };
@@ -260,9 +282,9 @@ impl Options {
      */
     pub fn withTextFontShape(&self, fontShape: Option<String>) -> Options {
         return Options {
-            fontShape: match fontShape {
-                Some(p) => Some(FontShape::from_str(p.as_str()).unwrap()),
-                None => None,
+            font_shape: match fontShape {
+                Some(p) => FontShape::from_str(p.as_str()).unwrap(),
+                None => self.font_shape,
             },
             font: "".to_string(),
             ..self.clone()
@@ -325,6 +347,10 @@ impl Options {
     }
 
     pub fn log(&self) {
-        console_log!("rust: self = {:#?}", self);
+        if false {
+            console_log!("rust: self = {:#?}", self);
+        } else {
+            println!("Options = {:#?}", self);
+        }
     }
 }

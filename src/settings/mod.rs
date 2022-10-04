@@ -62,8 +62,8 @@ pub struct Settings {
     global_group: bool,
 }
 
-impl Settings{
-    pub fn get_ref_macros(&self)-> Arc<HashMap<String, MacroDefinition>>{
+impl Settings {
+    pub fn get_ref_macros(&self) -> Arc<HashMap<String, MacroDefinition>> {
         return Arc::clone(&self.macros);
     }
 }
@@ -172,12 +172,17 @@ impl Settings {
     }
 }
 
-// #[wasm_bindgen]
-// impl Settings {
-//     pub(crate) fn to_js_value(&self) -> JsValue {
-//         return JsValue::from_serde(&self).unwrap();
-//     }
-// }
+impl std::fmt::Display for Settings {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "display_mode:{} output:{} leqno:{}",
+            self.display_mode,
+            self.output.as_str(),
+            self.leqno
+        )
+    }
+}
 
 impl AsRef<Settings> for Settings {
     fn as_ref(&self) -> &Settings {
@@ -215,7 +220,7 @@ impl AsRef<Settings> for Settings {
 #[wasm_bindgen]
 impl Settings {
     #[wasm_bindgen(constructor)]
-    pub fn new(js_v: &JsValue) -> Settings {
+    pub fn new_from_js(js_v: &JsValue) -> Settings {
         // console_log!("input setting = {}",res);
         let mut res = Settings {
             display_mode: false,
@@ -314,7 +319,7 @@ impl Settings {
         return res;
     }
 
-    pub fn new_rust()->Settings{
+    pub fn new() -> Settings {
         let mut res = Settings {
             display_mode: false,
             output: OutputType::Html,

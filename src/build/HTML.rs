@@ -1,3 +1,11 @@
+use crate::{
+    dom_tree::{css_style::CssStyle, document_fragment::DocumentFragment, span::Span},
+    parse_node,
+    parse_node::types::AnyParseNode,
+    tree::{HtmlDomNode, VirtualNode},
+    units::make_em,
+    Options::Options,
+};
 use std::str::FromStr;
 /**
  * This file does the main work of building a domTree structure from a parse
@@ -6,15 +14,6 @@ use std::str::FromStr;
  * are called, to produce a final HTML tree.
  */
 use std::vec;
-
-use crate::{
-    dom_tree::{css_style::CssStyle, span::Span},
-    parse_node,
-    parse_node::types::AnyParseNode,
-    tree::{HtmlDomNode, VirtualNode},
-    units::make_em,
-    Options::Options,
-};
 
 use super::common::make_span;
 use crate::define::functions::public::_HTML_GROUP_BUILDERS;
@@ -27,12 +26,6 @@ const BIN_LEFT_CANCELLER: [&'static str; 6] =
     ["leftmost", "mbin", "mopen", "mrel", "mop", "mpunct"];
 const BIN_RIGHT_CANCELLER: [&'static str; 4] = ["rightmost", "mrel", "mclose", "mpunct"];
 
-// let styleMap = {
-//     "display": Style.DISPLAY,
-//     "text": Style.TEXT,
-//     "script": Style.SCRIPT,
-//     "scriptscript": Style.SCRIPTSCRIPT,
-// };
 #[derive(PartialEq)]
 enum Side {
     Left,
@@ -40,7 +33,7 @@ enum Side {
 }
 // type Side = "left" | "right";
 
-enum DomType {
+pub enum DomType {
     mord,
     mop,
     mbin,
@@ -50,7 +43,20 @@ enum DomType {
     mpunct,
     minner,
 }
-
+impl DomType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            DomType::mord => "mord",
+            DomType::mop => "mop",
+            DomType::mbin => "mbin",
+            DomType::mrel => "mrel",
+            DomType::mopen => "mopen",
+            DomType::mclose => "mclose",
+            DomType::mpunct => "mpunct",
+            DomType::minner => "minner",
+        }
+    }
+}
 impl FromStr for DomType {
     type Err = ();
 
@@ -68,7 +74,9 @@ impl FromStr for DomType {
         }
     }
 }
-enum IsRealGroup {
+
+#[derive(PartialEq)]
+pub enum IsRealGroup {
     T,
     F,
     Root,
@@ -80,117 +88,136 @@ enum IsRealGroup {
 /// is a real group (no atoms will be added on either side), as opposed to
 /// a partial group (e.g. one created by \color). `surrounding` is an array
 /// consisting type of nodes that will be added to the left and right.
-fn build_expression(
+pub fn build_expression(
     expression: Vec<Box<dyn AnyParseNode>>,
     options: Options,
     isRealGroup: IsRealGroup,
     surrounding: (Option<DomType>, Option<DomType>),
 ) -> Vec<Box<dyn HtmlDomNode>> {
-    return vec![];
-    // // Parse expressions into `groups`.
-    // let mut groups = vec![];
-    // for expr in expression.iter() {
-    //     let output = build_group(Some(expr.clone()), options.clone(), None);
-    //     // if let Some(k)= output.as_any().downcast_ref::<DocumentFragment>{
-    //     // groups.append(k.children);
-    //     // }else {
-    //     groups.push(output);
-    //     // }
-    // }
-    //
-    // // Combine consecutive domTree.symbolNodes into a single symbolNode.
-    // super::common::try_combine_chars(groups);
-    //
-    // // If `expression` is a partial group, let the parent handle spacings
-    // // to avoid processing groups multiple times.
-    // if (isRealGroup == IsRealGroup::F) {
-    //     return groups;
-    // }
-    //
-    // let glueOptions = options.clone();
-    // if (expression.length() == 1) {
-    //     let node = expression[0];
-    //     if (node.get_type() == "sizing") {
-    //         glueOptions = options.havingSize(node.size);
-    //     } else if (node.get_type() == "styling") {
-    //         glueOptions = options.havingStyle(styleMap[node.style]);
-    //     }
-    // }
-    //
-    // // Dummy spans for determining spacings between surrounding atoms.
-    // // If `expression` has no atoms on the left or right, class "leftmost"
-    // // or "rightmost", respectively, is used to indicate it.
-    // let dummyPrev = make_span(
-    //     vec![surrounding.0 || "leftmost"],
-    //     vec![],
-    //     Some(options),
-    //     CssStyle::default(),
-    // );
-    // let dummyNext = make_span(
-    //     [surrounding.1 || "rightmost"],
-    //     [],
-    //     Some(options),
-    //     CssStyle::default(),
-    // );
-    //
-    // // TODO: These code assumes that a node's math class is the first element
-    // // of its `classes` array. A later cleanup should ensure this, for
-    // // instance by changing the signature of `make_span`.
-    //
-    // // Before determining what spaces to insert, perform bin cancellation.
-    // // Binary operators change to ordinary symbols in some contexts.
-    // let isRoot = (isRealGroup == IsRealGroup::Root);
-    // traverse_non_space_nodes(
-    //     groups,
-    //     |node, prev| {
-    //         let prevType = prev.classes[0];
-    //         let _type = node.classes[0];
-    //         if (prevType == "mbin" && BIN_RIGHT_CANCELLER.contains(_type)) {
-    //             prev.classes[0] = "mord";
-    //         } else if (_type == "mbin" && BIN_LEFT_CANCELLER.contains(prevType)) {
-    //             node.classes[0] = "mord";
-    //         }
-    //     },
-    //     Some(TraversePrev {
-    //         node: dummyPrev,
-    //         insert_after: None,
-    //     }),
-    //     dummyNext,
-    //     isRoot,
-    // );
-    //
-    // traverse_non_space_nodes(
-    //     groups,
-    //     |node, prev| {
-    //         let prevType = getTypeOfDomTree(Some(prev), None);
-    //         let _type = getTypeOfDomTree(Some(node), None);
-    //
-    //         // 'mtight' indicates that the node is script or scriptscript style.
-    //         //console.log(node,prevType,type);
-    //         let space = if prevType && _type {
-    //             if node.hasClass("mtight") {
-    //                 crate::spacingData::get_tightSpacings(prevType, _type)
-    //             } else {
-    //                 crate::spacingData::get_spacings(prevType, _type)
-    //             }
-    //         } else {
-    //             None
-    //         };
-    //         //console.log(space);
-    //         if (space) {
-    //             // Insert glue (spacing) after the `prev`.
-    //             return super::common::make_glue(space, &glueOptions);
-    //         }
-    //     },
-    //     Some(TraversePrev {
-    //         node: dummyPrev,
-    //         insert_after: None,
-    //     }),
-    //     dummyNext,
-    //     isRoot,
-    // );
-    //
-    // return groups;
+    // return vec![];
+    // Parse expressions into `groups`.
+    let mut groups = vec![];
+    for expr in expression.iter() {
+        let mut output = build_group(Some(expr.clone()), options.clone(), None);
+        if let Some(k) = output.as_any().downcast_ref::<DocumentFragment>() {
+            groups.append(&mut k.clone().get_mut_children().unwrap().clone());
+        } else {
+            groups.push(output);
+        }
+    }
+
+    // Combine consecutive domTree.symbolNodes into a single symbolNode.
+    super::common::try_combine_chars(&mut groups);
+
+    // If `expression` is a partial group, let the parent handle spacings
+    // to avoid processing groups multiple times.
+    if (isRealGroup == IsRealGroup::F) {
+        return groups.clone();
+    }
+
+    let mut glueOptions = options.clone();
+    if (expression.len() == 1) {
+        let node = &expression[0];
+        if let Some(s) = node.as_any().downcast_ref::<parse_node::types::sizing>() {
+            glueOptions = options.havingSize(s.size as f64);
+        } else if let Some(s) = node.as_any().downcast_ref::<parse_node::types::styling>() {
+            glueOptions = options.havingStyle(&s.style.as_style());
+        }
+    }
+
+    // Dummy spans for determining spacings between surrounding atoms.
+    // If `expression` has no atoms on the left or right, class "leftmost"
+    // or "rightmost", respectively, is used to indicate it.
+    let dummyPrev = make_span(
+        vec![if let Some(s) = surrounding.0 {
+            s.as_str().to_string()
+        } else {
+            "leftmost".to_string()
+        }],
+        vec![],
+        Some(&options),
+        CssStyle::default(),
+    );
+    let dummyNext = make_span(
+        vec![if let Some(s) = surrounding.1 {
+            s.as_str().to_string()
+        } else {
+            "rightmost".to_string()
+        }],
+        vec![],
+        Some(&options),
+        CssStyle::default(),
+    );
+
+    // TODO: These code assumes that a node's math class is the first element
+    // of its `classes` array. A later cleanup should ensure this, for
+    // instance by changing the signature of `make_span`.
+
+    // Before determining what spaces to insert, perform bin cancellation.
+    // Binary operators change to ordinary symbols in some contexts.
+    let isRoot = (isRealGroup == IsRealGroup::Root);
+    traverse_non_space_nodes(
+        &mut groups,
+        Box::new(|node, prev| -> Option<Box<dyn HtmlDomNode>> {
+            let prevType = &prev.get_classes()[0];
+            let _type = &node.get_classes()[0];
+            if prevType == "mbin" && BIN_RIGHT_CANCELLER.contains(&_type.as_str()) {
+                prev.get_mut_classes()[0] = "mord".to_string();
+            } else if _type == "mbin" && BIN_LEFT_CANCELLER.contains(&prevType.as_str()) {
+                node.get_mut_classes()[0] = "mord".to_string();
+            }
+            return None;
+        }),
+        &mut TraversePrev {
+            node: Box::new(dummyPrev.clone()) as Box<dyn HtmlDomNode>,
+            insert_after: None,
+        },
+        Some(Box::new(dummyNext.clone()) as Box<dyn HtmlDomNode>),
+        isRoot,
+    );
+
+    traverse_non_space_nodes(
+        &mut groups,
+        Box::new(
+            |node: &mut Box<dyn HtmlDomNode>,
+             prev: &mut Box<dyn HtmlDomNode>|
+             -> Option<Box<dyn HtmlDomNode>> {
+                let prevType = getTypeOfDomTree(prev, None);
+                let _type = getTypeOfDomTree(node, None);
+
+                // 'mtight' indicates that the node is script or scriptscript style.
+                //console.log(node,prevType,type);
+                let space = if prevType.is_some() && _type.is_some() {
+                    if node.get_classes().contains(&"mtight".to_string()) {
+                        crate::spacingData::get_tightSpacings(
+                            prevType.unwrap().as_str().to_string(),
+                            _type.unwrap().as_str().to_string(),
+                        )
+                    } else {
+                        crate::spacingData::get_spacings(
+                            prevType.unwrap().as_str().to_string(),
+                            _type.unwrap().as_str().to_string(),
+                        )
+                    }
+                } else {
+                    None
+                };
+                if (space.is_some()) {
+                    // Insert glue (spacing) after the `prev`.
+                    // return Some(Box::new(super::common::make_glue(space.unwrap(), &glueOptions.clone())) as Box<dyn HtmlDomNode>);
+                }
+                return None;
+            },
+        ),
+        &mut TraversePrev {
+            node: Box::new(dummyPrev) as Box<dyn HtmlDomNode>,
+            insert_after: None,
+        },
+        Some(Box::new(dummyNext) as Box<dyn HtmlDomNode>),
+        isRoot,
+    );
+
+    return groups;
 }
 
 // type InsertAfter =
@@ -205,7 +232,12 @@ struct TraversePrev {
 // // Used for bin cancellation and inserting spacings.
 fn traverse_non_space_nodes(
     mut nodes: &mut Vec<Box<dyn HtmlDomNode>>,
-    callback: fn(Box<dyn HtmlDomNode>, Box<dyn HtmlDomNode>) -> Option<Box<dyn HtmlDomNode>>,
+    callback: Box<
+        dyn Fn(
+            &mut Box<dyn HtmlDomNode>,
+            &mut Box<dyn HtmlDomNode>,
+        ) -> Option<Box<dyn HtmlDomNode>>,
+    >,
     mut prev: &mut TraversePrev,
     next: Option<Box<dyn HtmlDomNode>>,
     is_root: bool,
@@ -215,7 +247,7 @@ fn traverse_non_space_nodes(
     //     nodes.push(next.unwrap().clone());
     // }
     // let mut i = 0;
-    // while i < nodes.len() {
+    // while {i < nodes.len().clone()} {
     //     let node = &mut nodes[i];
     //     if let Some(partial_group) = node.get_mut_children() {
     //         // Recursive DFS
@@ -227,7 +259,7 @@ fn traverse_non_space_nodes(
     //     // spacing should go between atoms of different classes
     //     let nonspace = !node.has_class(&"mspace".to_string());
     //     if (nonspace) {
-    //         if let Some(result) = callback(node.clone(), prev.node.clone()) {
+    //         if let Some(result) = callback(node, &mut prev.node) {
     //             if (prev.insert_after.is_some()) {
     //                 prev.insert_after.unwrap()(result);
     //             } else {
@@ -277,16 +309,12 @@ fn getOutermostNode(mut node: &mut Box<dyn HtmlDomNode>, side: Side) -> Box<dyn 
 
 // Return math atom class (mclass) of a domTree.
 // If `side` is given, it will get the type of the outermost node at given side.
-fn getTypeOfDomTree(mut node: Option<Box<dyn HtmlDomNode>>, side: Option<Side>) -> Option<DomType> {
-    if node.is_none() {
-        return None;
-    }
-    if side.is_some() {
-        node = Some(getOutermostNode(&mut node.unwrap(), side.unwrap()));
-    }
+fn getTypeOfDomTree(mut node: &mut Box<dyn HtmlDomNode>, side: Option<Side>) -> Option<DomType> {
+    let _node = getOutermostNode(node, side.unwrap());
+
     // This makes a lot of assumptions as to where the type of atom
     // appears.  We should do a better job of enforcing this.
-    return DomType::from_str(&*node.unwrap().get_classes()[0]).ok();
+    return DomType::from_str(&*_node.get_classes()[0]).ok();
 }
 
 // export let makeNullDelimiter = function(
@@ -309,27 +337,31 @@ pub fn build_group(
 ) -> Box<dyn HtmlDomNode> {
     if let Some(g) = group {
         let _builders = _HTML_GROUP_BUILDERS.lock().unwrap();
-        let mut group_node = _builders.get(g.get_type()).unwrap()(g, options.clone());
+        let t = g.get_type();
+        if let Some(f) = _builders.get(t) {
+            let mut group_node = f(g, options.clone());
 
-        // If the size changed between the parent and the current group, account
-        // for that size difference.
-        if let Some(base) = base_options {
-            if base.size != options.size {
-                group_node = Box::new(make_span(
-                    options.sizingClasses(&base),
-                    vec![group_node],
-                    Some(&options),
-                    CssStyle::default(),
-                )) as Box<dyn HtmlDomNode>;
+            // If the size changed between the parent and the current group, account
+            // for that size difference.
+            if let Some(base) = base_options {
+                if base.size != options.size {
+                    group_node = Box::new(make_span(
+                        options.sizingClasses(&base),
+                        vec![group_node],
+                        Some(&options),
+                        CssStyle::default(),
+                    )) as Box<dyn HtmlDomNode>;
 
-                let multiplier = options.sizeMultiplier / base.sizeMultiplier;
+                    let multiplier = options.sizeMultiplier / base.sizeMultiplier;
 
-                group_node.set_height(group_node.get_height() * multiplier);
-                group_node.set_depth(group_node.get_depth() * multiplier);
+                    group_node.set_height(group_node.get_height() * multiplier);
+                    group_node.set_depth(group_node.get_depth() * multiplier);
+                }
             }
+            return group_node;
+        } else {
+            panic!("Got group of unknown type: '{}'", t)
         }
-
-        return group_node;
     } else {
         return Box::new(make_span(
             vec![],
