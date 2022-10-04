@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::escape;
 use crate::{HtmlDomNode, VirtualNode};
@@ -43,6 +44,15 @@ impl Img {
 }
 
 impl VirtualNode for Img {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
+
     fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_element("img").expect("");

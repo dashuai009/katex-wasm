@@ -56,6 +56,14 @@ impl SpaceNode {
     }
 }
 impl VirtualNode for SpaceNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         web_sys::console::log_1(&"asdfadfasdfasdf".into());
         let document = web_sys::window().expect("").document().expect("");

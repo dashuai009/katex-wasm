@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::{escape};
 use crate::units::make_em;
@@ -13,6 +14,14 @@ pub struct LineNode {
     attributes: HashMap<String, String>,
 }
 impl VirtualNode for LineNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         let svgNS = "http://www.w3.org/2000/svg";
 

@@ -32,6 +32,14 @@ impl TextNode {
     }
 }
 impl VirtualNode for TextNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     /**
      * Converts the math node into a MathML-namespaced DOM element.
      */

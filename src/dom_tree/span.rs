@@ -53,6 +53,14 @@ impl Span {
 }
 
 impl VirtualNode for Span {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "span")
     }

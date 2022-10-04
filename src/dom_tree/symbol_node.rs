@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::units::make_em;
 use crate::utils::escape;
@@ -122,6 +123,14 @@ impl SymbolNode {
     }
 }
 impl VirtualNode for SymbolNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     /**
     ///Creates a text node or span from a symbol node. Note that a span is only
     ///created if it is needed.

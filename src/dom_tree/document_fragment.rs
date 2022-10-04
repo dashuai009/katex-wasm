@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::mathML_tree::public::MathDomNode;
 use crate::{HtmlDomNode, VirtualNode};
@@ -85,6 +86,14 @@ impl HtmlDomNode for DocumentFragment {
 }
 
 impl VirtualNode for DocumentFragment  {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     /** Convert the fragment into a node. */
     fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");

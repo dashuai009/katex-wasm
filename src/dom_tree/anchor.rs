@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::utils::escape;
 use crate::{
     dom_tree::css_style::CssStyle,
@@ -52,6 +53,14 @@ impl Anchor {
     }
 }
 impl VirtualNode for Anchor {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "a")
     }

@@ -11,19 +11,10 @@ use crate::{
     units::Measurement,
 };
 
-pub(crate) trait ParseNodeToAny: 'static {
+pub trait ParseNodeToAny{
     fn as_any(&self) -> &dyn Any;
 
     fn as_mut_any(&mut self) -> &mut dyn Any;
-}
-
-impl<T: 'static> ParseNodeToAny for T {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_mut_any(&mut self) -> &mut dyn Any {
-        self
-    }
 }
 
 pub trait NodeClone {
@@ -50,10 +41,10 @@ pub trait AnyParseNode: ParseNodeToAny + NodeClone {
     fn get_type(&self) -> &str;
 }
 
-pub(crate) trait GetMode {
+pub trait GetMode {
     fn get_mode(&self) -> Mode;
 }
-pub(crate) trait GetText {
+pub trait GetText {
     fn get_text(&self) -> String;
 }
 

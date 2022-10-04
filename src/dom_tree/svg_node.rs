@@ -23,6 +23,14 @@ pub struct SvgNode {
 //     pub fn new(children:)
 // }
 impl VirtualNode for SvgNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         let svgNS = "http://www.w3.org/2000/svg";
 

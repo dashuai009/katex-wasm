@@ -122,7 +122,16 @@ pub fn derive_node_type(input: TokenStream) -> TokenStream {
         //         &self
         //     }
         // }
+        impl ParseNodeToAny for #struct_name{
+            fn as_any(&self) -> &dyn Any {
+                self
+            }
+            fn as_mut_any(&mut self) -> &mut dyn Any {
+                self
+            }
+        }
         impl AnyParseNode for #struct_name{
+
             fn get_type(&self)->&str{
                 return stringify!(#struct_name);
             }

@@ -1,3 +1,4 @@
+use std::any::Any;
 use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
 use web_sys::Node;
@@ -9,14 +10,16 @@ use crate::{
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 pub trait VirtualNode: VirtualNodeClone {
+    fn as_any(&self) -> &dyn Any;
+    fn as_mut_any(&mut self)->&mut dyn Any;
     fn to_node(&self) -> web_sys::Node;
     fn to_markup(&self) -> String;
 }
 
 pub trait VirtualNodeClone {
     fn clone_virtual_node(&self) -> Box<dyn VirtualNode>;
-    fn box_to_node(&self) -> web_sys::Node;
-    fn box_to_markup(&self) -> String;
+    // fn box_to_node(&self) -> web_sys::Node;
+    // fn box_to_markup(&self) -> String;
 }
 
 impl<T> VirtualNodeClone for T
@@ -26,12 +29,12 @@ where
     fn clone_virtual_node(&self) -> Box<dyn VirtualNode> {
         Box::new(self.clone())
     }
-    fn box_to_node(&self) -> web_sys::Node {
-        self.to_node()
-    }
-    fn box_to_markup(&self) -> String {
-        self.to_markup()
-    }
+    // fn box_to_node(&self) -> web_sys::Node {
+    //     self.to_node()
+    // }
+    // fn box_to_markup(&self) -> String {
+    //     self.to_markup()
+    // }
 }
 
 // We can now implement Clone manually by forwarding to clone_box.
@@ -40,15 +43,23 @@ impl Clone for Box<dyn VirtualNode> {
         self.clone_virtual_node()
     }
 }
-impl VirtualNode for Box<dyn VirtualNode> {
-    fn to_node(&self) -> web_sys::Node {
-        self.box_to_node()
-    }
-
-    fn to_markup(&self) -> String {
-        self.box_to_markup()
-    }
-}
+// impl VirtualNode for Box<dyn VirtualNode> {
+//     fn as_any(&self) -> &dyn Any {
+//         self
+//     }
+//
+//     fn as_mut_any(&mut self) -> &mut dyn Any {
+//         self
+//     }
+//
+//     fn to_node(&self) -> web_sys::Node {
+//         self.box_to_node()
+//     }
+//
+//     fn to_markup(&self) -> String {
+//         self.box_to_markup()
+//     }
+// }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 pub trait HtmlDomNodeClone {
     //for clone
