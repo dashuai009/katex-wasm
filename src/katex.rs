@@ -39,7 +39,7 @@ mod tests {
     fn test_parse_tree() {
         let settings = Settings::new();
         println!("setting = {}", settings);
-        let test_string = "c=ma^2".to_string();
+        let test_string = "E=mc^2".to_string();
         println!("{}", render_to_string(test_string, settings).as_str());
     }
 }

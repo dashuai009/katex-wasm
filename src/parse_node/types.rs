@@ -197,7 +197,7 @@ pub struct verb {
     pub star: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone,PartialEq)]
 pub enum Atom {
     bin,
     close,
@@ -205,6 +205,19 @@ pub enum Atom {
     open,
     punct,
     rel,
+}
+
+impl Atom{
+    pub fn as_str(&self)->&str{
+        match self{
+            Atom::bin => {"bin"}
+            Atom::close => {"close"}
+            Atom::inner => {"inner"}
+            Atom::open => {"open"}
+            Atom::punct => {"punct"}
+            Atom::rel => {"rel"}
+        }
+    }
 }
 
 impl Atom {

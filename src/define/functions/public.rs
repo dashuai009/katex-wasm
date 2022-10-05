@@ -189,6 +189,7 @@ lazy_static! {
     pub static ref _functions: std::sync::Mutex<HashMap<String,FunctionSpec>> =  std::sync::Mutex::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
+            println!("name = {}", data.def_type);
              for name in data.names.iter() {
                 res.insert(name.clone(), (data.props.clone(), data.handler));
             }
@@ -199,9 +200,10 @@ lazy_static! {
      * All HTML builders. Should be only used in the `define*` and the `build*ML`
      * functions.
      */
-    pub static ref _HTML_GROUP_BUILDERS: std::sync::Mutex<HashMap<String, HtmlBuilder>> =  std::sync::Mutex::new({
+    pub static ref _HTML_GROUP_BUILDERS: std::sync::RwLock<HashMap<String, HtmlBuilder>> =  std::sync::RwLock::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
+            println!("html type = {}",data.def_type);
             if let Some(h) = data.html_builder{
                 res.insert(data.def_type.clone(),h);
             }
@@ -215,6 +217,7 @@ lazy_static! {
     pub static ref _mathmlGroupBuilders: std::sync::Mutex<HashMap<String,MathMLBuilder>> =  std::sync::Mutex::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
+            println!("mathml type = {}",data.def_type);
             if let Some(h) = data.mathml_builder{
                 res.insert(data.def_type.clone(),h);
             }
@@ -228,20 +231,20 @@ lazy_static! {
 //     return funcs.get(name);
 //
 
-pub fn define_function(data: FunctionDefSpec) {
-    for name in data.names {
-        let mut _f = _functions.lock().unwrap();
-        _f.insert(name, (data.props.clone(), data.handler));
-    }
-    if let Some(hB) = data.html_builder {
-        let _h = _HTML_GROUP_BUILDERS.lock().unwrap();
-        // _h.insert(NODETYPE::as_str(), hB);
-    }
-    if let Some(mB) = data.mathml_builder {
-        let _m = _mathmlGroupBuilders.lock().unwrap();
-        // _m.insert(NODETYPE::as_str(), mB);
-    }
-}
+// pub fn define_function(data: FunctionDefSpec) {
+//     for name in data.names {
+//         let mut _f = _functions.lock().unwrap();
+//         _f.insert(name, (data.props.clone(), data.handler));
+//     }
+//     if let Some(hB) = data.html_builder {
+//         let _h = _HTML_GROUP_BUILDERS.lock().unwrap();
+//         // _h.insert(NODETYPE::as_str(), hB);
+//     }
+//     if let Some(mB) = data.mathml_builder {
+//         let _m = _mathmlGroupBuilders.lock().unwrap();
+//         // _m.insert(NODETYPE::as_str(), mB);
+//     }
+// }
 
 pub fn test(a: i32, b: i32) -> i32 {
     return a + b;

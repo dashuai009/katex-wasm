@@ -108,7 +108,7 @@ impl Options {
         self.font_shape.as_str().to_string()
     }
 
-    pub fn style(&self) -> StyleInterface {
+    pub fn get_style(&self) -> StyleInterface {
         self.style.clone()
     }
 
@@ -328,9 +328,9 @@ impl Options {
     //  * TODO
     //  * Return the font metrics for this size.
     //  */
-    pub fn fontMetrics(&mut self) -> FontMetrics {
+    pub fn fontMetrics(&self) -> FontMetrics {
         if self._fontMetrics.is_none() {
-            self._fontMetrics = Some(get_global_metrics(self.size));
+            return get_global_metrics(self.size).clone();
         }
         return self._fontMetrics.unwrap().clone();
     }

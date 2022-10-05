@@ -101,9 +101,9 @@ pub fn calculate_size(sizeValue: &Measurement, options: &Options) -> f64 {
         // Other relative units always refer to the *textstyle* font
         // in the current size.
         let unitOptions;
-        if options.style().isTight() {
+        if options.get_style().isTight() {
             // isTight() means current style is script/scriptscript.
-            unitOptions = options.havingStyle(&options.style().text());
+            unitOptions = options.havingStyle(&options.get_style().text());
         } else {
             unitOptions = options.clone();
         }

@@ -104,7 +104,7 @@ pub fn make_symbol(
 
     if let Some(opt) = options {
         symbol_node.max_font_size = opt.sizeMultiplier.clone();
-        if opt.style().isTight() {
+        if opt.get_style().isTight() {
             symbol_node.push_class("mtight".to_string());
         }
         let color = opt.getColor();
@@ -228,8 +228,13 @@ pub fn make_ord(
         let font_name;
         let font_classes;
         if font_or_family == "boldsymbol" {
-            let font_data =
-                bold_symbol(text.clone(), mode, options.clone(), classes.clone(), _type.clone());
+            let font_data = bold_symbol(
+                text.clone(),
+                mode,
+                options.clone(),
+                classes.clone(),
+                _type.clone(),
+            );
             font_name = font_data[0].to_string();
             font_classes = vec![font_data[1].to_string()];
         } else if is_font {
@@ -463,10 +468,10 @@ pub enum VListChild {
         margin_right: Option<String>,
         wrapper_classes: Option<Vec<String>>,
         wrapper_style: Option<CssStyle>,
-        shift: Option<i32>, //only for individual_shift
+        shift: Option<f64>, //only for individual_shift
     },
     Kern {
-        size: i32,
+        size: f64,
     },
 }
 pub enum PositionType {
@@ -483,17 +488,17 @@ pub enum PositionType {
                    // with positionData=0.
 }
 pub struct VListParam {
-    position_type: PositionType,
-    children: Vec<VListChild>,
-    position_data: Option<i32>,
+    pub(crate) position_type: PositionType,
+    pub(crate) children: Vec<VListChild>,
+    pub(crate) position_data: Option<f64>,
 }
 
 // Computes the updated `children` list and the overall depth.
 //
 // This helper function for makeVList makes it easier to enforce type safety by
 // allowing early exits (returns) in the logic.
-pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32) {
-    let mut depth = 0;
+pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64) {
+    let mut depth = 0.0;
     match params.position_type {
         PositionType::IndividualShift => {
             // Add in kerns to the list of params.children to get each element to be
@@ -509,9 +514,9 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32
                     wrapper_classes,
                     wrapper_style,
                     shift,
-                } => shift.unwrap() - elem.get_depth() as i32,
+                } => shift.unwrap() - elem.get_depth() ,
                 VListChild::Kern { size } => unreachable!(),
-            };
+            } as f64;
             let mut currPos = depth;
             for cur_child in children_iter {
                 match cur_child {
@@ -523,16 +528,12 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32
                         wrapper_style,
                         shift,
                     } => {
-                        let diff = -(shift.unwrap()) - currPos - elem.get_depth() as i32;
+                        let diff = -(shift.unwrap()) - currPos - elem.get_depth();
                         let size = match pre_child {
                             VListChild::Elem {
                                 elem,
-                                margin_left,
-                                margin_right,
-                                wrapper_classes,
-                                wrapper_style,
-                                shift,
-                            } => diff - (elem.get_height() + elem.get_depth()) as i32,
+                                ..
+                            } => diff - (elem.get_height() + elem.get_depth()),
                             VListChild::Kern { size } => todo!(),
                         };
 
@@ -553,13 +554,8 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32
             for child in params.children.iter() {
                 bottom -= match child {
                     VListChild::Elem {
-                        elem,
-                        margin_left,
-                        margin_right,
-                        wrapper_classes,
-                        wrapper_style,
-                        shift,
-                    } => (elem.get_height() - elem.get_depth()) as i32,
+                        elem,..
+                    } => (elem.get_height() - elem.get_depth()),
                     VListChild::Kern { size } => *size,
                 };
             }
@@ -570,16 +566,11 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32
         }
         PositionType::Shift | PositionType::FirstBaseline => match &params.children[0] {
             VListChild::Elem {
-                elem,
-                margin_left,
-                margin_right,
-                wrapper_classes,
-                wrapper_style,
-                shift,
+                elem,..
             } => {
                 depth = match params.position_type {
-                    PositionType::Shift => -elem.get_depth() as i32 - params.position_data.unwrap(),
-                    PositionType::FirstBaseline => elem.get_depth() as i32,
+                    PositionType::Shift => -elem.get_depth()  - params.position_data.unwrap(),
+                    PositionType::FirstBaseline => elem.get_depth(),
                     _ => {
                         panic!("Invalid positionType")
                     }
@@ -593,91 +584,143 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, i32
     return (params.children, depth);
 }
 
-// /**
-//  * Makes a vertical list by stacking elements and kerns on top of each other.
-//  * Allows for many different ways of specifying the positioning method.
-//  *
-//  * See VListParam documentation above.
-//  */
-// pub fn make_vlist(params: VListParam, options: Options)-> DomSpan {
-//     let (children, depth) = get_vlist_children_and_depth(params);
-//     // Create a strut that is taller than any list item. The strut is added to
-//     // each item, where it will determine the item's baseline. Since it has
-//     // `overflow:hidden`, the strut's top edge will sit on the item's line box's
-//     // top edge and the strut's bottom edge will sit on the item's baseline,
-//     // with no additional line-height spacing. This allows the item baseline to
-//     // be positioned precisely without worrying about font ascent and
-//     // line-height.
-//     let pstrutSize = 0;
-//     for (let i = 0; i < children.length; i++) {
-//         let child = children[i];
-//         if (child.type === "elem") {
-//             let elem = child.elem;
-//             pstrutSize = Math.max(pstrutSize, elem.maxFontSize, elem.height);
-//         }
-//     }
-//     pstrutSize += 2;
-//     let pstrut = makeSpan(["pstrut"], []);
-//     pstrut.style.height = makeEm(pstrutSize);
-//     // Create a new list of actual children at the correct offsets
-//     let realChildren = [];
-//     let minPos = depth;
-//     let maxPos = depth;
-//     let currPos = depth;
-//     for (let i = 0; i < children.length; i++) {
-//         let child = children[i];
-//         if (child.type === "kern") {
-//             currPos += child.size;
-//         } else {
-//             let elem = child.elem;
-//             let classes = child.wrapperClasses || [];
-//             let style = child.wrapperStyle || {};
-//             let childWrap = makeSpan(classes, [pstrut, elem], undefined, style);
-//             childWrap.style.top = makeEm(-pstrutSize - currPos - elem.depth);
-//             if (child.marginLeft) {
-//                 childWrap.style.marginLeft = child.marginLeft;
-//             }
-//             if (child.marginRight) {
-//                 childWrap.style.marginRight = child.marginRight;
-//             }
-//             realChildren.push(childWrap);
-//             currPos += elem.height + elem.depth;
-//         }
-//         minPos = Math.min(minPos, currPos);
-//         maxPos = Math.max(maxPos, currPos);
-//     }
-//     // The vlist contents go in a table-cell with `vertical-align:bottom`.
-//     // This cell's bottom edge will determine the containing table's baseline
-//     // without overly expanding the containing line-box.
-//     let vlist = makeSpan(["vlist"], realChildren);
-//     vlist.style.height = makeEm(maxPos);
-//     // A second row is used if necessary to represent the vlist's depth.
-//     let rows;
-//     if (minPos < 0) {
-//         // We will define depth in an empty span with display: table-cell.
-//         // It should render with the height that we define. But Chrome, in
-//         // contenteditable mode only, treats that span as if it contains some
-//         // text content. And that min-height over-rides our desired height.
-//         // So we put another empty span inside the depth strut span.
-//         let emptySpan = makeSpan([], []);
-//         let depthStrut = makeSpan(["vlist"], [emptySpan]);
-//         depthStrut.style.height = makeEm(-minPos);
-//         // Safari wants the first row to have inline content; otherwise it
-//         // puts the bottom of the *second* row on the baseline.
-//         let topStrut = makeSpan(["vlist-s"], [new SymbolNode("\u200b")]);
-//         rows = [makeSpan(["vlist-r"], [vlist, topStrut]),
-//             makeSpan(["vlist-r"], [depthStrut])];
-//     } else {
-//         rows = [makeSpan(["vlist-r"], [vlist])];
-//     }
-//     let vtable = makeSpan(["vlist-t"], rows);
-//     if (rows.length === 2) {
-//         vtable.classes.push("vlist-t2");
-//     }
-//     vtable.height = maxPos;
-//     vtable.depth = -minPos;
-//     return vtable;
-// };
+/**
+ * Makes a vertical list by stacking elements and kerns on top of each other.
+ * Allows for many different ways of specifying the positioning method.
+ *
+ * See VListParam documentation above.
+ */
+pub fn make_vlist(params: VListParam, options: Options) -> Span {
+    let (children, depth) = get_vlist_children_and_depth(params);
+    // Create a strut that is taller than any list item. The strut is added to
+    // each item, where it will determine the item's baseline. Since it has
+    // `overflow:hidden`, the strut's top edge will sit on the item's line box's
+    // top edge and the strut's bottom edge will sit on the item's baseline,
+    // with no additional line-height spacing. This allows the item baseline to
+    // be positioned precisely without worrying about font ascent and
+    // line-height.
+    let mut pstrutSize: f64 = 0.0;
+    for child in children.iter() {
+        if let VListChild::Elem { elem, .. } = child {
+            pstrutSize = pstrutSize
+                .max(elem.get_max_font_size())
+                .max(elem.get_height());
+        }
+    }
+    pstrutSize += 2.0;
+    let mut pstrut = make_span(
+        vec!["pstrut".to_string()],
+        vec![],
+        None,
+        CssStyle::default(),
+    );
+    pstrut.get_mut_style().height = Some(make_em(pstrutSize));
+    // Create a new list of actual children at the correct offsets
+    let mut realChildren = vec![];
+    let mut minPos : f64 = depth as f64;
+    let mut maxPos :f64 = depth as f64;
+    let mut currPos :f64 = depth as f64;
+    for child in children.iter() {
+        match child {
+            VListChild::Elem {
+                elem,
+                wrapper_classes,
+                wrapper_style,
+                margin_left,
+                margin_right,
+                shift,
+                ..
+            } => {
+                let mut childWrap = make_span(
+                    wrapper_classes.clone().unwrap_or(vec![]),
+                    vec![Box::new(pstrut.clone()) as Box<dyn HtmlDomNode>, elem.clone()],
+                    None,
+                    wrapper_style.clone().unwrap_or(CssStyle::default()),
+                );
+                childWrap.get_mut_style().top = Some(make_em(-pstrutSize - currPos - elem.get_depth()));
+
+                    childWrap.get_mut_style().margin_left = margin_left.clone();
+
+                    childWrap.get_mut_style().margin_right = margin_right.clone();
+
+                realChildren.push(Box::new(childWrap) as Box<dyn HtmlDomNode>);
+                currPos += elem.get_height() + elem.get_depth();
+            }
+            VListChild::Kern { size } => {
+                currPos += *size as f64;
+            }
+        }
+        minPos = minPos.min( currPos);
+        maxPos = maxPos.max( currPos);
+    }
+    // The vlist contents go in a table-cell with `vertical-align:bottom`.
+    // This cell's bottom edge will determine the containing table's baseline
+    // without overly expanding the containing line-box.
+    let mut vlist = make_span(
+        vec!["vlist".to_string()],
+        realChildren,
+        None,
+        Default::default(),
+    );
+    vlist.get_mut_style().height = Some(make_em(maxPos as f64));
+    // A second row is used if necessary to represent the vlist's depth.
+    let rows;
+    if (minPos < 0.0) {
+        // We will define depth in an empty span with display: table-cell.
+        // It should render with the height that we define. But Chrome, in
+        // contenteditable mode only, treats that span as if it contains some
+        // text content. And that min-height over-rides our desired height.
+        // So we put another empty span inside the depth strut span.
+        let emptySpan = make_span(vec![], vec![], None, Default::default());
+        let mut depthStrut = make_span(
+            vec!["vlist".to_string()],
+            vec![Box::new(emptySpan) as Box<dyn HtmlDomNode>],
+            None,
+            CssStyle::default(),
+        );
+        depthStrut.get_mut_style().height = Some(make_em(-minPos as f64));
+        // Safari wants the first row to have inline content; otherwise it
+        // puts the bottom of the *second* row on the baseline.
+        let topStrut = make_span(
+            vec!["vlist-s".to_string()],
+            vec![Box::new(SymbolNode::new("\u{200b}".to_string())) as Box<dyn HtmlDomNode>],
+            None,
+            CssStyle::default(),
+        );
+        rows = vec![
+            Box::new(make_span(
+                vec!["vlist-r".to_string()],
+                vec![
+                    Box::new(vlist) as Box<dyn HtmlDomNode>,
+                    Box::new(topStrut) as Box<dyn HtmlDomNode>,
+                ],
+                None,
+                Default::default(),
+            )) as Box<dyn HtmlDomNode>,
+            Box::new(make_span(
+                vec!["vlist-r".to_string()],
+                vec![Box::new(depthStrut) as Box<dyn HtmlDomNode>],
+                None,
+                Default::default(),
+            )) as Box<dyn HtmlDomNode>,
+        ];
+    } else {
+        rows = vec![Box::new(make_span(
+            vec!["vlist-r".to_string()],
+            vec![Box::new(vlist) as Box<dyn HtmlDomNode>],
+            None,
+            Default::default(),
+        )) as Box<dyn HtmlDomNode>];
+    }
+    let mut vtable = make_span(  if rows.len() == 2{
+        vec!["vlist-t".to_string(),"vlist-t2".to_string() ]
+    } else {
+        vec!["vlist-t".to_string() ]
+    }, rows, None, Default::default());
+    vtable.set_height(maxPos);
+    vtable.set_depth(-minPos);
+    return vtable;
+}
 
 /// Glue is a concept from TeX which is a flexible space between elements in
 /// either a vertical or horizontal list. In KaTeX, at least for now, it's

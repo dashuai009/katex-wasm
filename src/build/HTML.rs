@@ -27,7 +27,7 @@ const BIN_LEFT_CANCELLER: [&'static str; 6] =
 const BIN_RIGHT_CANCELLER: [&'static str; 4] = ["rightmost", "mrel", "mclose", "mpunct"];
 
 #[derive(PartialEq)]
-enum Side {
+pub enum Side {
     Left,
     Right,
 }
@@ -182,8 +182,8 @@ pub fn build_expression(
             |node: &mut Box<dyn HtmlDomNode>,
              prev: &mut Box<dyn HtmlDomNode>|
              -> Option<Box<dyn HtmlDomNode>> {
-                let prevType = getTypeOfDomTree(prev, None);
-                let _type = getTypeOfDomTree(node, None);
+                let prevType = get_type_of_dom_tree(prev, None);
+                let _type = get_type_of_dom_tree(node, None);
 
                 // 'mtight' indicates that the node is script or scriptscript style.
                 //console.log(node,prevType,type);
@@ -309,7 +309,7 @@ fn getOutermostNode(mut node: &mut Box<dyn HtmlDomNode>, side: Side) -> Box<dyn 
 
 // Return math atom class (mclass) of a domTree.
 // If `side` is given, it will get the type of the outermost node at given side.
-fn getTypeOfDomTree(mut node: &mut Box<dyn HtmlDomNode>, side: Option<Side>) -> Option<DomType> {
+pub fn get_type_of_dom_tree(mut node: &mut Box<dyn HtmlDomNode>, side: Option<Side>) -> Option<DomType> {
     let _node = getOutermostNode(node, side.unwrap());
 
     // This makes a lot of assumptions as to where the type of atom
@@ -336,32 +336,34 @@ pub fn build_group(
     base_options: Option<Options>,
 ) -> Box<dyn HtmlDomNode> {
     if let Some(g) = group {
-        let _builders = _HTML_GROUP_BUILDERS.lock().unwrap();
         let t = g.get_type();
-        if let Some(f) = _builders.get(t) {
-            let mut group_node = f(g, options.clone());
-
-            // If the size changed between the parent and the current group, account
-            // for that size difference.
-            if let Some(base) = base_options {
-                if base.size != options.size {
-                    group_node = Box::new(make_span(
-                        options.sizingClasses(&base),
-                        vec![group_node],
-                        Some(&options),
-                        CssStyle::default(),
-                    )) as Box<dyn HtmlDomNode>;
-
-                    let multiplier = options.sizeMultiplier / base.sizeMultiplier;
-
-                    group_node.set_height(group_node.get_height() * multiplier);
-                    group_node.set_depth(group_node.get_depth() * multiplier);
-                }
+        let mut group_node = {
+            let _builders = _HTML_GROUP_BUILDERS.read().unwrap();
+            if let Some(f) = _builders.get(t) {
+                f(g, options.clone())
+            } else {
+                panic!("Got group of unknown type: '{}'", t)
             }
-            return group_node;
-        } else {
-            panic!("Got group of unknown type: '{}'", t)
+        };
+
+        // If the size changed between the parent and the current group, account
+        // for that size difference.
+        if let Some(base) = base_options {
+            if base.size != options.size {
+                group_node = Box::new(make_span(
+                    options.sizingClasses(&base),
+                    vec![group_node],
+                    Some(&options),
+                    CssStyle::default(),
+                )) as Box<dyn HtmlDomNode>;
+
+                let multiplier = options.sizeMultiplier / base.sizeMultiplier;
+
+                group_node.set_height(group_node.get_height() * multiplier);
+                group_node.set_depth(group_node.get_depth() * multiplier);
+            }
         }
+        return group_node;
     } else {
         return Box::new(make_span(
             vec![],

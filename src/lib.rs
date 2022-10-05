@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate lazy_static;
-extern crate core;
 
 // mod define;
 mod Namespace;
@@ -62,5 +61,3 @@ use units::*;
 use wideCharacter::*;
 use Style::*;
 
-type HtmlBuilder<NODETYPE: AnyParseNode> =
-    fn(ParseNode: NODETYPE, crate::Options::Options) -> Box<dyn HtmlDomNode>;
