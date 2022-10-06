@@ -137,9 +137,9 @@ impl Parser<'_> {
 
         // Try to parse the input
         let parse = self.parse_expression(false, None);
-        for t in parse.iter() {
-            print!("{},", t.get_type());
-        }
+        // for t in parse.iter() {
+        //     print!("{},", t.get_type());
+        // }
 
         // If we succeeded, make sure there's an EOF at the end
         self.expect("EOF".to_string(), true);
@@ -202,7 +202,7 @@ impl Parser<'_> {
                 self.consume_spaces();
             }
             let lex = self.fetch();
-            println!("lex = {}", lex);
+            //println!("lex = {}", lex);
             if (END_OF_EXPRESSION.contains(&lex.text.as_str())) {
                 break;
             }
@@ -222,13 +222,13 @@ impl Parser<'_> {
             let atom = self.parse_atom(break_on_token_text.clone());
             // println!("atom = {:?}",atom);
             if let Some(_atom) = atom {
-                println!("atom = {}", _atom.get_type());
+                //println!("atom = {}", _atom.get_type());
                 if _atom.get_type() == "internal" {
                     continue;
                 }
                 body.push(_atom);
             } else {
-                println!("_atom is None");
+                //println!("_atom is None");
                 break;
             }
         }

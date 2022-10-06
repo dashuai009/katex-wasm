@@ -10,7 +10,7 @@ use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TextNode {
     text: String,
 }

@@ -10,8 +10,8 @@ macro_rules! this_init_node {
             if opt.get_style().isTight() {
                 $this.classes.push("mtight".to_string());
             }
-            let c = opt.getColor();
-            $this.style.color = Some(c);
+            let c = opt.get_color();
+            $this.style.color = c;
         }
     };
 }

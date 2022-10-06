@@ -154,7 +154,6 @@ impl Lexer {
         }
         .clone()
         .to_string();
-        println!("{} {}", text, pos);
         // console_log!("text = {}", text);
 
         if self.catcodes.get(&text) == Some(&14) {

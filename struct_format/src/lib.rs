@@ -9,7 +9,12 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident};
 lazy_static! {
     static ref RE: Regex = Regex::new("_(.)").unwrap();
 }
+/**
+为CssStyle类生成一个函数`to_css_str()`
 
+CssStyle类具有若干个Option<String>类型的变量。通过to_css_str()函数，输出一个css风格的字符串（-链接的key，;分割的kv）,同时，值为None的成员不输出。
+
+*/
 #[proc_macro_derive(format)]
 pub fn derive_format(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -41,7 +46,7 @@ pub fn derive_format(input: TokenStream) -> TokenStream {
 
                     quote! {
                         if self.#f.is_some(){
-                            #struct_str.push_str(format!("{}:{};",stringify!(#f),&self.#f.as_ref().unwrap()).as_str());
+                            #struct_str.push_str(format!("{}:{};",stringify!(#f).replace("_","-"),&self.#f.as_ref().unwrap()).as_str());
                         }
                     }
                 })
@@ -156,11 +161,17 @@ pub fn derive_html_dom_node(input: TokenStream) -> TokenStream {
                          fn get_mut_children(&mut self) -> Option<&mut Vec<Box<dyn HtmlDomNode>>>{
                             return Some(&mut self.children);
                         }
+                         fn get_children(&self) -> Option<&Vec<Box<dyn HtmlDomNode>>>{
+                            return Some(&self.children);
+                        }
 
                 }
             } else {
                 quote! {
                          fn get_mut_children(&mut self) -> Option<&mut Vec<Box<dyn HtmlDomNode>>>{
+                            return None;
+                        }
+                         fn get_children(&self) -> Option<&Vec<Box<dyn HtmlDomNode>>>{
                             return None;
                         }
 

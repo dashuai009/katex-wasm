@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use struct_format::html_dom_node;
 
-#[derive(html_dom_node, Clone)]
+#[derive(html_dom_node, Clone, Debug)]
 pub struct Span {
     children: Vec<Box<dyn HtmlDomNode>>,
     attributes: HashMap<String, String>,

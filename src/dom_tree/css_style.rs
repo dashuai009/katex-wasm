@@ -1,10 +1,11 @@
+use std::fmt::Formatter;
 use struct_format::format;
 use wasm_bindgen::prelude::*;
 
 /**
  * This node represents an image embed (<img>) element.
  */
-#[derive(Debug, Clone, format, Default, PartialEq)]
+#[derive(Clone, format, Default, PartialEq)]
 #[wasm_bindgen(getter_with_clone)]
 pub struct CssStyle {
     pub background_color: Option<String>,
@@ -39,6 +40,11 @@ impl CssStyle {
     }
 }
 
+impl std::fmt::Debug for CssStyle{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "CssStyle {}",self.to_css_str())
+    }
+}
 
 
 #[cfg(test)]

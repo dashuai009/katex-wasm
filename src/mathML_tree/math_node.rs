@@ -13,7 +13,7 @@ use wasm_bindgen::prelude::*;
  * constructor requires the type of node to create (for example, `"mo"` or
  * `"mspace"`, corresponding to `<mo>` and `<mspace>` tags).
  */
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MathNode {
     node_type: MathNodeType,
     attributes: HashMap<String, String>,

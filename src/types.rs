@@ -62,7 +62,7 @@ pub enum ArgType {
 }
 
 // LaTeX display style.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum StyleStr {
     text,
     display,

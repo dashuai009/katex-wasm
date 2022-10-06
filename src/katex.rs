@@ -10,7 +10,8 @@ use crate::VirtualNode;
 pub fn render_to_dom_tree(expression: String, options: Settings) -> Span {
     let settings = Settings::new();//TODO
     let tree = parseTree(expression.clone(), settings.clone());
-    return crate::build::tree::build_tree(tree, expression, settings);
+    println!("tre parse nodes = {:#?}", tree);
+    return crate::build::build_tree(tree, expression, settings);
 }
 
 // pub fn render(

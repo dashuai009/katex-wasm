@@ -14,7 +14,7 @@ use wasm_bindgen::prelude::*;
  * depending on the width.
  */
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct SpaceNode {
     width: f64,
     character: Option<String>,

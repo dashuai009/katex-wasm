@@ -24,7 +24,7 @@ lazy_static! {
 ///to a single text node, or a span with a single text node in it, depending on
 ///whether it has CSS classes, styles, or needs italic correction.
 
-#[derive(html_dom_node, Clone)]
+#[derive(html_dom_node, Clone, Debug)]
 pub struct SymbolNode {
     text: String,
     pub height: f64,
@@ -103,24 +103,6 @@ impl SymbolNode {
     pub fn set_text(&mut self, text: String) {
         self.text = text;
     }
-    pub fn set_style_color(&mut self, c: Option<String>) {
-        self.style.color = c;
-    }
-
-    pub fn get_style(&self) -> CssStyle {
-        self.style.clone()
-    }
-
-    pub fn set_style(&mut self, style: &CssStyle) {
-        self.style = style.clone()
-    }
-    pub fn set_classes(&mut self, c: Vec<String>) {
-        self.classes = c;
-    }
-
-    pub fn push_class(&mut self, s: String) {
-        self.classes.push(s);
-    }
 }
 impl VirtualNode for SymbolNode {
     fn as_any(&self) -> &dyn Any {
@@ -171,12 +153,12 @@ impl VirtualNode for SymbolNode {
     fn to_markup(&self) -> String {
         // TODO(alpert): More duplication than I'd like from
         // span.prototype.toMarkup and symbolNode.prototype.toNode...
-        let mut needsSpan = false;
+        let mut needs_span = false;
 
         let mut markup = "<span".to_string();
 
         if self.classes.len() > 0 {
-            needsSpan = true;
+            needs_span = true;
             markup.push_str(&format!(
                 " class=\"{}\"",
                 escape(&self.classes.join(" ")).as_str()
@@ -186,15 +168,15 @@ impl VirtualNode for SymbolNode {
         let mut styles = String::new();
 
         if self.italic > 0.0 {
-            styles.push_str(&format!("margin-right:{}em", self.italic).as_str());
+            styles.push_str(&format!("margin-right:{}em;", self.italic).as_str());
         }
 
         styles.push_str(&self.style.to_css_str());
-
-        let escaped_text = escape(&self.text);
-        return if styles != "" {
+        if styles != "" {
             markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
-
+        }
+        let escaped_text = escape(&self.text);
+        return if needs_span{
             markup.push_str(&format!(">{escaped_text}</span>").as_str());
             markup.to_string()
         } else {

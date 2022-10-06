@@ -3,13 +3,14 @@ use crate::dom_tree::css_style::CssStyle;
 use crate::mathML_tree::public::MathDomNode;
 use crate::{HtmlDomNode, VirtualNode};
 use web_sys::Node;
+use struct_format::html_dom_node;
 
 /**
  * This node represents a document fragment, which contains elements, but when
  * placed into the DOM doesn't have any representation itself. It only contains
  * children and doesn't have any DOM node properties.
  */
-#[derive(Clone)]
+#[derive(Clone, html_dom_node, Debug)]
 pub struct DocumentFragment {
     children: Vec<Box<dyn HtmlDomNode>>,
     // HtmlDomNode
@@ -30,58 +31,6 @@ impl DocumentFragment {
             max_font_size: 0.0,
             style: CssStyle::default(),
         }
-    }
-}
-
-impl HtmlDomNode for DocumentFragment {
-    fn get_classes(&self) -> &Vec<String> {
-        return &self.classes;
-    }
-    fn get_mut_classes(&mut self) -> &mut Vec<String> {
-        return &mut self.classes;
-    }
-    fn set_classes(&mut self, _classes: Vec<String>) {
-        self.classes = _classes;
-    }
-
-    fn get_height(&self) -> f64 {
-        return self.height.clone();
-    }
-    fn set_height(&mut self, _height: f64) {
-        self.height = _height;
-    }
-
-    fn get_depth(&self) -> f64 {
-        return self.depth.clone();
-    }
-
-    fn set_depth(&mut self, _depth: f64) {
-        self.depth = _depth;
-    }
-
-    fn get_max_font_size(&self) -> f64 {
-        return self.max_font_size.clone();
-    }
-    fn set_max_font_size(&mut self, _max_font_size: f64) {
-        self.max_font_size = _max_font_size;
-    }
-
-    fn get_style(&self) -> &CssStyle {
-        return &self.style;
-    }
-    fn get_mut_style(&mut self) -> &mut CssStyle {
-        return &mut self.style;
-    }
-    fn set_style(&mut self, _style: CssStyle) {
-        self.style = _style;
-    }
-
-    fn has_class(&self, class_name: &String) -> bool {
-        return self.classes.contains(class_name);
-    }
-
-    fn get_mut_children(&mut self) -> Option<&mut Vec<Box<dyn HtmlDomNode>>> {
-        return None;
     }
 }
 

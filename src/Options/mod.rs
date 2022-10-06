@@ -30,7 +30,7 @@ pub fn size_at_style(size: f64, style: &StyleInterface) -> f64 {
 #[derive(Debug, Clone)]
 pub struct Options {
     style: StyleInterface,
-    pub color: String,
+    color: Option<String>,
     pub size: f64,
     pub textSize: f64,
     pub phantom: bool,
@@ -83,17 +83,16 @@ impl Options {
             _ => &font_family, // use fonts added by a plugin
         };
 
-        let font_styles_name = if self.font_weight == FontWeight::Textbf
-            && self.font_shape == FontShape::Textit
-        {
-            "BoldItalic"
-        } else if (self.font_weight == FontWeight::Textbf) {
-            "Bold"
-        } else if (self.font_weight == FontWeight::Textbf) {
-            "Italic"
-        } else {
-            "Regular"
-        };
+        let font_styles_name =
+            if self.font_weight == FontWeight::Textbf && self.font_shape == FontShape::Textit {
+                "BoldItalic"
+            } else if self.font_weight == FontWeight::Textbf {
+                "Bold"
+            } else if self.font_weight == FontWeight::Textbf {
+                "Italic"
+            } else {
+                "Regular"
+            };
 
         return format!("{base_font_name}-{font_styles_name}");
     }
@@ -112,8 +111,8 @@ impl Options {
         self.style.clone()
     }
 
-    pub fn set_style(&mut self, style: &StyleInterface) {
-        self.style = style.clone()
+    pub fn set_style(&mut self, style: StyleInterface) {
+        self.style = style;
     }
 
     /**
@@ -126,7 +125,7 @@ impl Options {
                 size: 0,
                 cramped: false,
             },
-            color: "".to_string(),
+            color: None,
             size: BASESIZE,
             textSize: BASESIZE,
             phantom: false,
@@ -229,7 +228,7 @@ impl Options {
      */
     pub fn withColor(&self, color: String) -> Options {
         return Options {
-            color: color,
+            color: Some(color),
             ..self.clone()
         };
     }
@@ -338,9 +337,9 @@ impl Options {
     /**
      * Gets the CSS color of the current options object
      */
-    pub fn getColor(&self) -> String {
+    pub fn get_color(&self) -> Option<String> {
         if self.phantom == true {
-            return String::from("transparent");
+            return Some(String::from("transparent"));
         } else {
             return self.color.clone();
         }
