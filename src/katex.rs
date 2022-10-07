@@ -29,7 +29,7 @@ pub fn render_to_string(expression: String, settings: Settings) -> String {
     return render_to_dom_tree(expression, settings).to_markup();
 }
 
-#[wasm_bindgen(js_name = readerToString)]
+#[wasm_bindgen(js_name = renderToString)]
 pub fn render_to_string_for_js(expression:String, settings:  &JsValue)->String{
     return render_to_string(expression,Settings::new_from_js(settings));
 }
