@@ -92,18 +92,18 @@ pub fn calculate_size(sizeValue: &Measurement, options: &Options) -> f64 {
     if let Some(u) = ptPerUnit.get(sizeValue.unit.as_str()) {
         // Absolute units
         scale = u  // Convert unit to pt
-           / options.clone().fontMetrics().ptPerEm  // Convert pt to CSS em
+           / options.clone().get_font_metrics().ptPerEm  // Convert pt to CSS em
            / options.sizeMultiplier; // Unscale to make absolute units
     } else if sizeValue.unit == "mu" {
         // `mu` units scale with scriptstyle/scriptscriptstyle.
-        scale = options.clone().fontMetrics().cssEmPerMu;
+        scale = options.clone().get_font_metrics().cssEmPerMu;
     } else {
         // Other relative units always refer to the *textstyle* font
         // in the current size.
         let unitOptions;
         if options.get_style().isTight() {
             // isTight() means current style is script/scriptscript.
-            unitOptions = options.havingStyle(&options.get_style().text());
+            unitOptions = options.having_style(&options.get_style().text());
         } else {
             unitOptions = options.clone();
         }
@@ -115,9 +115,9 @@ pub fn calculate_size(sizeValue: &Measurement, options: &Options) -> f64 {
         // TeX \showlists shows a kern of 1.13889 * fontsize;
         // KaTeX shows a kern of 1.171 * fontsize.
         if (sizeValue.unit == "ex") {
-            scale = unitOptions.clone().fontMetrics().xHeight;
+            scale = unitOptions.clone().get_font_metrics().xHeight;
         } else if (sizeValue.unit == "em") {
-            scale = unitOptions.clone().fontMetrics().quad;
+            scale = unitOptions.clone().get_font_metrics().quad;
         } else {
             //throw new ParseError("Invalid unit: '" + sizeValue.unit + "'");
         }

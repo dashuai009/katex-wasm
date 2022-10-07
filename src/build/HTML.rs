@@ -107,7 +107,7 @@ pub fn build_expression(
             groups.push(output);
         }
     }
-    // println!("{:#?}", groups);
+    println!("build_expression groups = {:#?}", groups);
 
     // Combine consecutive domTree.symbolNodes into a single symbolNode.
     super::common::try_combine_chars(&mut groups);
@@ -122,9 +122,9 @@ pub fn build_expression(
     if (expression.len() == 1) {
         let node = &expression[0];
         if let Some(s) = node.as_any().downcast_ref::<parse_node::types::sizing>() {
-            glueOptions = options.havingSize(s.size as f64);
+            glueOptions = options.having_size(s.size as f64);
         } else if let Some(s) = node.as_any().downcast_ref::<parse_node::types::styling>() {
-            glueOptions = options.havingStyle(&s.style.as_style());
+            glueOptions = options.having_style(&s.style.as_style());
         }
     }
 
@@ -312,15 +312,15 @@ fn check_partial_group(node: &Box<dyn HtmlDomNode>) -> bool {
 }
 
 // Return the outermost node of a domTree.
-fn getOutermostNode(node: &Box<dyn HtmlDomNode>, side: Side) -> &Box<dyn HtmlDomNode> {
+fn get_outermost_node(node: &Box<dyn HtmlDomNode>, side: Side) -> &Box<dyn HtmlDomNode> {
     if check_partial_group(node){
         if let Some(children) = node.get_children() {
             if children.len() > 0 {
                 if side == Side::Right {
                     let x = { children.len().clone() - 1 };
-                    return getOutermostNode(&children[x], Side::Right);
+                    return get_outermost_node(&children[x], Side::Right);
                 } else if side == Side::Left {
-                    return getOutermostNode(&children[0], Side::Left);
+                    return get_outermost_node(&children[0], Side::Left);
                 }
             }
         }
@@ -333,7 +333,7 @@ fn getOutermostNode(node: &Box<dyn HtmlDomNode>, side: Side) -> &Box<dyn HtmlDom
 // If `side` is given, it will get the type of the outermost node at given side.
 pub fn get_type_of_dom_tree(node: &Box<dyn HtmlDomNode>, side: Option<Side>) -> Option<DomType> {
     let _node = if let Some(s) = side {
-        getOutermostNode(node, s)
+        get_outermost_node(node, s)
     } else {
         node
     };
@@ -377,7 +377,7 @@ pub fn build_group(
         if let Some(base) = base_options {
             if base.size != options.size {
                 group_node = Box::new(make_span(
-                    options.sizingClasses(&base),
+                    options.sizing_classes(&base),
                     vec![group_node],
                     Some(&options),
                     CssStyle::default(),

@@ -123,6 +123,12 @@ pub enum MacroDefinition{
     MacroExpansion(MacroExpansion),
     MacroContext(fn(&MacroExpander) -> MacroDefinition)
 }
+
+impl std::fmt::Debug for MacroDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f , "MacroDefinition deasdfaoiwrjtgnasdjikvn")
+    }
+}
 // pub struct MacroMap = {[string]: MacroDefinition};
 
 // /**

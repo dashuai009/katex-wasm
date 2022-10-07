@@ -78,59 +78,60 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         return builder_delegate(_group, options);
     }
     let parse_node::types::supsub {
-        base: valueBase,
-        sup: valueSup,
-        sub: valueSub,
+        base: value_base,
+        sup: value_sup,
+        sub: value_sub,
         ..
     } = group;
-    let base = crate::build::HTML::build_group(valueBase.clone(), options.clone(), None);
+    let base = crate::build::HTML::build_group(value_base.clone(), options.clone(), None);
+    println!("base mathord HtmlDomNode = {:#?}", base);
     let mut _supm = None;
     let mut _subm = None;
 
-    let metrics = options.fontMetrics();
+    let metrics = options.get_font_metrics();
 
     // Rule 18a
-    let mut supShift = 0.0;
+    let mut sup_shift = 0.0;
     let mut subShift = 0.0;
 
-    let isCharacterBox = valueBase.is_some() && is_character_box(&valueBase.as_ref().unwrap());
-    if (valueSup.is_some()) {
-        let newOptions = options.havingStyle(&options.get_style().sup());
+    let value_base_is_character_box = value_base.is_some() && is_character_box(&value_base.as_ref().unwrap());
+    if value_sup.is_some() {
+        let new_options = options.having_style(&options.get_style().sup());
         _supm = Some(crate::build::HTML::build_group(
-            valueSup.clone(),
-            newOptions.clone(),
+            value_sup.clone(),
+            new_options.clone(),
             Some(options.clone()),
         ));
-        if !isCharacterBox {
-            supShift = base.get_height()
-                - newOptions.fontMetrics().supDrop * newOptions.sizeMultiplier
+        if !value_base_is_character_box {
+            sup_shift = base.get_height()
+                - new_options.get_font_metrics().supDrop * new_options.sizeMultiplier
                     / options.sizeMultiplier;
         }
     }
 
-    if (valueSub.is_some()) {
-        let newOptions = options.havingStyle(&options.get_style().sub());
+    if value_sub.is_some() {
+        let new_options = options.having_style(&options.get_style().sub());
         _subm = Some(crate::build::HTML::build_group(
-            valueSub.clone(),
-            newOptions.clone(),
+            value_sub.clone(),
+            new_options.clone(),
             Some(options.clone()),
         ));
-        if (!isCharacterBox) {
+        if !value_base_is_character_box {
             subShift = base.get_depth()
-                + newOptions.fontMetrics().subDrop * newOptions.sizeMultiplier.clone()
+                + new_options.get_font_metrics().subDrop * new_options.sizeMultiplier.clone()
                     / options.sizeMultiplier.clone();
         }
     }
 
     let display_style = crate::Style::DISPLAY.lock().unwrap();
     // Rule 18c
-    let minSupShift;
+    let min_sup_shift;
     if options.get_style() == display_style.clone() {
-        minSupShift = metrics.sup1;
+        min_sup_shift = metrics.sup1;
     } else if options.get_style().cramped {
-        minSupShift = metrics.sup3;
+        min_sup_shift = metrics.sup3;
     } else {
-        minSupShift = metrics.sup2;
+        min_sup_shift = metrics.sup2;
     }
 
     // scriptspace is a font-size-independent size, so scale it
@@ -143,7 +144,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         // Subscripts shouldn't be shifted by the base's italic correction.
         // Account for that by shifting the subscript back the appropriate
         // amount. Note we only do this when the base is a single symbol.
-        let isOiint = if let Some(b) = &group.base {
+        let is_oiint = if let Some(b) = &group.base {
             if let Some(op) = b.as_any().downcast_ref::<parse_node::types::op>() {
                 if let Some(name) = &op.name {
                     name == "\\oiint" || name == "\\oiiint"
@@ -159,7 +160,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         if let Some(b) = base.as_any().downcast_ref::<SymbolNode>() {
             marginLeft = Some(make_em(-b.italic));
         } else {
-            if isOiint {
+            if is_oiint {
                 panic!("emmmmm base type = ");
             }
         }
@@ -168,9 +169,9 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     let supsub;
     if let Some(supm) = _supm {
         if let Some(subm) = _subm {
-            supShift = f64::max(
-                supShift,
-                f64::max(minSupShift, supm.get_depth() + 0.25 * metrics.xHeight),
+            sup_shift = f64::max(
+                sup_shift,
+                f64::max(min_sup_shift, supm.get_depth() + 0.25 * metrics.xHeight),
             );
             subShift = f64::max(subShift, metrics.sub2);
 
@@ -178,11 +179,11 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
 
             // Rule 18e
             let maxWidth = 4.0 * ruleWidth;
-            if ((supShift - supm.get_depth()) - (subm.get_height() - subShift) < maxWidth) {
-                subShift = maxWidth - (supShift - supm.get_depth()) + subm.get_height();
-                let psi = 0.8 * metrics.xHeight - (supShift - supm.get_depth());
+            if ((sup_shift - supm.get_depth()) - (subm.get_height() - subShift) < maxWidth) {
+                subShift = maxWidth - (sup_shift - supm.get_depth()) + subm.get_height();
+                let psi = 0.8 * metrics.xHeight - (sup_shift - supm.get_depth());
                 if (psi > 0.0) {
-                    supShift += psi;
+                    sup_shift += psi;
                     subShift -= psi;
                 }
             }
@@ -202,7 +203,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                     margin_right: Some(marginRight),
                     wrapper_classes: None,
                     wrapper_style: None,
-                    shift: Some(-supShift ),
+                    shift: Some(-sup_shift),
                 },
             ];
             panic!("make_v_list");
@@ -213,8 +214,8 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             //                                }, options);
         } else {
             // Rule 18c, d
-            supShift = f64::max(
-                f64::max(supShift, minSupShift),
+            sup_shift = f64::max(
+                f64::max(sup_shift, min_sup_shift),
                 supm.get_depth() + 0.25 * metrics.xHeight,
             );
             supsub = make_vlist(
@@ -228,7 +229,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                         wrapper_style: None,
                         shift: None,
                     }],
-                    position_data: Some(subShift),
+                    position_data: Some( - sup_shift),
                 },
                 options.clone(),
             );

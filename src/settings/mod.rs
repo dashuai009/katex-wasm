@@ -26,7 +26,7 @@ use std::sync::Arc;
 /// Read <https://katex.org/docs/options.html> for more information.
 ///
 #[non_exhaustive]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[wasm_bindgen(getter_with_clone)]
 // #[wasm_bindgen]
 pub struct Settings {
@@ -169,18 +169,6 @@ impl Settings {
     #[wasm_bindgen(setter = globalGroup)]
     pub fn set_global_group(&mut self, global_group: bool) {
         self.global_group = global_group;
-    }
-}
-
-impl std::fmt::Display for Settings {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "display_mode:{} output:{} leqno:{}",
-            self.display_mode,
-            self.output.as_str(),
-            self.leqno
-        )
     }
 }
 

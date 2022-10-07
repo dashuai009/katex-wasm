@@ -509,26 +509,20 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
             depth = match pre_child {
                 VListChild::Elem {
                     elem,
-                    margin_left,
-                    margin_right,
-                    wrapper_classes,
-                    wrapper_style,
                     shift,
+                    ..
                 } => shift.unwrap() - elem.get_depth(),
                 VListChild::Kern { size } => unreachable!(),
             } as f64;
-            let mut currPos = depth;
+            let mut curr_pos = depth;
             for cur_child in children_iter {
                 match cur_child {
                     VListChild::Elem {
                         elem,
-                        margin_left,
-                        margin_right,
-                        wrapper_classes,
-                        wrapper_style,
                         shift,
+                        ..
                     } => {
-                        let diff = -(shift.unwrap()) - currPos - elem.get_depth();
+                        let diff = -(shift.unwrap()) - curr_pos - elem.get_depth();
                         let size = match pre_child {
                             VListChild::Elem { elem, .. } => {
                                 diff - (elem.get_height() + elem.get_depth())
@@ -536,7 +530,7 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
                             VListChild::Kern { size } => todo!(),
                         };
 
-                        currPos = currPos + diff;
+                        curr_pos = curr_pos + diff;
                         children.push(VListChild::Kern { size });
                         children.push(cur_child.clone());
                         pre_child = cur_child;
@@ -616,7 +610,7 @@ pub fn make_vlist(params: VListParam, options: Options) -> Span {
     let mut max_pos: f64 = depth;
     let mut curr_pos: f64 = depth;
     // println!("max_pos = {max_pos}, min_pos = {min_pos}");
-    for child in children.iter() {
+    for child in children.into_iter() {
         match child {
             VListChild::Elem {
                 elem,
@@ -628,13 +622,13 @@ pub fn make_vlist(params: VListParam, options: Options) -> Span {
                 ..
             } => {
                 let mut child_wrap = make_span(
-                    wrapper_classes.clone().unwrap_or(vec![]),
+                    wrapper_classes.unwrap_or(vec![]),
                     vec![
                         Box::new(pstrut.clone()) as Box<dyn HtmlDomNode>,
                         elem.clone(),
                     ],
                     None,
-                    wrapper_style.clone().unwrap_or(CssStyle::default()),
+                    wrapper_style.unwrap_or(CssStyle::default()),
                 );
                 child_wrap.get_mut_style().top =
                     Some(make_em(-pstrut_size - curr_pos - elem.get_depth()));
@@ -647,7 +641,7 @@ pub fn make_vlist(params: VListParam, options: Options) -> Span {
                 curr_pos += elem.get_height() + elem.get_depth();
             }
             VListChild::Kern { size } => {
-                curr_pos += *size;
+                curr_pos += size;
             }
         }
         min_pos = min_pos.min(curr_pos);

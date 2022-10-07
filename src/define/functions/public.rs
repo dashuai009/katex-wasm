@@ -189,7 +189,6 @@ lazy_static! {
     pub static ref _functions: std::sync::Mutex<HashMap<String,FunctionSpec>> =  std::sync::Mutex::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
-            println!("name = {}", data.def_type);
              for name in data.names.iter() {
                 res.insert(name.clone(), (data.props.clone(), data.handler));
             }
@@ -203,7 +202,6 @@ lazy_static! {
     pub static ref _HTML_GROUP_BUILDERS: std::sync::RwLock<HashMap<String, HtmlBuilder>> =  std::sync::RwLock::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
-            println!("html type = {}",data.def_type);
             if let Some(h) = data.html_builder{
                 res.insert(data.def_type.clone(),h);
             }
@@ -217,7 +215,6 @@ lazy_static! {
     pub static ref _mathmlGroupBuilders: std::sync::Mutex<HashMap<String,MathMLBuilder>> =  std::sync::Mutex::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
-            println!("mathml type = {}",data.def_type);
             if let Some(h) = data.mathml_builder{
                 res.insert(data.def_type.clone(),h);
             }
