@@ -15,6 +15,7 @@ pub fn render_to_dom_tree(expression: String, settings: Settings) -> Span {
     return crate::build::build_tree(tree, expression, settings);
 }
 
+#[wasm_bindgen]
 pub fn render(expression: String, base_node: &web_sys::Node, options: &JsValue) {
     base_node.set_text_content(Some(""));
     let node = render_to_dom_tree(expression, Settings::new_from_js(options)).to_node();
@@ -28,9 +29,21 @@ pub fn render_to_string(expression: String, settings: Settings) -> String {
     return render_to_dom_tree(expression, settings).to_markup();
 }
 
+#[wasm_bindgen(js_name = readerToString)]
+pub fn render_to_string_for_js(expression:String, settings:  &JsValue)->String{
+    return render_to_string(expression,Settings::new_from_js(settings));
+}
+
+
+
+
+const TEST_CASE: [&str; 2] = [
+    "E=mc^2",
+    "a^2+b^2=c^2"
+];
 #[cfg(test)]
 mod tests {
-    use crate::katex::render_to_string;
+    use crate::katex::{render_to_string, TEST_CASE};
     use crate::settings::Settings;
 
     #[test]
@@ -38,13 +51,19 @@ mod tests {
         let mut settings = Settings::new();
         settings.set_display_mode(true);
         settings.set_error_color("#cc0000".to_string());
-        settings.trust = true;
-
+        settings.set_trust(true);
 
         settings.set_max_expand(Some(1000));
         settings.set_max_size(Some(200000.0));
         println!("setting = {:#?}", settings);
-        let test_string = "E=mc^2".to_string();
-        println!("{}", render_to_string(test_string, settings).as_str());
+        for test_string in TEST_CASE{
+            println!("{}", render_to_string(test_string.to_string(), settings.clone()).as_str());
+        }
     }
 }
+
+
+/*****
+具有纪念意义的一行输出
+<span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden=true><span class="base"><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal" style="margin-right:0.05764em;">E</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span></span><span class="base"><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641em;"><span style="margin-right:0.0500em;top:-3.1130em;"><span class="pstrut" style="height:2.7000em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord   mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>
+ */

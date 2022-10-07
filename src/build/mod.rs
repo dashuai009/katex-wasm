@@ -14,10 +14,10 @@ use crate::{
 pub fn display_wrap(node: Span, settings: Settings) -> Span {
     if settings.get_display_mode() {
         let mut classes = vec!["katex-display".to_string()];
-        if settings.leqno {
+        if settings.get_leqno() {
             classes.push("leqno".to_string());
         }
-        if settings.fleqn {
+        if settings.get_fleqn() {
             classes.push("fleqn".to_string());
         }
         return common::make_span(
