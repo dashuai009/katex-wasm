@@ -186,7 +186,7 @@ lazy_static! {
      * `functions.js` just exports this same dictionary again and makes it public.
      * `Parser.js` requires this dictionary.
      */
-    pub static ref _functions: std::sync::Mutex<HashMap<String,FunctionSpec>> =  std::sync::Mutex::new({
+    pub static ref _functions: std::sync::RwLock<HashMap<String,FunctionSpec>> =  std::sync::RwLock::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
              for name in data.names.iter() {

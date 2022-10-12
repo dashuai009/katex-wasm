@@ -64,6 +64,20 @@ impl VirtualNode for DocumentFragment  {
     }
 }
 
+impl DocumentFragment {
+    /**
+     * Calculate the height, depth, and maxFontSize of an element based on its
+     * children.
+     */
+    pub fn size_element_from_children(&mut self) {
+        for child in self.children.iter() {
+            self.height = self.height.max(child.get_height());
+            self.depth = self.depth.max(child.get_depth());
+            self.max_font_size = f64::max(self.max_font_size, child.get_max_font_size());
+        }
+    }
+}
+
 // impl<ChildType: VirtualNode + MathDomNode + Clone + 'static> MathDomNode
 //     for DocumentFragment
 // {

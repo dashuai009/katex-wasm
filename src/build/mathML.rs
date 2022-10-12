@@ -50,17 +50,17 @@ pub fn make_text(text: String, mode: Mode, options: Option<&Options>) -> TextNod
 //     )
 // )
 
-// /**
-//  * Wrap the given array of nodes in an <mrow> node if needed, i.e.,
-//  * unless the array has length 1.  Always returns a single node.
-//  */
-// pub fn makeRow(body: $ReadOnlyArray<MathDomNode>)->MathDomNode {
-//     if (body.length == 1) {
-//         return body[0];
-//     } else {
-//         return MathNode::new("mrow", body);
-//     }
-// };
+/**
+ * Wrap the given array of nodes in an <mrow> node if needed, i.e.,
+ * unless the array has length 1.  Always returns a single node.
+ */
+pub fn make_row(body: Vec<Box<dyn MathDomNode>>)->Box<dyn MathDomNode> {
+    return if body.len() == 1 {
+        body[0].clone()
+    } else {
+        Box::new(MathNode::new(MathNodeType::Mrow, body, vec![])) as Box<dyn MathDomNode>
+    };
+}
 
 /**
  * Returns the math variant as a String or null if none is required.
@@ -226,17 +226,21 @@ pub fn build_expression(
     // return groups;
 }
 
-// /**
-//  * Equivalent to buildExpression, but wraps the elements in an <mrow>
-//  * if there's more than one.  Returns a single node instead of an array.
-//  */
-// pub fn buildExpressionRow(
-//     expression:Vec<AnyParseNode>,
-//     options: Options,
-//     isOrdgroup?: bool,
-// )->MathDomNode {
-//     return makeRow(buildExpression(expression, options, isOrdgroup));
-// };
+/**
+ * Equivalent to buildExpression, but wraps the elements in an <mrow>
+ * if there's more than one.  Returns a single node instead of an array.
+ */
+pub fn build_expression_row(
+    expression:Vec<Box<dyn AnyParseNode>>,
+    options: Options,
+    is_ordgroup: bool,
+) ->Box< dyn MathDomNode> {
+    return make_row(build_expression(expression, options, is_ordgroup)
+        .into_iter()
+        .map(|x|{Box::new(x) as Box<dyn MathDomNode>})
+        .collect()
+    );
+}
 
 // /**
 //  * Takes a group from the parser and calls the appropriate groupBuilders function

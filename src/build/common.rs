@@ -448,15 +448,15 @@ pub fn make_anchor(
 /**
  * Makes a document fragment with the given list of children.
  */
-// fn make_fragment<T:HtmlDomNode>(
-//     children: Vec<T>,
-// )-> DocumentFragment<T> {
-//     let fragment =  DocumentFragment::new(children);
+pub fn make_fragment(
+    children: Vec<Box<dyn HtmlDomNode>>,
+)-> DocumentFragment {
+    let mut fragment =  DocumentFragment::new(children);
 
-//     size_element_from_children(&mut fragment);
+    fragment.size_element_from_children();
 
-//     return fragment;
-// }
+    return fragment;
+}
 
 // These are exact object types to catch typos in the names of the optional fields.
 #[derive(Clone)]
@@ -823,28 +823,26 @@ pub fn static_svg(value: String, options: Options) -> Span {
     let svg_data = SVG_DATA.lock().unwrap();
     let (pathName, width, height) = svg_data.get(value.as_str()).unwrap();
     let path = PathNode::new(pathName.to_string(), None);
-    let svgNode = SvgNode {
-        children: vec![Box::new(path)],
-        attributes: HashMap::from([
-            ("widdth".to_string(), make_em(*width)),
-            ("height".to_string(), make_em(*height)),
-            // Override CSS rule `.katex svg { width: 100% }`
-            ("style".to_string(), format!("width:{}", make_em(*width))),
-            (
+    let mut tmp = SvgNode::new(vec![Box::new(path)]);
+    let svgNode =  tmp.set_attributes("widdth".to_string(), make_em(*width))
+        .set_attributes("height".to_string(), make_em(*height))
+        // Override CSS rule `.katex svg { width: 100% }`
+        .set_attributes(                    "style".to_string(), format!("width:{}", make_em(*width)))
+        .set_attributes(
                 "viewBox".to_string(),
                 format!("0 0 {} {}", 1000.0 * width, 1000.0 * height),
-            ),
-            ("preserveAspectRatio".to_string(), "xMinYMin".to_string()),
-        ]),
-    };
+            )
+        .set_attributes("preserveAspectRatio".to_string(), "xMinYMin".to_string());
     let mut span = Span::new(
         vec!["overlay".to_string()],
-        vec![/*Box::new(svgNode) as Box<dyn HtmlDomNode>*/],
+        vec![Box::new(svgNode.clone()) as Box<dyn HtmlDomNode>],
         Some(options),
         CssStyle::new(),
     );
-    // span.height = height;
-    // span.style.height = make_em(height);
-    // span.style.width = make_em(width);
+    span.set_height(*height);
+    span.get_mut_style().height = Some(make_em(*height));
+    if *width > 0.0{
+        span.get_mut_style().width = Some(make_em(*width));
+    }
     return span;
 }

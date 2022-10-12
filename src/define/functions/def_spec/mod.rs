@@ -1,4 +1,6 @@
+mod accent;
 mod mclass;
+mod ordgroup;
 mod supsub;
 mod symbols_op;
 mod symbols_ord;
@@ -13,7 +15,19 @@ lazy_static! {
         let b = symbols_ord::TEXTORD.lock().unwrap();
         let z = symbols_op::ATOM.lock().unwrap();
         let a = supsub::SUPSUB.lock().unwrap();
-        let res = vec![x.clone(), y.clone(), z.clone(), a.clone(), b.clone()];
+        let c = accent::ACCENT.lock().unwrap();
+        let c2 = accent::ACCENT2.lock().unwrap();
+        let d = ordgroup::ORDGROUP.lock().unwrap();
+        let res = vec![
+            x.clone(),
+            y.clone(),
+            z.clone(),
+            a.clone(),
+            b.clone(),
+            c.clone(),
+            c2.clone(),
+            d.clone(),
+        ];
         res
     });
 }

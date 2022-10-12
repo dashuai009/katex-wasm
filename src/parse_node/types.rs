@@ -257,10 +257,10 @@ pub struct accent {
 pub struct accentUnder {
     mode: Mode,
     loc: Option<SourceLocation>,
-    label: String,
+    pub label: String,
     isStretchy: bool,
     isShifty: bool,
-    base: Box<dyn AnyParseNode>,
+    pub base: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -331,7 +331,7 @@ pub struct hbox {
 pub struct horizBrace {
     mode: Mode,
     loc: Option<SourceLocation>,
-    label: String,
+    pub label: String,
     isOver: bool,
     base: Box<dyn AnyParseNode>,
 }
@@ -557,7 +557,7 @@ pub struct vcenter {
 pub struct xArrow {
     mode: Mode,
     loc: Option<SourceLocation>,
-    label: String,
+    pub label: String,
     body: Box<dyn AnyParseNode>,
     below: Option<Box<dyn AnyParseNode>>,
 }

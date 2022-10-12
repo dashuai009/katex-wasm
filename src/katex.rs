@@ -37,9 +37,10 @@ pub fn render_to_string_for_js(expression:String, settings:  &JsValue)->String{
 
 
 
-const TEST_CASE: [&str; 2] = [
-    "E=mc^2",
-    "a^2+b^2=c^2"
+const TEST_CASE: [&str; 1] = [
+    // "E=mc^2",
+    // "a^2+b^2=c^2",
+    "\\\"{A}"
 ];
 #[cfg(test)]
 mod tests {
@@ -57,7 +58,7 @@ mod tests {
         settings.set_max_size(Some(200000.0));
         println!("setting = {:#?}", settings);
         for test_string in TEST_CASE{
-            println!("{}", render_to_string(test_string.to_string(), settings.clone()).as_str());
+            println!("{} {}",test_string, render_to_string(test_string.to_string(), settings.clone()).as_str());
         }
     }
 }

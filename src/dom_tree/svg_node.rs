@@ -3,7 +3,7 @@ use crate::dom_tree::line_node::LineNode;
 use crate::dom_tree::path_node::PathNode;
 use crate::utils::{escape};
 use crate::units::make_em;
-use crate::{path_get, scriptFromCodepoint, VirtualNode};
+use crate::{HtmlDomNode, path_get, scriptFromCodepoint, VirtualNode};
 use js_sys::Array;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -15,13 +15,22 @@ use wasm_bindgen::prelude::*;
  */
 #[derive(Clone, Debug)]
 pub struct SvgNode {
-    pub children: Vec<Box<dyn VirtualNode>>,
-    pub attributes: HashMap<String, String>,
+    children: Vec<Box<dyn VirtualNode>>,
+    attributes: HashMap<String, String>,
 }
 
-// impl SvgNode{
-//     pub fn new(children:)
-// }
+impl SvgNode{
+    pub fn new(children:Vec<Box<dyn VirtualNode>>)->SvgNode{
+        SvgNode{
+            children,
+            attributes: HashMap::new()
+        }
+    }
+    pub fn set_attributes(&mut self,k:String,v:String)->&mut Self{
+        self.attributes.insert(k,v);
+        self
+    }
+}
 impl VirtualNode for SvgNode {
     fn as_any(&self) -> &dyn Any {
         self
@@ -79,28 +88,66 @@ impl VirtualNode for SvgNode {
         return markup;
     }
 }
-// #[wasm_bindgen]
-// impl SvgNode {
-//     #[wasm_bindgen(constructor)]
-//     pub fn new(attributes: js_sys::Object) -> SvgNode {
-//         let mut res = HashMap::new();
-//         for (k, v) in js_sys::Object::keys(&attributes)
-//             .iter()
-//             .zip(js_sys::Object::values(&attributes).iter())
-//         {
-//             res.insert(k.as_string().unwrap(), v.as_string().unwrap());
-//         }
-//         SvgNode {
-//             children: vec![],
-//             attributes: res,
-//         }
-//     }
 
-//     pub fn toNode(&self) -> web_sys::Node {
-//         return self.to_node();
-//     }
 
-//     pub fn toMarkup(&self) -> String {
-//         return self.to_markup();
-//     }
-// }
+impl HtmlDomNode for SvgNode{
+    fn get_classes(&self) -> &Vec<String> {
+        todo!()
+    }
+
+    fn get_mut_classes(&mut self) -> &mut Vec<String> {
+        todo!()
+    }
+
+    fn set_classes(&mut self, _classes: Vec<String>) {
+        todo!()
+    }
+
+    fn get_height(&self) -> f64 {
+        todo!()
+    }
+
+    fn set_height(&mut self, _height: f64) {
+        todo!()
+    }
+
+    fn get_depth(&self) -> f64 {
+        todo!()
+    }
+
+    fn set_depth(&mut self, _depth: f64) {
+        todo!()
+    }
+
+    fn get_max_font_size(&self) -> f64 {
+        todo!()
+    }
+
+    fn set_max_font_size(&mut self, _max_font_size: f64) {
+        todo!()
+    }
+
+    fn get_style(&self) -> &CssStyle {
+        todo!()
+    }
+
+    fn get_mut_style(&mut self) -> &mut CssStyle {
+        todo!()
+    }
+
+    fn set_style(&mut self, _style: CssStyle) {
+        todo!()
+    }
+
+    fn has_class(&self, class_name: &String) -> bool {
+        todo!()
+    }
+
+    fn get_children(&self) -> Option<&Vec<Box<dyn HtmlDomNode>>> {
+        todo!()
+    }
+
+    fn get_mut_children(&mut self) -> Option<&mut Vec<Box<dyn HtmlDomNode>>> {
+        todo!()
+    }
+}
