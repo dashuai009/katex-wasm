@@ -40,9 +40,11 @@ pub fn render_to_string_for_js(expression:String, settings:  &JsValue)->String{
 const TEST_CASE: [&str; 1] = [
     // "E=mc^2",
     // "a^2+b^2=c^2",
-    // "\\\"{A}"
-    "\\underleftarrow{AB} \\underrightarrow{AB} \\underleftrightarrow{AB} \\underlinesegment{AB} \\undergroup{AB} \\utilde{AB}"
+    // "\\\"{A}",
+    "\\underleftarrow{AB} \\underrightarrow{AB} \\underleftrightarrow{AB} \\underlinesegment{AB} \\undergroup{AB} \\utilde{AB} \\xleftarrow{abc} \\xrightarrow{abc}  \\xLeftarrow{abc}  \\xRightarrow{abc} \\xleftrightarrow{abc}  \\xLeftrightarrow{abc}  \\xhookleftarrow{abc}  \\xhookrightarrow{abc}  \\xmapsto{abc}  \\xrightharpoondown{abc}  \\xrightharpoonup{abc}  \\xleftharpoondown{abc}  \\xleftharpoonup{abc} \\xrightleftharpoons{abc}  \\xleftrightharpoons{abc}  \\xlongequal{abc} \\xtwoheadrightarrow{abc}  \\xtwoheadleftarrow{abc}  \\xtofrom{abc} \\xrightleftarrows{abc}  \\xrightequilibrium{abc}  \\xleftequilibrium{abc}"
+    // "\\\\cdrightarrow{abc}  \\\\cdleftarrow{abc}  \\\\cdlongequal{abc}" // untested
 ];
+
 #[cfg(test)]
 mod tests {
     use crate::katex::{render_to_string, TEST_CASE};

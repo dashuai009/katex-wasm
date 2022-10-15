@@ -12,7 +12,9 @@ pub enum MathNodeType {
     Mi,
     Mtext,
     Mn,
-    Munder
+    Munder,
+    Munderover,
+    Mover
 }
 
 impl FromStr for MathNodeType {
@@ -30,6 +32,8 @@ impl FromStr for MathNodeType {
             "mtext" => Ok(MathNodeType::Mtext),
             "mn" => Ok(MathNodeType::Mn),
             "munder" => Ok(MathNodeType::Munder),
+            "munderover" =>Ok(MathNodeType::Munderover),
+            "mover" => Ok(MathNodeType::Mover),
             _ => Err(()),
         }
     }
@@ -47,7 +51,9 @@ impl MathNodeType {
             MathNodeType::Mi => "mi",
             MathNodeType::Mtext => "mtext",
             MathNodeType::Mn => "mn",
-            MathNodeType::Munder => "munder"
+            MathNodeType::Munder => "munder",
+            MathNodeType::Munderover => "munderover",
+            MathNodeType::Mover => "mover",
         }
     }
 }

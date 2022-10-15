@@ -555,9 +555,9 @@ pub struct vcenter {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct xArrow {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
     pub label: String,
-    body: Box<dyn AnyParseNode>,
-    below: Option<Box<dyn AnyParseNode>>,
+    pub body: Box<dyn AnyParseNode>,
+    pub below: Option<Box<dyn AnyParseNode>>,
 }

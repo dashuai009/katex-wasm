@@ -458,6 +458,23 @@ pub fn make_fragment(
     return fragment;
 }
 
+
+/**
+ * Wraps group in a span if it's a document fragment, allowing to apply classes
+ * and styles
+ */
+pub fn  wrap_fragment(
+    group: Box<dyn HtmlDomNode>,
+    options: &Options,
+)->Box<dyn HtmlDomNode> {
+    return if let Some(g) = group.as_any().downcast_ref::<DocumentFragment>() {
+        Box::new(make_span(vec![], vec![group], Some(options), Default::default())) as Box<dyn HtmlDomNode>
+    } else {
+        group
+    }
+}
+
+
 // These are exact object types to catch typos in the names of the optional fields.
 #[derive(Clone)]
 pub enum VListChild {
@@ -511,7 +528,7 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
                     elem,
                     shift,
                     ..
-                } => shift.unwrap() - elem.get_depth(),
+                } => - shift.unwrap() - elem.get_depth(),
                 VListChild::Kern { size } => unreachable!(),
             } as f64;
             let mut curr_pos = depth;
@@ -660,7 +677,7 @@ pub fn make_vlist(params: VListParam, options: Options) -> Span {
     vlist.get_mut_style().height = Some(make_em(max_pos as f64));
     // A second row is used if necessary to represent the vlist's depth.
     let rows;
-    if (min_pos < 0.0) {
+    if min_pos < 0.0 {
         // We will define depth in an empty span with display: table-cell.
         // It should render with the height that we define. But Chrome, in
         // contenteditable mode only, treats that span as if it contains some
