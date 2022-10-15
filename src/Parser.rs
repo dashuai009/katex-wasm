@@ -49,7 +49,7 @@ use crate::{
 pub struct Parser<'a> {
     pub mode: Mode,
     gullet: MacroExpander<'a>,
-    settings: &'a Settings,
+    pub settings: &'a Settings,
     left_right_depth: i32,
     next_token: Option<Token>,
 }
@@ -211,7 +211,7 @@ impl Parser<'_> {
                     break;
                 }
             }
-            if (break_on_infix) {
+            if break_on_infix {
                 let funcs = crate::define::functions::public::_functions.read().unwrap();
                 if let Some((f1, f2)) = funcs.get(&lex.text) {
                     if f1.get_infix() {
@@ -593,18 +593,13 @@ impl Parser<'_> {
     ) -> Box<dyn AnyParseNode> {
         let context: FunctionContext = FunctionContext {
             func_name: name.clone(),
-            parser: self,
+            parser:self,
             token,
             break_on_token_text,
         };
         let functions = _functions.read().unwrap();
         let func = functions.get(name).unwrap();
-        if true {
-            return func.1(context, args, optArgs);
-        } else {
-            panic!("No function handler for ");
-            // throw new ParseError(`No function handler for ${name}`);
-        }
+        func.1(context, args, optArgs)
     }
 
     /**

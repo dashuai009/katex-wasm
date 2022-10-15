@@ -1,7 +1,9 @@
 use crate::VirtualNode;
 use std::str::FromStr;
+use crate::mathML_tree::math_node::MathNode;
+use crate::mathML_tree::public::MathNodeType::Math;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub enum MathNodeType {
     Math,
     Annotation,
@@ -14,7 +16,9 @@ pub enum MathNodeType {
     Mn,
     Munder,
     Munderover,
-    Mover
+    Mover,
+    Mstyle,
+    Mspace,
 }
 
 impl FromStr for MathNodeType {
@@ -32,8 +36,10 @@ impl FromStr for MathNodeType {
             "mtext" => Ok(MathNodeType::Mtext),
             "mn" => Ok(MathNodeType::Mn),
             "munder" => Ok(MathNodeType::Munder),
-            "munderover" =>Ok(MathNodeType::Munderover),
+            "munderover" => Ok(MathNodeType::Munderover),
             "mover" => Ok(MathNodeType::Mover),
+            "mstyle" => Ok(MathNodeType::Mstyle),
+            "mspace" => Ok(MathNodeType::Mspace),
             _ => Err(()),
         }
     }
@@ -54,6 +60,8 @@ impl MathNodeType {
             MathNodeType::Munder => "munder",
             MathNodeType::Munderover => "munderover",
             MathNodeType::Mover => "mover",
+            MathNodeType::Mstyle => "mstyle",
+            MathNodeType::Mspace => "mspace"
         }
     }
 }

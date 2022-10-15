@@ -339,13 +339,14 @@ impl Settings {
      * "warn" prints a warning and returns `false`.
      * This is for the second category of `errorCode`s listed in the README.
      */
-    pub fn use_strict_behavior(&self, error_code: String, error_msg: String, token: &JsValue) -> bool {
+    //TODO
+    pub fn use_strict_behavior(&self, error_code: String, error_msg: String) -> bool {
         match self.strict {
             StrictType::Ignore => {
                 return false;
             }
             StrictType::Warn => {
-                console_log!(
+                println!(
                     "LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",
                     error_code,
                     error_msg
@@ -353,7 +354,7 @@ impl Settings {
                 return false;
             }
             StrictType::Error => {
-                console_log!("error lllll");
+                panic!("error lllll");
                 return true;
             }
         }

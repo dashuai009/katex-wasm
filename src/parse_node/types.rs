@@ -265,10 +265,10 @@ pub struct accentUnder {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct cr {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    newLine: bool,
-    size: Option<Measurement>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub newLine: bool,
+    pub size: Option<Measurement>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
