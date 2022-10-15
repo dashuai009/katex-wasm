@@ -7,6 +7,7 @@ use crate::parse_node::types::{AnyParseNode, ParseNodeToAny};
 use crate::types::{FontVariant, Mode};
 use crate::Options::Options;
 use crate::{get_character_metrics, get_symbol, parse_node, LIGATURES};
+use crate::define::functions::public::_MATHML_GROUP_BUILDERS;
 
 /**
  * Takes a symbol and converts it into a MathML text node after performing
@@ -242,29 +243,26 @@ pub fn build_expression_row(
     );
 }
 
-// /**
-//  * Takes a group from the parser and calls the appropriate groupBuilders function
-//  * on it to produce a MathML node.
-//  */
-// pub fn buildGroup(
-//     group: ?AnyParseNode,
-//     options: Options,
-// )->MathNode {
-//     if (!group) {
-//         return MathNode::new("mrow");
-//     }
-
-//     if (groupBuilders[group.type]) {
-//         // Call the groupBuilders function
-//         // $FlowFixMe
-//         let result: MathDomNode = groupBuilders[group.type](group, options);
-//         // $FlowFixMe
-//         return result;
-//     } else {
-//         throw new ParseError(
-//             "Got group of unknown type: '" + group.type + "'");
-//     }
-// };
+/**
+ * Takes a group from the parser and calls the appropriate groupBuilders function
+ * on it to produce a MathML node.
+ */
+pub fn build_group(
+    _group: Option<Box<dyn AnyParseNode>>,
+    options: Options,
+)->Box<dyn MathDomNode> {
+    if let Some(group) = _group{
+        let t = group.get_type();
+        let _builders = _MATHML_GROUP_BUILDERS.read().unwrap();
+        if let Some(f) = _builders.get(t) {
+            return f(group, options.clone());
+        } else {
+            panic!("Got group of unknown type: '{}'", t)
+        }
+    } else {
+        return Box::new(MathNode::new(MathNodeType::Mrow, vec![], vec![]) ) as Box<dyn MathDomNode>;
+    }
+}
 
 /**
  * Takes a full parse tree and settings and builds a MathML representation of

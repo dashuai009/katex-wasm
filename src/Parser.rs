@@ -202,7 +202,7 @@ impl Parser<'_> {
                 self.consume_spaces();
             }
             let lex = self.fetch();
-            println!("lex = {:#?}", lex);
+            // println!("lex = {:#?}", lex);
             if (END_OF_EXPRESSION.contains(&lex.text.as_str())) {
                 break;
             }
@@ -220,7 +220,7 @@ impl Parser<'_> {
                 }
             }
             let atom = self.parse_atom(break_on_token_text.clone());
-            println!("atom = {:#?}",atom);
+            // println!("atom = {:#?}",atom);
             if let Some(_atom) = atom {
                 //println!("atom = {}", _atom.get_type());
                 if _atom.get_type() == "internal" {
@@ -372,7 +372,7 @@ impl Parser<'_> {
         // The body of an atom is an implicit group, so that things like
         // \left(x\right)^2 work correctly.
         let mut _base = self.parse_group("atom".to_string(), breakOnTokenText);
-        println!("base {:#?}", _base);
+        // println!("base {:#?}", _base);
 
         // In text mode, we don't have superscripts or subscripts
         if (self.mode == Mode::text) {

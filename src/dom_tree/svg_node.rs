@@ -68,7 +68,7 @@ impl VirtualNode for SvgNode {
         let mut markup = "<svg xmlns=\"http://www.w3.org/2000/svg\"".to_string();
 
         for (k, v) in self.attributes.iter() {
-            markup.push_str(format!(" {}:{}", k, v).as_str());
+            markup.push_str(format!(" {}='{}'", k, v).as_str());
         }
 
         markup.push_str(">");

@@ -4,6 +4,7 @@ mod ordgroup;
 mod supsub;
 mod symbols_op;
 mod symbols_ord;
+mod accentunder;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -18,6 +19,7 @@ lazy_static! {
         let c = accent::ACCENT.lock().unwrap();
         let c2 = accent::ACCENT2.lock().unwrap();
         let d = ordgroup::ORDGROUP.lock().unwrap();
+        let e = accentunder::ACCENTUNDER.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -27,6 +29,7 @@ lazy_static! {
             c.clone(),
             c2.clone(),
             d.clone(),
+            e.clone(),
         ];
         res
     });

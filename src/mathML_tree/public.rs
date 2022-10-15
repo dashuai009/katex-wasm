@@ -11,7 +11,8 @@ pub enum MathNodeType {
     Mpadded,
     Mi,
     Mtext,
-    Mn
+    Mn,
+    Munder
 }
 
 impl FromStr for MathNodeType {
@@ -28,6 +29,7 @@ impl FromStr for MathNodeType {
             "mi" => Ok(MathNodeType::Mi),
             "mtext" => Ok(MathNodeType::Mtext),
             "mn" => Ok(MathNodeType::Mn),
+            "munder" => Ok(MathNodeType::Munder),
             _ => Err(()),
         }
     }
@@ -44,7 +46,8 @@ impl MathNodeType {
             MathNodeType::Mpadded => "mpadded",
             MathNodeType::Mi => "mi",
             MathNodeType::Mtext => "mtext",
-            MathNodeType::Mn => "mn"
+            MathNodeType::Mn => "mn",
+            MathNodeType::Munder => "munder"
         }
     }
 }

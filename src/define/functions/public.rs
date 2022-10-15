@@ -212,7 +212,7 @@ lazy_static! {
      * All MathML builders. Should be only used in the `define*` and the `build*ML`
      * functions.
      */
-    pub static ref _mathmlGroupBuilders: std::sync::Mutex<HashMap<String,MathMLBuilder>> =  std::sync::Mutex::new({
+    pub static ref _MATHML_GROUP_BUILDERS: std::sync::RwLock<HashMap<String,MathMLBuilder>> =  std::sync::RwLock::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
             if let Some(h) = data.mathml_builder{

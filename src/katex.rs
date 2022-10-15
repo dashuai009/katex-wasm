@@ -40,7 +40,8 @@ pub fn render_to_string_for_js(expression:String, settings:  &JsValue)->String{
 const TEST_CASE: [&str; 1] = [
     // "E=mc^2",
     // "a^2+b^2=c^2",
-    "\\\"{A}"
+    // "\\\"{A}"
+    "\\underleftarrow{AB} \\underrightarrow{AB} \\underleftrightarrow{AB} \\underlinesegment{AB} \\undergroup{AB} \\utilde{AB}"
 ];
 #[cfg(test)]
 mod tests {

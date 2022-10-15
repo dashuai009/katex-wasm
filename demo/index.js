@@ -4,7 +4,8 @@ import * as katex from "katex";
 const math_str = [
     "a^2+b^2=1",
     "E=mc^2",
-    "\\\"{A}"
+    "\\\"{A}",
+    "\\underleftarrow{AB} \\underrightarrow{AB} \\underleftrightarrow{AB} \\underlinesegment{AB} \\undergroup{AB} \\utilde{AB}"
 ]
 
 let math_wasm = document.getElementById("math-wasm");

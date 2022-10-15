@@ -3,7 +3,6 @@ use crate::dom_tree::path_node::PathNode;
 use crate::dom_tree::span::Span;
 use crate::dom_tree::svg_node::SvgNode;
 use crate::{make_em, parse_node, AnyParseNode, HtmlDomNode, VirtualNode};
-use js_sys::JsString;
 use std::collections::HashMap;
 use std::sync::RwLock;
 use wasm_bindgen::prelude::*;
@@ -161,7 +160,7 @@ lazy_static! {
     });
 }
 
-fn MathML_node(label: &String) -> MathNode {
+pub(crate) fn math_ml_node(label: &String) -> MathNode {
     let mut node = MathNode::new(
         MathNodeType::Mo,
         vec![Box::new(TextNode::new(stretchy_codepoint.get(label.as_str()).unwrap().to_string()))],
@@ -244,14 +243,14 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
             .set_attributes("height".to_string(), make_em(height))
             .set_attributes(
                 "viewBox".to_string(),
-                format!("0 0 ${view_box_width} ${viewBoxHeight}"),
+                format!("0 0 {view_box_width} {viewBoxHeight}"),
             )
             .set_attributes("preserveAspectRatio".to_string(), "none".to_string());
         return (
-            make_span(
+            Span::new(
                 vec![],
                 vec![Box::new(svg_node.clone()) as Box<dyn HtmlDomNode>],
-                Some(&options),
+                Some(options.clone()),
                 Default::default(),
             ),
             0.0,
@@ -262,7 +261,7 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
         let katex_image_data = KATEX_IMAGES_DATA.read().unwrap();
         let data = katex_image_data.get(label).unwrap();
         let (paths, minWidth, viewBoxHeight,_) = data;
-        let height = viewBoxHeight / 1000;
+        let height = *viewBoxHeight as f64/ 1000.0;
 
         let numSvgChildren = paths.len();
         let widthClasses: Vec<String>;
@@ -300,14 +299,14 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
                 .set_attributes("height".to_string(), make_em(height as f64))
                 .set_attributes(
                     "viewBox".to_string(),
-                    format!("0 0 ${view_box_width} ${viewBoxHeight}"),
+                    format!("0 0 {view_box_width} {viewBoxHeight}"),
                 )
                 .set_attributes(
                     "preserveAspectRatio".to_string(),
                     format!("{} slice", aligns[i]).to_string(),
                 );
 
-            let mut span = make_span(vec![widthClasses[i].clone()], vec![Box::new(svg_node.clone()) as Box<dyn HtmlDomNode>], Some(&options), Default::default());
+            let mut span =  Span::new(vec![widthClasses[i].clone()], vec![Box::new(svg_node.clone()) as Box<dyn HtmlDomNode>], Some(options.clone()), Default::default());
             if numSvgChildren == 1 {
                 return (span, *minWidth, height as f64);
             } else {

@@ -255,11 +255,11 @@ pub struct accent {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct accentUnder {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
     pub label: String,
-    isStretchy: bool,
-    isShifty: bool,
+    pub isStretchy: bool,
+    pub isShifty: bool,
     pub base: Box<dyn AnyParseNode>,
 }
 
