@@ -7,6 +7,7 @@ mod symbols_ord;
 mod accentunder;
 mod arrow;
 mod cr;
+mod enclose;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -24,6 +25,11 @@ lazy_static! {
         let e = accentunder::ACCENTUNDER.lock().unwrap();
         let f = arrow::XARROW.lock().unwrap();
         let g = cr::CR.lock().unwrap();
+        let h1 = enclose::COLOR_BOX.lock().unwrap();
+        let h2 = enclose::FCOLOR_BOX.lock().unwrap();
+        let h3 = enclose::FBOX.lock().unwrap();
+        let h4 = enclose::CANCEL.lock().unwrap();
+        let h5 = enclose::ANGL.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -35,7 +41,12 @@ lazy_static! {
             d.clone(),
             e.clone(),
             f.clone(),
-            g.clone()
+            g.clone(),
+            h1.clone(),
+            h2.clone(),
+            h3.clone(),
+            h4.clone(),
+            h5.clone(),
         ];
         res
     });

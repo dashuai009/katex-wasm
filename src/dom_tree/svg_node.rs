@@ -20,10 +20,10 @@ pub struct SvgNode {
 }
 
 impl SvgNode{
-    pub fn new(children:Vec<Box<dyn VirtualNode>>)->SvgNode{
+    pub fn new(children:Vec<Box<dyn VirtualNode>>, attributes: HashMap<String,String>)->SvgNode{
         SvgNode{
             children,
-            attributes: HashMap::new()
+            attributes
         }
     }
     pub fn set_attributes(&mut self,k:String,v:String)->&mut Self{

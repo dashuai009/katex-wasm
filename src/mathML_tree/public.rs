@@ -19,6 +19,7 @@ pub enum MathNodeType {
     Mover,
     Mstyle,
     Mspace,
+    Menclose
 }
 
 impl FromStr for MathNodeType {
@@ -40,6 +41,7 @@ impl FromStr for MathNodeType {
             "mover" => Ok(MathNodeType::Mover),
             "mstyle" => Ok(MathNodeType::Mstyle),
             "mspace" => Ok(MathNodeType::Mspace),
+            "menclose" => Ok(MathNodeType::Menclose),
             _ => Err(()),
         }
     }
@@ -61,7 +63,8 @@ impl MathNodeType {
             MathNodeType::Munderover => "munderover",
             MathNodeType::Mover => "mover",
             MathNodeType::Mstyle => "mstyle",
-            MathNodeType::Mspace => "mspace"
+            MathNodeType::Mspace => "mspace",
+            MathNodeType::Menclose => "menclose"
         }
     }
 }

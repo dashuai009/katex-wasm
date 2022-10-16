@@ -448,32 +448,30 @@ pub fn make_anchor(
 /**
  * Makes a document fragment with the given list of children.
  */
-pub fn make_fragment(
-    children: Vec<Box<dyn HtmlDomNode>>,
-)-> DocumentFragment {
-    let mut fragment =  DocumentFragment::new(children);
+pub fn make_fragment(children: Vec<Box<dyn HtmlDomNode>>) -> DocumentFragment {
+    let mut fragment = DocumentFragment::new(children);
 
     fragment.size_element_from_children();
 
     return fragment;
 }
 
-
 /**
  * Wraps group in a span if it's a document fragment, allowing to apply classes
  * and styles
  */
-pub fn  wrap_fragment(
-    group: Box<dyn HtmlDomNode>,
-    options: &Options,
-)->Box<dyn HtmlDomNode> {
+pub fn wrap_fragment(group: Box<dyn HtmlDomNode>, options: &Options) -> Box<dyn HtmlDomNode> {
     return if let Some(g) = group.as_any().downcast_ref::<DocumentFragment>() {
-        Box::new(make_span(vec![], vec![group], Some(options), Default::default())) as Box<dyn HtmlDomNode>
+        Box::new(make_span(
+            vec![],
+            vec![group],
+            Some(options),
+            Default::default(),
+        )) as Box<dyn HtmlDomNode>
     } else {
         group
-    }
+    };
 }
-
 
 // These are exact object types to catch typos in the names of the optional fields.
 #[derive(Clone)]
@@ -524,21 +522,13 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
             let mut pre_child = children_iter.next().unwrap();
             let mut children = vec![pre_child.clone()];
             depth = match pre_child {
-                VListChild::Elem {
-                    elem,
-                    shift,
-                    ..
-                } => - shift.unwrap() - elem.get_depth(),
+                VListChild::Elem { elem, shift, .. } => -shift.unwrap() - elem.get_depth(),
                 VListChild::Kern { size } => unreachable!(),
             } as f64;
             let mut curr_pos = depth;
             for cur_child in children_iter {
                 match cur_child {
-                    VListChild::Elem {
-                        elem,
-                        shift,
-                        ..
-                    } => {
+                    VListChild::Elem { elem, shift, .. } => {
                         let diff = -(shift.unwrap()) - curr_pos - elem.get_depth();
                         let size = match pre_child {
                             VListChild::Elem { elem, .. } => {
@@ -840,25 +830,27 @@ pub fn static_svg(value: String, options: Options) -> Span {
     let svg_data = SVG_DATA.lock().unwrap();
     let (pathName, width, height) = svg_data.get(value.as_str()).unwrap();
     let path = PathNode::new(pathName.to_string(), None);
-    let mut tmp = SvgNode::new(vec![Box::new(path)]);
-    let svgNode =  tmp.set_attributes("widdth".to_string(), make_em(*width))
-        .set_attributes("height".to_string(), make_em(*height))
+    let svg_node_attr = HashMap::from([
+        ("widdth".to_string(), make_em(*width)),
+        ("height".to_string(), make_em(*height)),
         // Override CSS rule `.katex svg { width: 100% }`
-        .set_attributes(                    "style".to_string(), format!("width:{}", make_em(*width)))
-        .set_attributes(
-                "viewBox".to_string(),
-                format!("0 0 {} {}", 1000.0 * width, 1000.0 * height),
-            )
-        .set_attributes("preserveAspectRatio".to_string(), "xMinYMin".to_string());
+        ("style".to_string(), format!("width:{}", make_em(*width))),
+        (
+            "viewBox".to_string(),
+            format!("0 0 {} {}", 1000.0 * width, 1000.0 * height),
+        ),
+        ("preserveAspectRatio".to_string(), "xMinYMin".to_string()),
+    ]);
+    let mut tmp = SvgNode::new(vec![Box::new(path)], svg_node_attr);
     let mut span = Span::new(
         vec!["overlay".to_string()],
-        vec![Box::new(svgNode.clone()) as Box<dyn HtmlDomNode>],
+        vec![Box::new(tmp) as Box<dyn HtmlDomNode>],
         Some(options),
         CssStyle::new(),
     );
     span.set_height(*height);
     span.get_mut_style().height = Some(make_em(*height));
-    if *width > 0.0{
+    if *width > 0.0 {
         span.get_mut_style().width = Some(make_em(*width));
     }
     return span;

@@ -282,12 +282,12 @@ pub struct delimsizing {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct enclose {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    label: String,
-    backgroundColor: Option<String>,
-    borderColor: Option<String>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub label: String,
+    pub backgroundColor: Option<String>,
+    pub borderColor: Option<String>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

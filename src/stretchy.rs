@@ -1,3 +1,4 @@
+use crate::build::common;
 use crate::build::common::make_span;
 use crate::dom_tree::path_node::PathNode;
 use crate::dom_tree::span::Span;
@@ -8,8 +9,8 @@ use std::sync::RwLock;
 use wasm_bindgen::prelude::*;
 
 use crate::mathML_tree::{math_node::MathNode, public::MathNodeType, text_node::TextNode};
-use crate::Options::Options;
 use crate::parse_node::types::underline;
+use crate::Options::Options;
 
 lazy_static! {
     static ref stretchy_codepoint: HashMap<&'static str, &'static str> = {
@@ -163,7 +164,9 @@ lazy_static! {
 pub(crate) fn math_ml_node(label: &String) -> MathNode {
     let mut node = MathNode::new(
         MathNodeType::Mo,
-        vec![Box::new(TextNode::new(stretchy_codepoint.get(label.as_str()).unwrap().to_string()))],
+        vec![Box::new(TextNode::new(
+            stretchy_codepoint.get(label.as_str()).unwrap().to_string(),
+        ))],
         vec![],
     );
     node.set_attribute("stretchy".to_string(), "true".to_string());
@@ -179,16 +182,22 @@ fn group_length(arg: &Box<dyn AnyParseNode>) -> usize {
 
 fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64, f64) {
     let mut view_box_width = 400000; // default
-    let label = if let Some(g) = group.as_any().downcast_ref::<parse_node::types::accent>(){
+    let label = if let Some(g) = group.as_any().downcast_ref::<parse_node::types::accent>() {
         &g.label[1..]
-    } else  if let Some(g) = group.as_any().downcast_ref::<parse_node::types::accentUnder>(){
+    } else if let Some(g) = group
+        .as_any()
+        .downcast_ref::<parse_node::types::accentUnder>()
+    {
         &g.label[1..]
-    } else  if let Some(g) = group.as_any().downcast_ref::<parse_node::types::xArrow>(){
+    } else if let Some(g) = group.as_any().downcast_ref::<parse_node::types::xArrow>() {
         &g.label[1..]
-    } else if let Some(g) = group.as_any().downcast_ref::<parse_node::types::horizBrace>(){
+    } else if let Some(g) = group
+        .as_any()
+        .downcast_ref::<parse_node::types::horizBrace>()
+    {
         &g.label[1..]
-    }else {
-      panic!("unsupported type {:#?}", group);
+    } else {
+        panic!("unsupported type {:#?}", group);
     };
     if ["widehat", "widecheck", "widetilde", "utilde"].contains(&label) {
         // Each type in the `if` statement corresponds to one of the ParseNode
@@ -228,28 +237,31 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
                 view_box_width = [0, 1062, 2364, 2364, 2364][imgIndex];
                 viewBoxHeight = [0, 239, 300, 360, 420][imgIndex];
                 height = [0.0, 0.24, 0.3, 0.3, 0.36, 0.42][imgIndex];
-                pathName =format!("{label}{}", imgIndex);
+                pathName = format!("{label}{}", imgIndex);
             } else {
                 view_box_width = [0, 600, 1033, 2339, 2340][imgIndex];
                 viewBoxHeight = [0, 260, 286, 306, 312][imgIndex];
                 height = [0.0, 0.26, 0.286, 0.3, 0.306, 0.34][imgIndex];
-                pathName = format!("tilde{}" , imgIndex);
+                pathName = format!("tilde{}", imgIndex);
             }
         }
         let path = PathNode::new(pathName, None);
-        let mut tmp =  SvgNode::new(vec![Box::new(path) as Box<dyn VirtualNode>]);
-        let mut svg_node = tmp
-            .set_attributes("width".to_string(), "100%".to_string())
-            .set_attributes("height".to_string(), make_em(height))
-            .set_attributes(
+        let svg_node_attr = HashMap::from([
+            ("width".to_string(), "100%".to_string()),
+            ("height".to_string(), make_em(height)),
+            (
                 "viewBox".to_string(),
                 format!("0 0 {view_box_width} {viewBoxHeight}"),
-            )
-            .set_attributes("preserveAspectRatio".to_string(), "none".to_string());
+            ),
+            ("preserveAspectRatio".to_string(), "none".to_string()),
+        ]);
+        let mut svg_node =
+            SvgNode::new(vec![Box::new(path) as Box<dyn VirtualNode>], svg_node_attr);
+
         return (
             Span::new(
                 vec![],
-                vec![Box::new(svg_node.clone()) as Box<dyn HtmlDomNode>],
+                vec![Box::new(svg_node) as Box<dyn HtmlDomNode>],
                 Some(options.clone()),
                 Default::default(),
             ),
@@ -260,8 +272,8 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
         let mut spans = vec![];
         let katex_image_data = KATEX_IMAGES_DATA.read().unwrap();
         let data = katex_image_data.get(label).unwrap();
-        let (paths, minWidth, viewBoxHeight,_) = data;
-        let height = *viewBoxHeight as f64/ 1000.0;
+        let (paths, minWidth, viewBoxHeight, _) = data;
+        let height = *viewBoxHeight as f64 / 1000.0;
 
         let numSvgChildren = paths.len();
         let widthClasses: Vec<String>;
@@ -293,20 +305,26 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
 
         for i in 0..numSvgChildren {
             let path = PathNode::new(paths[i].to_string(), None);
-            let mut tmp =  SvgNode::new(vec![Box::new(path) as Box<dyn VirtualNode>]);
-            let mut svg_node  = tmp
-                .set_attributes("width".to_string(), "400em".to_string())
-                .set_attributes("height".to_string(), make_em(height as f64))
-                .set_attributes(
+            let svg_node_attr = HashMap::from([
+                ("width".to_string(), "400em".to_string()),
+                ("height".to_string(), make_em(height as f64)),
+                (
                     "viewBox".to_string(),
                     format!("0 0 {view_box_width} {viewBoxHeight}"),
-                )
-                .set_attributes(
+                ),
+                (
                     "preserveAspectRatio".to_string(),
                     format!("{} slice", aligns[i]).to_string(),
-                );
+                ),
+            ]);
+            let mut svg_node = SvgNode::new(vec![Box::new(path) as Box<dyn VirtualNode>],svg_node_attr);
 
-            let mut span =  Span::new(vec![widthClasses[i].clone()], vec![Box::new(svg_node.clone()) as Box<dyn HtmlDomNode>], Some(options.clone()), Default::default());
+            let mut span = Span::new(
+                vec![widthClasses[i].clone()],
+                vec![Box::new(svg_node) as Box<dyn HtmlDomNode>],
+                Some(options.clone()),
+                Default::default(),
+            );
             if numSvgChildren == 1 {
                 return (span, *minWidth, height as f64);
             } else {
@@ -342,4 +360,84 @@ pub fn svg_span(group: Box<dyn AnyParseNode>, options: Options) -> Span {
     }
 
     return span;
+}
+
+pub fn enclose_span(
+    inner: &Box<dyn HtmlDomNode>,
+    label: String,
+    topPad: f64,
+    bottomPad: f64,
+    options: &Options,
+) -> Span {
+    // Return an image span for \cancel, \bcancel, \xcancel, \fbox, or \angl
+    let mut img;
+    let totalHeight = inner.get_height() + inner.get_depth() + topPad + bottomPad;
+
+    if label.contains("fbox") || label.contains("color") || label.contains("angl") {
+        img = common::make_span(
+            vec!["stretchy".to_string(), label.to_string()],
+            vec![],
+            Some(options),
+            Default::default(),
+        );
+
+        if (label == "fbox") {
+            if let Some(c) = options.get_color() {
+                img.get_mut_style().border_color = Some(c);
+            }
+        }
+    } else {
+        // \cancel, \bcancel, or \xcancel
+        // Since \cancel's SVG is inline and it omits the viewBox attribute,
+        // its stroke-width will not vary with span area.
+
+        let mut lines = vec![];
+        if label == "bcancel" || label == "xcancel" {
+            let tmp = crate::dom_tree::line_node::LineNode::new(HashMap::from([
+                ("x1".to_string(), "0".to_string()),
+                ("y1".to_string(), "0".to_string()),
+                ("x2".to_string(), "100%".to_string()),
+                ("y2".to_string(), "100%".to_string()),
+                ("stroke-width".to_string(), "0.046em".to_string()),
+            ]));
+            lines.push(Box::new(tmp) as Box<dyn VirtualNode>);
+        }
+        lazy_static! {
+            static ref X_CANCEL: std::sync::Mutex<regex::Regex> =
+                std::sync::Mutex::new({ regex::Regex::new("^x?cancel$").unwrap() });
+        }
+        let x_cancel = X_CANCEL.lock().unwrap();
+
+        if x_cancel.is_match(&label) {
+            let attr = HashMap::from([
+                ("x1".to_string(), "0".to_string()),
+                ("y1".to_string(), "100%".to_string()),
+                ("x2".to_string(), "100%".to_string()),
+                ("y2".to_string(), "0".to_string()),
+                ("stroke-width".to_string(), "0.046em".to_string()),
+            ]);
+            let tmp = crate::dom_tree::line_node::LineNode::new(attr);
+            lines.push(Box::new(tmp) as Box<dyn VirtualNode>);
+        }
+
+        let svgNode = SvgNode::new(
+            lines,
+            HashMap::from([
+                ("width".to_string(), "100%".to_string()),
+                ("height".to_string(), make_em(totalHeight)),
+            ]),
+        );
+
+        img = Span::new(
+            vec![],
+            vec![Box::new(svgNode) as Box<dyn HtmlDomNode>],
+            Some(options.clone()),
+            Default::default(),
+        );
+    }
+
+    img.set_height(totalHeight);
+    img.get_mut_style().height = Some(make_em(totalHeight));
+
+    return img;
 }

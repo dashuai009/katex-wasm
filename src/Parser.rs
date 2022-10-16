@@ -76,13 +76,13 @@ impl Parser<'_> {
      * appropriate error otherwise.
      */
     pub fn expect(&mut self, text: String, consume: bool) {
-        if (self.fetch().text != text) {
+        if self.fetch().text != text {
             // throw new ParseError(
             //     `Expected '${text}', got '${self.fetch().text}'`, self.fetch()
             // );
             panic!("Expected '{text}', got '{} ", self.fetch().text);
         }
-        if (consume) {
+        if consume {
             self.consume();
         }
     }
@@ -162,7 +162,7 @@ impl Parser<'_> {
      */
     pub fn subparse(&mut self, tokens: Vec<Token>) -> Vec<Box<dyn AnyParseNode>> {
         // Save the next token from the current job.
-        let oldToken = self.next_token.clone();
+        let old_token = self.next_token.clone();
         self.consume();
 
         // Run the new job, terminating it with an excess '}'
@@ -172,7 +172,7 @@ impl Parser<'_> {
         self.expect("}".to_string(), true);
 
         // Restore the next token from the current job.
-        self.next_token = oldToken;
+        self.next_token = old_token;
 
         return parse;
     }
@@ -198,12 +198,12 @@ impl Parser<'_> {
         // we reached the end, a }, or a \right)
         loop {
             // Ignore spaces in math mode
-            if (self.mode == Mode::math) {
+            if self.mode == Mode::math {
                 self.consume_spaces();
             }
             let lex = self.fetch();
             // println!("lex = {:#?}", lex);
-            if (END_OF_EXPRESSION.contains(&lex.text.as_str())) {
+            if END_OF_EXPRESSION.contains(&lex.text.as_str()) {
                 break;
             }
             if let Some(t) = &break_on_token_text {
@@ -307,25 +307,21 @@ impl Parser<'_> {
         return vec![node];
     }
 
-    // /**
-    //  * Handle a subscript or superscript with nice errors.
-    //  */
+    /**
+     * Handle a subscript or superscript with nice errors.
+     */
     pub fn handle_sup_sub_script(
         &mut self,
         name: String, // For error reporting.
     ) -> Option<Box<dyn AnyParseNode>> {
-        let symbolToken = self.fetch();
-        let symbol = symbolToken.text;
+        let symbol_token = self.fetch();
+        let symbol = &symbol_token.text;
         self.consume();
         self.consume_spaces(); // ignore spaces before sup/subscript argument
         let group = self.parse_group(name, None);
 
         if group.is_none() {
-            panic!("Expected group after")
-            // throw new ParseError(
-            //     "Expected group after '" + symbol + "'",
-            //     symbolToken
-            // );
+            panic!("Expected group after '{}' {:#?}", symbol, symbol_token);
         }
 
         return group;
@@ -335,7 +331,7 @@ impl Parser<'_> {
     //  * Converts the textual input of an unsupported command into a text node
     //  * contained within a color node whose color is determined by errorColor
     //  */
-    pub fn format_unsupported_cmd(&mut self, text: String) -> parse_node::types::color {
+    pub fn format_unsupported_cmd(&self, text: String) -> parse_node::types::color {
         let textordArray = text
             .chars()
             .map(|c| {
@@ -375,7 +371,7 @@ impl Parser<'_> {
         // println!("base {:#?}", _base);
 
         // In text mode, we don't have superscripts or subscripts
-        if (self.mode == Mode::text) {
+        if self.mode == Mode::text {
             return _base.clone();
         }
 

@@ -139,7 +139,7 @@ s76,-153,76,-153s77,-151,77,-151c0.7,0.7,35.7,202,105,604c67.3,400.7,102,602.7,1
 }
 
 #[wasm_bindgen]
-pub fn phasePath(y: f64) -> String {
+pub fn phase_path(y: f64) -> String {
     let x = y / 2.0; // x coordinate at top of angle
     return format!("M400000 {y} H0 L{x} 0 l65 45 L145 {} H400000z", y - 80.0);
 }
