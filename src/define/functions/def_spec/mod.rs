@@ -1,13 +1,14 @@
 mod accent;
+mod accentunder;
+mod arrow;
+mod cr;
+mod enclose;
+mod genfrac;
 mod mclass;
 mod ordgroup;
 mod supsub;
 mod symbols_op;
 mod symbols_ord;
-mod accentunder;
-mod arrow;
-mod cr;
-mod enclose;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -30,6 +31,7 @@ lazy_static! {
         let h3 = enclose::FBOX.lock().unwrap();
         let h4 = enclose::CANCEL.lock().unwrap();
         let h5 = enclose::ANGL.lock().unwrap();
+        let i1 = genfrac::FRAC.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -47,6 +49,7 @@ lazy_static! {
             h3.clone(),
             h4.clone(),
             h5.clone(),
+            i1.clone()
         ];
         res
     });

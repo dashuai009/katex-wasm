@@ -44,8 +44,10 @@ const TEST_CASE: [&str; 1] = [
     // "\\underleftarrow{AB} \\underrightarrow{AB} \\underleftrightarrow{AB} \\underlinesegment{AB} \\undergroup{AB} \\utilde{AB} \\xleftarrow{abc} \\xrightarrow{abc}  \\xLeftarrow{abc}  \\xRightarrow{abc} \\xleftrightarrow{abc}  \\xLeftrightarrow{abc}  \\xhookleftarrow{abc}  \\xhookrightarrow{abc}  \\xmapsto{abc}  \\xrightharpoondown{abc}  \\xrightharpoonup{abc}  \\xleftharpoondown{abc}  \\xleftharpoonup{abc} \\xrightleftharpoons{abc}  \\xleftrightharpoons{abc}  \\xlongequal{abc} \\xtwoheadrightarrow{abc}  \\xtwoheadleftarrow{abc}  \\xtofrom{abc} \\xrightleftarrows{abc}  \\xrightequilibrium{abc}  \\xleftequilibrium{abc}"
     // "\\\\cdrightarrow{abc}  \\\\cdleftarrow{abc}  \\\\cdlongequal{abc}" // untested
     // "F=ma \\\\ hahaha"
-    "\\cancel{5}"
+    // "\\cancel{5}"
+    r"\frac{1}{2}"
 ];
+
 
 
 #[cfg(test)]

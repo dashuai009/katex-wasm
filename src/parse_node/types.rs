@@ -308,16 +308,16 @@ pub struct font {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct genfrac {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    continued: bool,
-    numer: Box<dyn AnyParseNode>,
-    denom: Box<dyn AnyParseNode>,
-    hasBarLine: bool,
-    leftDelim: Option<String>,
-    rightDelim: Option<String>,
-    size: String, //StyleStr | "auto",
-    barSize: Option<Measurement>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub continued: bool,
+    pub numer: Box<dyn AnyParseNode>,
+    pub denom: Box<dyn AnyParseNode>,
+    pub hasBarLine: bool,
+    pub leftDelim: Option<String>,
+    pub rightDelim: Option<String>,
+    pub size: String, //StyleStr | "auto",
+    pub barSize: Option<Measurement>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

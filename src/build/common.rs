@@ -343,20 +343,20 @@ pub fn make_ord(
 //     style?: CssStyle,
 // ): SvgSpan => new Span(classes, children, options, style);
 
-// let makeLineSpan = function(
-//     className: string,
-//     options: Options,
-//     thickness?: number,
-// ): DomSpan {
-//     let line = makeSpan([className], [], options);
-//     line.height = Math.max(
-//         thickness || options.fontMetrics().defaultRuleThickness,
-//         options.minRuleThickness,
-//     );
-//     line.style.borderBottomWidth = makeEm(line.height);
-//     line.maxFontSize = 1.0;
-//     return line;
-// };
+pub fn make_line_span(
+    className: String,
+    options: &Options,
+    thickness:Option<f64>,
+)->Span {
+    let mut line = make_span(vec![className], vec![], Some(options), Default::default());
+    line.set_height(f64::max(
+        thickness.unwrap_or(options.get_font_metrics().defaultRuleThickness),
+        options.minRuleThickness,
+    ));
+    line.get_mut_style().border_bottom_width = Some(make_em(line.get_height()));
+    line.set_max_font_size(1.0);
+    return line;
+}
 
 /**
  * Combine consecutive domTree.symbolNodes into a single symbolNode.

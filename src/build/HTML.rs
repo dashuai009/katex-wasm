@@ -343,13 +343,13 @@ pub fn get_type_of_dom_tree(node: &Box<dyn HtmlDomNode>, side: Option<Side>) -> 
     return DomType::from_str(&*_node.get_classes()[0]).ok();
 }
 
-// export let makeNullDelimiter = function(
-//     options: Options,
-//     classes: string[],
-// ): DomSpan {
-//     let moreClasses = ["nulldelimiter"].concat(options.baseSizingClasses());
-//     return make_span(classes.concat(moreClasses));
-// };
+pub fn make_null_delimiter(
+    options: &Options,
+    classes: Vec<String>,
+)->Span {
+    let more_classes = [classes,vec!["nulldelimiter".to_string()],options.base_sizing_classes()].concat();
+    return make_span(more_classes, vec![], None, Default::default());
+}
 
 /**
  * build_group is the function that takes a group and calls the correct groupType
