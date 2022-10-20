@@ -5,15 +5,14 @@ use crate::units::make_em;
 use crate::utils::escape;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
-use js_sys::Array;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Mutex;
-use wasm_bindgen::prelude::*;
+use struct_format::html_dom_node;
 
-#[derive(Clone)]
-pub struct Span<ChildType: VirtualNode + Clone> {
-    children: Vec<ChildType>,
+#[derive(html_dom_node, Clone, Debug)]
+pub struct Span {
+    children: Vec<Box<dyn HtmlDomNode>>,
     attributes: HashMap<String, String>,
     classes: Vec<String>,
     height: f64,
@@ -23,14 +22,14 @@ pub struct Span<ChildType: VirtualNode + Clone> {
     max_font_size: f64,
 }
 
-impl<ChildType: VirtualNode + Clone> Span<ChildType> {
+impl Span {
     pub fn new(
         classes: Vec<String>,
-        children: Vec<ChildType>,
+        children: Vec<Box<dyn HtmlDomNode>>,
         options: Option<Options>,
         style: CssStyle,
-    ) -> Span<ChildType> {
-        let mut res = Span::<ChildType> {
+    ) -> Span {
+        let mut res = Span {
             children: vec![],
             attributes: HashMap::new(),
             classes: vec![],
@@ -47,56 +46,21 @@ impl<ChildType: VirtualNode + Clone> Span<ChildType> {
     pub fn set_attribute(&mut self, attribute: String, value: String) {
         self.attributes.insert(attribute, value);
     }
+
+    // pub fn get_mut_children(&mut self) -> &Vec<Box<dyn HtmlDomNode>> {
+    //     &self.children
+    // }
 }
 
-impl<ChildType: VirtualNode + Clone + 'static> HtmlDomNode for Span<ChildType> {
-    fn get_classes(&self) -> &Vec<String> {
-        return &self.classes;
-    }
-    fn get_mut_classes(&mut self) -> &mut Vec<String> {
-        return &mut self.classes;
-    }
-    fn set_classes(&mut self, _classes: Vec<String>) {
-        self.classes = _classes;
+impl VirtualNode for Span {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
-    fn get_height(&self) -> f64 {
-        return self.height;
-    }
-    fn set_height(&mut self, _height: f64) {
-        self.height = _height;
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
     }
 
-    fn get_depth(&self) -> f64 {
-        return self.depth;
-    }
-
-    fn set_depth(&mut self, _depth: f64) {
-        self.depth = _depth;
-    }
-
-    fn get_max_font_size(&self) -> f64 {
-        return self.max_font_size;
-    }
-    fn set_max_font_size(&mut self, _max_font_size: f64) {
-        self.max_font_size = _max_font_size;
-    }
-
-    fn get_style(&self) -> &CssStyle {
-        return &self.style;
-    }
-    fn get_mut_style(&mut self) -> &mut CssStyle {
-        return &mut self.style;
-    }
-    fn set_style(&mut self, _style: CssStyle) {
-        self.style = _style;
-    }
-
-    fn has_class(&self, class_name: &String) -> bool {
-        return self.classes.contains(class_name);
-    }
-}
-impl<ChildType: VirtualNode + Clone + 'static> VirtualNode for Span<ChildType> {
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "span")
     }
@@ -105,7 +69,7 @@ impl<ChildType: VirtualNode + Clone + 'static> VirtualNode for Span<ChildType> {
         this_to_markup!(self, "span")
     }
 }
-impl<ChildType: HtmlDomNode + Clone> Span<ChildType> {
+impl Span {
     /**
      * Calculate the height, depth, and maxFontSize of an element based on its
      * children.

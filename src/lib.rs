@@ -5,20 +5,21 @@ extern crate core;
 // mod define;
 mod Namespace;
 mod Options;
-mod parse_error;
 mod build;
-mod dom_tree;
 mod define;
+mod dom_tree;
 mod metrics;
+mod parse_error;
 //mod ParseError;
 //mod Setting;
 // mod Lexer;
 mod Lexer;
+mod Parser;
 mod Style;
+mod katex;
 mod mathML_tree;
 pub mod parse;
 mod parse_node;
-mod Parser;
 pub mod settings;
 mod sourceLocation;
 mod spacingData;
@@ -30,11 +31,12 @@ mod tree;
 mod types;
 mod unicodeAccents;
 mod unicodeScripts;
+mod unicodeSupOrSub;
 mod unicodeSysmbols;
 mod units;
 mod utils;
 mod wideCharacter;
-mod unicodeSupOrSub;
+mod delimiter;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -43,8 +45,8 @@ mod unicodeSupOrSub;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 use metrics::*;
-use Namespace::*;
 use parse_node::types::AnyParseNode;
+use Namespace::*;
 //use ParseError::*;
 //use Setting::*;
 use sourceLocation::*;
@@ -61,5 +63,3 @@ use units::*;
 use wideCharacter::*;
 use Style::*;
 
-
-type HtmlBuilder<NODETYPE:AnyParseNode> = fn(ParseNode : NODETYPE, crate::Options::Options) -> Box<dyn HtmlDomNode>;

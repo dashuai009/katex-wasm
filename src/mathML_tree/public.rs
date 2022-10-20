@@ -1,11 +1,25 @@
 use crate::VirtualNode;
 use std::str::FromStr;
+use crate::mathML_tree::math_node::MathNode;
+use crate::mathML_tree::public::MathNodeType::Math;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum MathNodeType {
     Math,
     Annotation,
-    Mo
+    Mo,
+    Mrow,
+    Semantics,
+    Mpadded,
+    Mi,
+    Mtext,
+    Mn,
+    Munder,
+    Munderover,
+    Mover,
+    Mstyle,
+    Mspace,
+    Menclose
 }
 
 impl FromStr for MathNodeType {
@@ -16,6 +30,18 @@ impl FromStr for MathNodeType {
             "math" => Ok(MathNodeType::Math),
             "annotation" => Ok(MathNodeType::Annotation),
             "mo" => Ok(MathNodeType::Mo),
+            "mrow" => Ok(MathNodeType::Mrow),
+            "semantics" => Ok(MathNodeType::Semantics),
+            "mpadded" => Ok(MathNodeType::Mpadded),
+            "mi" => Ok(MathNodeType::Mi),
+            "mtext" => Ok(MathNodeType::Mtext),
+            "mn" => Ok(MathNodeType::Mn),
+            "munder" => Ok(MathNodeType::Munder),
+            "munderover" => Ok(MathNodeType::Munderover),
+            "mover" => Ok(MathNodeType::Mover),
+            "mstyle" => Ok(MathNodeType::Mstyle),
+            "mspace" => Ok(MathNodeType::Mspace),
+            "menclose" => Ok(MathNodeType::Menclose),
             _ => Err(()),
         }
     }
@@ -26,12 +52,24 @@ impl MathNodeType {
         match self {
             MathNodeType::Math => "math",
             MathNodeType::Annotation => "annotation",
-            MathNodeType::Mo => "mo"
+            MathNodeType::Mo => "mo",
+            MathNodeType::Mrow => "mrow",
+            MathNodeType::Semantics => "semantics",
+            MathNodeType::Mpadded => "mpadded",
+            MathNodeType::Mi => "mi",
+            MathNodeType::Mtext => "mtext",
+            MathNodeType::Mn => "mn",
+            MathNodeType::Munder => "munder",
+            MathNodeType::Munderover => "munderover",
+            MathNodeType::Mover => "mover",
+            MathNodeType::Mstyle => "mstyle",
+            MathNodeType::Mspace => "mspace",
+            MathNodeType::Menclose => "menclose"
         }
     }
 }
 
-// "math" | "annotation" | "semantics" |
+// "semantics" |
 // "mtext" | "mn" | "mo" | "mi" | "mspace" |
 // "mover" | "munder" | "munderover" | "msup" | "msub" | "msubsup" |
 // "mfrac" | "mroot" | "msqrt" |

@@ -1,6 +1,6 @@
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
-use crate::utils::{escape};
 use crate::units::make_em;
+use crate::utils::escape;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
@@ -13,7 +13,7 @@ use wasm_bindgen::prelude::*;
  * constructor requires the type of node to create (for example, `"mo"` or
  * `"mspace"`, corresponding to `<mo>` and `<mspace>` tags).
  */
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MathNode {
     node_type: MathNodeType,
     attributes: HashMap<String, String>,
@@ -49,8 +49,23 @@ impl MathNode {
     pub fn get_attribute(&self, name: &String) -> Option<&String> {
         return self.attributes.get(name);
     }
+
+    pub fn get_node_type(&self) -> MathNodeType {
+        self.node_type.clone()
+    }
+    pub fn set_node_type(&mut self, t: MathNodeType) {
+        self.node_type = t;
+    }
 }
 impl VirtualNode for MathNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     /**
      * Converts the math node into a MathML-namespaced DOM element.
      */
@@ -106,7 +121,7 @@ impl VirtualNode for MathNode {
         markup
     }
 }
-impl MathDomNode for MathNode{
+impl MathDomNode for MathNode {
     /**
      * Converts the math node into a string, similar to innerText, but escaped.
      */
@@ -117,4 +132,5 @@ impl MathDomNode for MathNode{
             .map(|child| child.to_text())
             .collect::<Vec<String>>()
             .join(" ");
-    }}
+    }
+}

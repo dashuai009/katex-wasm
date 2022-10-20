@@ -7,11 +7,11 @@ macro_rules! this_init_node {
         $this.max_font_size = 0.0;
         $this.style = $style;
         if let Some(opt) = $options {
-            if opt.style().isTight() {
+            if opt.get_style().isTight() {
                 $this.classes.push("mtight".to_string());
             }
-            let c = opt.getColor();
-            $this.style.color = Some(c);
+            let c = opt.get_color();
+            $this.style.color = c;
         }
     };
 }
@@ -57,7 +57,7 @@ macro_rules! this_to_markup {
         let styles = $this.style.to_css_str();
 
         if styles != "" {
-            markup.push_str(&format!(" style=\"{}", escape(&styles)));
+            markup.push_str(&format!(" style=\"{}\"", escape(&styles)));
         }
 
         // Add the attributes

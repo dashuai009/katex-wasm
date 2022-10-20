@@ -518,11 +518,11 @@ impl MacroExpander<'_> {
                 let mut bodyLexer = Lexer::new(s, &self.settings);
                 let mut tokens = vec![];
                 let mut tok = bodyLexer.lex();
-                println!("tok = {}",tok);
+                // println!("tok = {}",tok);
                 while (tok.text != "EOF") {
                     tokens.push(tok.clone());
                     tok = bodyLexer.lex();
-                    println!("tok = {}",tok);
+                    // println!("tok = {}",tok);
                 }
                 // console.log("_getExpansion",tokens);
                 tokens.reverse(); // to fit in with stack using push and pop

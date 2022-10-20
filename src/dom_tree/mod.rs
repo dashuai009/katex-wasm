@@ -1,9 +1,10 @@
+pub(crate) mod anchor;
 pub mod css_style;
+pub(crate) mod document_fragment;
 mod img;
-mod line_node;
+pub mod line_node;
 pub(crate) mod path_node;
 pub(crate) mod span;
 pub(crate) mod svg_node;
 pub mod symbol_node;
 pub mod utils;
-pub(crate) mod anchor;

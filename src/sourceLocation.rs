@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
  * ParseError.
  */
 #[wasm_bindgen(getter_with_clone)]
-#[derive(Debug, Clone)]
+#[derive( Clone)]
 pub struct LexerInterface {
     input: String,
     // pub tokenRegx: regex::Regex,
@@ -20,7 +20,11 @@ impl std::fmt::Display for LexerInterface {
         write!(f , "input:{} last_index:{}" , self.input, self.last_index)
     }
 }
-
+impl std::fmt::Debug for LexerInterface {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f , "input:{} last_index:{}" , self.input, self.last_index)
+    }
+}
 impl LexerInterface {
     pub fn new(input: String, token_regex: Regex) -> LexerInterface {
         // console_log!("input {}",input);

@@ -1,24 +1,64 @@
+use std::any::Any;
+use std::fmt::Debug;
+use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
+use web_sys::Node;
 
 use crate::{
-    dom_tree::css_style::CssStyle,
-    mathML_tree::public::{MathDomNode, MathNodeType, ToText},
+    dom_tree::css_style::CssStyle
 };
-pub trait VirtualNode {
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+pub trait VirtualNode: VirtualNodeClone + Debug {
+    fn as_any(&self) -> &dyn Any;
+    fn as_mut_any(&mut self)->&mut dyn Any;
     fn to_node(&self) -> web_sys::Node;
     fn to_markup(&self) -> String;
 }
 
-//export interface HtmlDomNode extends VirtualNode {
-//     classes: string[];
-//     height: number;
-//     depth: number;
-//     maxFontSize: number;
-//     style: CssStyle;
-//
-//     hasClass(className: string): boolean;
-// }
-pub trait HtmlDomNode: VirtualNode{
+pub trait VirtualNodeClone {
+    fn clone_virtual_node(&self) -> Box<dyn VirtualNode>;
+}
+
+impl<T> VirtualNodeClone for T
+where
+    T: VirtualNode + Clone + 'static,
+{
+    fn clone_virtual_node(&self) -> Box<dyn VirtualNode> {
+        Box::new(self.clone())
+    }
+}
+
+// We can now implement Clone manually by forwarding to clone_box.
+impl Clone for Box<dyn VirtualNode> {
+    fn clone(&self) -> Box<dyn VirtualNode> {
+        self.clone_virtual_node()
+    }
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+pub trait HtmlDomNodeClone {
+    //for clone
+    fn clone_html_dom_node(&self) -> Box<dyn HtmlDomNode>;
+}
+
+impl<T> HtmlDomNodeClone for T
+where
+    T: HtmlDomNode + Clone + 'static,
+{
+    fn clone_html_dom_node(&self) -> Box<dyn HtmlDomNode> {
+        Box::new(self.clone())
+    }
+}
+
+// We can now implement Clone manually by forwarding to clone_box.
+impl Clone for Box<dyn HtmlDomNode> {
+    fn clone(&self) -> Box<dyn HtmlDomNode> {
+        self.clone_html_dom_node()
+    }
+}
+
+
+pub trait HtmlDomNode: VirtualNode + HtmlDomNodeClone {
     fn get_classes(&self) -> &Vec<String>;
     fn get_mut_classes(&mut self) -> &mut Vec<String>;
     fn set_classes(&mut self, _classes: Vec<String>);
@@ -37,84 +77,7 @@ pub trait HtmlDomNode: VirtualNode{
     fn set_style(&mut self, _style: CssStyle);
 
     fn has_class(&self, class_name: &String) -> bool;
-}
 
-/**
- * This node represents a document fragment, which contains elements, but when
- * placed into the DOM doesn't have any representation itself. It only contains
- * children and doesn't have any DOM node properties.
- */
-pub struct DocumentFragment<ChildType: VirtualNode> {
-    children: Vec<ChildType>,
-    // HtmlDomNode
-    classes: Vec<String>,
-    height: f64,
-    depth: f64,
-    maxFontSize: f64,
-    style: CssStyle, // Never used; needed for satisfying interface.
-}
-
-impl<ChildType: VirtualNode> DocumentFragment<ChildType> {
-    pub fn new(children: Vec<ChildType>) -> DocumentFragment<ChildType> {
-        DocumentFragment::<ChildType> {
-            children,
-            classes: Vec::new(),
-            height: 0.0,
-            depth: 0.0,
-            maxFontSize: 0.0,
-            style: CssStyle::default(),
-        }
-    }
-}
-
-impl<ChildType: VirtualNode> DocumentFragment<ChildType> {
-    fn has_class(&self, class_name: String) -> bool {
-        return self.classes.contains(&class_name);
-    }
-}
-
-impl<ChildType: VirtualNode> DocumentFragment<ChildType> {
-    /** Convert the fragment into a node. */
-    fn to_node(&self) -> web_sys::Node {
-        let document = web_sys::window().expect("").document().expect("");
-
-        let frag = document.create_document_fragment();
-
-        for child in self.children.iter() {
-            frag.append_child(&child.to_node());
-        }
-
-        return web_sys::Node::from(frag);
-    }
-
-    /** Convert the fragment into HTML markup. */
-    fn to_markup(&self) -> String {
-        let mut markup = String::new();
-
-        // Simply concatenate the markup for the children together.
-        for child in self.children.iter() {
-            markup.push_str(child.to_markup().as_str());
-        }
-
-        return markup;
-    }
-}
-
-impl<ChildType: VirtualNode + MathDomNode> DocumentFragment<ChildType> {
-    /**
-     * Converts the math node into a string, similar to innerText. Applies to
-     * MathDomNode's only.
-     */
-    fn to_text(&mut self) -> String {
-        // To avoid this, we would subclass documentFragment separately for
-        // MathML, but polyfills for subclassing is expensive per PR 1469.
-        // $FlowFixMe: Only works for ChildType = MathDomNode.
-        //const toText = (child: ChildType): string => child.toText();
-        return self
-            .children
-            .iter()
-            .map(|child| child.to_text())
-            .collect::<Vec<String>>()
-            .join("");
-    }
+    fn get_children(&self) -> Option<&Vec<Box<dyn HtmlDomNode>>>;
+    fn get_mut_children(&mut self) -> Option<&mut Vec<Box<dyn HtmlDomNode>>>;
 }

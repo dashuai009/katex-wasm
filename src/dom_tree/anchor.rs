@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::utils::escape;
 use crate::{
     dom_tree::css_style::CssStyle,
@@ -13,7 +14,7 @@ use super::utils::{this_init_node, this_to_markup, this_to_node};
  * This node represents an anchor (<a>) element with a hyperlink.  See `span`
  * for further details.
  */
-#[derive(html_dom_node,Clone)]
+#[derive(html_dom_node, Clone, Debug)]
 pub struct Anchor {
     children: Vec<Box<dyn HtmlDomNode>>,
     attributes: HashMap<String, String>,
@@ -23,7 +24,6 @@ pub struct Anchor {
     max_font_size: f64,
     style: CssStyle,
 }
-
 impl Anchor {
     pub fn new(
         href: String,
@@ -53,6 +53,14 @@ impl Anchor {
     }
 }
 impl VirtualNode for Anchor {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "a")
     }

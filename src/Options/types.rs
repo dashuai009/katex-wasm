@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 // In these types, "" (empty string) means "no change".
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FontWeight {
     Textbf,
     Textmd,
@@ -31,7 +31,7 @@ impl FontWeight {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy,PartialEq)]
 pub enum FontShape {
     Textit,
     Textup,

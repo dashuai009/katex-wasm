@@ -1,11 +1,12 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
-use crate::utils::{escape};
-use struct_format::html_dom_node;
 use crate::units::make_em;
+use crate::utils::escape;
 use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use std::collections::HashMap;
 use std::sync::Mutex;
+use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
 lazy_static! {
     static ref iCombinations:Mutex<HashMap<&'static str,&'static str> >  = Mutex::new({
@@ -19,13 +20,11 @@ lazy_static! {
     });
 }
 
-/**
- * A symbol node contains information about a single symbol. It either renders
- * to a single text node, or a span with a single text node in it, depending on
- * whether it has CSS classes, styles, or needs italic correction.
- */
-#[wasm_bindgen(getter_with_clone)]
-#[derive(html_dom_node,Clone)]
+///A symbol node contains information about a single symbol. It either renders
+///to a single text node, or a span with a single text node in it, depending on
+///whether it has CSS classes, styles, or needs italic correction.
+
+#[derive(html_dom_node, Clone, Debug)]
 pub struct SymbolNode {
     text: String,
     pub height: f64,
@@ -38,122 +37,9 @@ pub struct SymbolNode {
     style: CssStyle,
 }
 
+/// 构造函数
+/// 一些成员方法
 impl SymbolNode {
-    pub fn set_style_color(&mut self, c: Option<String>) {
-        self.style.color = c;
-    }
-    /**
-     * Returns true if subsequent symbolNodes have the same classes, skew, maxFont,
-     * and styles.
-     */
-    pub fn can_combine(prev: &SymbolNode, next: &SymbolNode) -> bool {
-        if prev.classes.join(" ") != next.classes.join(" ")
-            || prev.skew != next.skew
-            || prev.max_font_size != next.max_font_size
-        {
-            return false;
-        }
-
-        // If prev and next both are just "mbin"s or "mord"s we don't combine them
-        // so that the proper spacing can be preserved.
-        if prev.classes.len() == 1 {
-            let cls = &prev.classes[0];
-            if cls == "mbin" || cls == "mord" {
-                return false;
-            }
-        }
-
-        return prev.style != next.style;
-    }
-}
-impl VirtualNode for SymbolNode {
-    /**
-     * Creates a text node or span from a symbol node. Note that a span is only
-     * created if it is needed.
-     */
-    fn to_node(&self) -> web_sys::Node {
-        let document = web_sys::window().expect("").document().expect("");
-        let node = document.create_text_node(&self.text);
-        let st = self.style.to_css_str();
-        if self.italic > 0.0 || self.classes.len() > 0 || st != "" {
-            let mut span_node = document.create_element("span").expect("");
-            if self.italic > 0.0 {
-                web_sys::Element::set_attribute(
-                    &span_node,
-                    "style",
-                    format!("marginRight:{};", make_em(self.italic)).as_str(),
-                );
-            }
-            if self.classes.len() > 0 {
-                web_sys::Element::set_attribute(
-                    &span_node,
-                    "className",
-                    self.classes.join(" ").as_str(),
-                );
-            }
-            if st != "" {
-                web_sys::Element::set_attribute(&span_node, "style", st.as_str());
-            }
-            span_node.append_child(&node);
-            return web_sys::Node::from(span_node);
-        } else {
-            return web_sys::Node::from(node);
-        }
-    }
-
-    /**
-     * Creates markup for a symbol node.
-     */
-    fn to_markup(&self) -> String {
-        // TODO(alpert): More duplication than I'd like from
-        // span.prototype.toMarkup and symbolNode.prototype.toNode...
-        let mut needsSpan = false;
-
-        let mut markup = "<span".to_string();
-
-        if self.classes.len() > 0 {
-            needsSpan = true;
-            markup.push_str(&format!(
-                " class=\"{}\"",
-                escape(&self.classes.join(" ")).as_str()
-            ));
-        }
-
-        let mut styles = String::new();
-
-        if self.italic > 0.0 {
-            styles.push_str(&format!("margin-right:{}em", self.italic).as_str());
-        }
-
-        styles.push_str(&self.style.to_css_str());
-
-        let escaped_text = escape(&self.text);
-        return if styles != "" {
-            markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
-
-            markup.push_str(&format!(">{escaped_text}</span>").as_str());
-            markup.to_string()
-        } else {
-            escaped_text
-        };
-    }
-}
-
-#[wasm_bindgen]
-impl SymbolNode {
-    #[wasm_bindgen(getter)]
-    pub fn style(&self) -> CssStyle {
-        self.style.clone()
-    }
-
-    #[wasm_bindgen(setter)]
-    pub fn set_style(&mut self, style: &CssStyle) {
-        self.style = style.clone()
-    }
-}
-#[wasm_bindgen]
-impl SymbolNode {
-    #[wasm_bindgen(constructor)]
     pub fn new(text: String) -> SymbolNode {
         let mut res = SymbolNode {
             text,
@@ -186,37 +72,115 @@ impl SymbolNode {
         res
     }
 
-    pub fn hasClass(&self, class_name: String) -> bool {
-        return self.has_class(&class_name);
-    }
-
-    pub fn toNode(&self) -> web_sys::Node {
-        return self.to_node();
-    }
-
-    pub fn toMarkup(&self) -> String {
-        return self.to_markup();
-    }
-}
-
-#[wasm_bindgen]
-impl SymbolNode {
-    #[wasm_bindgen(getter)]
-    pub fn classes(&self) -> Array {
-        let arr = Array::new_with_length(self.classes.len() as u32);
-        for (i, s) in self.classes.iter().enumerate() {
-            arr.set(i as u32, JsValue::from_str(s));
+    ///Returns true if subsequent symbolNodes have the same classes, skew, maxFont,
+    ///and styles.
+    pub fn can_combine(prev: &SymbolNode, next: &SymbolNode) -> bool {
+        if prev.classes.join(" ") != next.classes.join(" ")
+            || prev.skew != next.skew
+            || prev.max_font_size != next.max_font_size
+        {
+            return false;
         }
-        arr
+
+        // If prev and next both are just "mbin"s or "mord"s we don't combine them
+        // so that the proper spacing can be preserved.
+        if prev.classes.len() == 1 {
+            let cls = &prev.classes[0];
+            if cls == "mbin" || cls == "mord" {
+                return false;
+            }
+        }
+
+        return prev.style != next.style;
     }
 }
 
+/// getter and setter
 impl SymbolNode {
-    pub fn set_classes(&mut self, c: Vec<String>) {
-        self.classes = c;
+    pub fn get_text(&self) -> &String {
+        return &self.text;
+    }
+    pub fn set_text(&mut self, text: String) {
+        self.text = text;
+    }
+}
+impl VirtualNode for SymbolNode {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 
-    pub fn push_class(&mut self, s: String) {
-        self.classes.push(s);
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    /**
+    ///Creates a text node or span from a symbol node. Note that a span is only
+    ///created if it is needed.
+     */
+    fn to_node(&self) -> web_sys::Node {
+        let document = web_sys::window().expect("").document().expect("");
+        let node = document.create_text_node(&self.text);
+        let st = self.style.to_css_str();
+        if self.italic > 0.0 || self.classes.len() > 0 || st != "" {
+            let mut span_node = document.create_element("span").expect("");
+            if self.italic > 0.0 {
+                web_sys::Element::set_attribute(
+                    &span_node,
+                    "style",
+                    format!("marginRight:{};", make_em(self.italic)).as_str(),
+                );
+            }
+            if self.classes.len() > 0 {
+                web_sys::Element::set_attribute(
+                    &span_node,
+                    "className",
+                    self.classes.join(" ").as_str(),
+                );
+            }
+            if st != "" {
+                web_sys::Element::set_attribute(&span_node, "style", st.as_str());
+            }
+            span_node.append_child(&node);
+            return web_sys::Node::from(span_node);
+        } else {
+            return web_sys::Node::from(node);
+        }
+    }
+
+    /**
+    ///Creates markup for a symbol node.
+     */
+    fn to_markup(&self) -> String {
+        // TODO(alpert): More duplication than I'd like from
+        // span.prototype.toMarkup and symbolNode.prototype.toNode...
+        let mut needs_span = false;
+
+        let mut markup = "<span".to_string();
+
+        if self.classes.len() > 0 {
+            needs_span = true;
+            markup.push_str(&format!(
+                " class=\"{}\"",
+                escape(&self.classes.join(" ")).as_str()
+            ));
+        }
+
+        let mut styles = String::new();
+
+        if self.italic > 0.0 {
+            styles.push_str(&format!("margin-right:{}em;", self.italic).as_str());
+        }
+
+        styles.push_str(&self.style.to_css_str());
+        if styles != "" {
+            markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
+        }
+        let escaped_text = escape(&self.text);
+        return if needs_span{
+            markup.push_str(&format!(">{escaped_text}</span>").as_str());
+            markup.to_string()
+        } else {
+            escaped_text
+        };
     }
 }

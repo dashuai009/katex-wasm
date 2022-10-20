@@ -1,20 +1,16 @@
-mod settings_types;
-
-use crate::define::macros::public::MacroDefinition;
-use crate::token::Token;
 /**
  * This is a module for storing settings passed into KaTeX. It correctly handles
  * default settings.
  */
+
+mod settings_types;
+
+use crate::define::macros::public::MacroDefinition;
+use crate::token::Token;
 use crate::utils;
 use wasm_bindgen::prelude::*;
 
-// Custom KaTeX behaviors.
-
-// use crate::{error::Result, js_engine::JsScope};
-// use derive_builder::Builder;
-// use itertools::process_results;
-use crate::settings::settings_types::{OutputType, StrictType};
+use settings_types::{OutputType, StrictType};
 use crate::utils::{console_log, log};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -26,7 +22,7 @@ use std::sync::Arc;
 /// Read <https://katex.org/docs/options.html> for more information.
 ///
 #[non_exhaustive]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 #[wasm_bindgen(getter_with_clone)]
 // #[wasm_bindgen]
 pub struct Settings {
@@ -35,9 +31,9 @@ pub struct Settings {
     /// KaTeX output type.
     output: OutputType,
     /// Whether to have `\tags` rendered on the left instead of the right.
-    pub leqno: bool,
+    leqno: bool,
     /// Whether to make display math flush left.
-    pub fleqn: bool,
+    fleqn: bool,
     /// Whether to let KaTeX throw a ParseError for invalid LaTeX.
     throw_on_error: bool,
     /// Color used for invalid LaTeX.
@@ -49,7 +45,7 @@ pub struct Settings {
     color_is_text_color: bool,
     strict: StrictType,
     /// Whether to trust users' input.
-    pub trust: bool,
+    trust: bool,
     /// Max size for user-specified sizes.
     /// If set to `None`, users can make elements and spaces arbitrarily large.
     #[allow(clippy::option_option)]
@@ -62,8 +58,8 @@ pub struct Settings {
     global_group: bool,
 }
 
-impl Settings{
-    pub fn get_ref_macros(&self)-> Arc<HashMap<String, MacroDefinition>>{
+impl Settings {
+    pub fn get_ref_macros(&self) -> Arc<HashMap<String, MacroDefinition>> {
         return Arc::clone(&self.macros);
     }
 }
@@ -80,14 +76,34 @@ impl Settings {
         self.display_mode = display_mode
     }
 
-    #[wasm_bindgen(getter)]
+    #[wasm_bindgen(getter = output)]
     pub fn get_output(&self) -> String {
         self.output.as_str().to_string()
     }
 
-    #[wasm_bindgen(setter)]
+    #[wasm_bindgen(setter = output)]
     pub fn set_output(&mut self, output: String) {
         self.output = OutputType::from_str(output.as_str()).unwrap();
+    }
+
+    #[wasm_bindgen(getter = leqno)]
+    pub fn get_leqno(&self)->bool{
+        self.leqno
+    }
+
+    #[wasm_bindgen(setter = leqno)]
+    pub fn set_leqno(&mut self, leqno:bool){
+        self.leqno = leqno;
+    }
+
+    #[wasm_bindgen(getter = fleqn)]
+    pub fn get_fleqn(&self)->bool{
+        self.fleqn
+    }
+
+    #[wasm_bindgen(setter = fleqn)]
+    pub fn set_fleqn(&mut self, fleqn:bool){
+        self.fleqn = fleqn;
     }
 
     #[wasm_bindgen(getter = throwOnError)]
@@ -141,6 +157,16 @@ impl Settings {
         self.strict = StrictType::from_str(strict.as_str()).unwrap();
     }
 
+    #[wasm_bindgen(getter = trust)]
+    pub fn get_trust(&self) -> bool {
+        self.trust
+    }
+
+    #[wasm_bindgen(setter = trust)]
+    pub fn set_trust(&mut self, trust: bool) {
+        self.trust = trust;
+    }
+
     #[wasm_bindgen(getter = maxSize)]
     pub fn get_max_size(&self) -> Option<f64> {
         self.max_size
@@ -172,71 +198,18 @@ impl Settings {
     }
 }
 
-// #[wasm_bindgen]
-// impl Settings {
-//     pub(crate) fn to_js_value(&self) -> JsValue {
-//         return JsValue::from_serde(&self).unwrap();
-//     }
-// }
-
 impl AsRef<Settings> for Settings {
     fn as_ref(&self) -> &Settings {
         self
     }
 }
 
-// impl OptsBuilder {
-//     /// Add an entry to [`macros`](OptsBuilder::macros).
-//     ///
-//     /// # Examples
-//     ///
-//     /// ```
-//     /// let opts = katex::Opts::builder()
-//     ///     .add_macro(r#"\RR"#.to_owned(), r#"\mathbb{R}"#.to_owned())
-//     ///     .build()
-//     ///     .unwrap();
-//     /// let html = katex::render_with_opts(r#"\RR"#, &opts).unwrap();
-//     /// ```
-//     pub fn add_macro(mut self, entry_name: String, entry_data: String) -> Self {
-//         match self.macros.as_mut() {
-//             Some(macros) => {
-//                 macros.insert(entry_name, entry_data);
-//             }
-//             None => {
-//                 let mut macros = HashMap::new();
-//                 macros.insert(entry_name, entry_data);
-//                 self.macros = Some(macros);
-//             }
-//         }
-//         self
-//     }
-// }
-
 #[wasm_bindgen]
 impl Settings {
     #[wasm_bindgen(constructor)]
-    pub fn new(js_v: &JsValue) -> Settings {
+    pub fn new_from_js(js_v: &JsValue) -> Settings {
         // console_log!("input setting = {}",res);
-        let mut res = Settings {
-            display_mode: false,
-            output: OutputType::Html,
-            leqno: false,
-            /// Whether to make display math flush left.
-            fleqn: false,
-            /// Whether to let KaTeX throw a ParseError for invalid LaTeX.
-            throw_on_error: false,
-            /// Color used for invalid LaTeX.
-            error_color: String::new(),
-            /// Collection of custom macros.
-            macros: Arc::new(HashMap::<String, MacroDefinition>::new()),
-            min_rule_thickness: 0.0,
-            color_is_text_color: false,
-            strict: StrictType::Warn,
-            trust: false,
-            max_size: None,
-            max_expand: None,
-            global_group: false,
-        };
+        let mut res = Settings::new();
         use js_sys::{Boolean, JsString, Reflect};
         if let Ok(opt_display_mode) = Reflect::get(&js_v, &JsString::from("displayMode")) {
             res.display_mode = opt_display_mode.as_bool().unwrap();
@@ -311,21 +284,22 @@ impl Settings {
             res.global_group = opt_global_group.as_bool().unwrap_or_default();
         }
         console_log!("{}", res.global_group);
+        console_log!("new_from_js = {:#?}",res);
         return res;
     }
 
-    pub fn new_rust()->Settings{
+    pub fn new() -> Settings {
         let mut res = Settings {
             display_mode: false,
             output: OutputType::Html,
             leqno: false,
-            /// Whether to make display math flush left.
+            // Whether to make display math flush left.
             fleqn: false,
-            /// Whether to let KaTeX throw a ParseError for invalid LaTeX.
+            // Whether to let KaTeX throw a ParseError for invalid LaTeX.
             throw_on_error: false,
-            /// Color used for invalid LaTeX.
+            // Color used for invalid LaTeX.
             error_color: String::new(),
-            /// Collection of custom macros.
+            // Collection of custom macros.
             macros: Arc::new(HashMap::<String, MacroDefinition>::new()),
             min_rule_thickness: 0.0,
             color_is_text_color: false,
@@ -341,14 +315,14 @@ impl Settings {
      * Report nonstrict (non-LaTeX-compatible) input.
      * Can safely not be called if `this.strict` is false in JavaScript.
      */
-    pub fn report_nonstrict(&self, errorCode: String, errorMsg: String, token: Option<Token>) {
+    pub fn report_nonstrict(&self, error_code: String, error_msg: String, token: Option<Token>) {
         match self.strict {
             StrictType::Ignore => {}
             StrictType::Warn => {
                 console_log!(
                     "LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",
-                    errorCode,
-                    errorMsg
+                    error_code,
+                    error_msg
                 );
             }
             StrictType::Error => {
@@ -365,21 +339,22 @@ impl Settings {
      * "warn" prints a warning and returns `false`.
      * This is for the second category of `errorCode`s listed in the README.
      */
-    pub fn useStrictBehavior(&self, errorCode: String, errorMsg: String, token: &JsValue) -> bool {
+    //TODO
+    pub fn use_strict_behavior(&self, error_code: String, error_msg: String) -> bool {
         match self.strict {
             StrictType::Ignore => {
                 return false;
             }
             StrictType::Warn => {
-                console_log!(
+                println!(
                     "LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",
-                    errorCode,
-                    errorMsg
+                    error_code,
+                    error_msg
                 );
                 return false;
             }
             StrictType::Error => {
-                console_log!("error lllll");
+                panic!("error lllll");
                 return true;
             }
         }

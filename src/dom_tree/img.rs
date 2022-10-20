@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::escape;
 use crate::{HtmlDomNode, VirtualNode};
@@ -6,7 +7,7 @@ use struct_format::html_dom_node;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-#[derive(html_dom_node, Clone)]
+#[derive(html_dom_node, Clone, Debug)]
 pub struct Img {
     src: String,
     alt: String,
@@ -43,6 +44,15 @@ impl Img {
 }
 
 impl VirtualNode for Img {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
+
     fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_element("img").expect("");
@@ -61,20 +71,5 @@ impl VirtualNode for Img {
         markup.push_str(style_str.as_str());
         markup += "'/>";
         return markup;
-    }
-}
-
-#[wasm_bindgen]
-impl Img {
-    pub fn toNode(&self) -> web_sys::Node {
-        return self.to_node();
-    }
-
-    pub fn toMarkup(&self) -> String {
-        return self.to_markup();
-    }
-
-    pub fn hasClass(&self, class_name: String) -> bool {
-        return self.has_class(&class_name);
     }
 }

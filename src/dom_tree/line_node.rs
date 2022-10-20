@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::utils::{escape};
 use crate::units::make_em;
@@ -7,12 +8,19 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LineNode {
     attributes: HashMap<String, String>,
 }
 impl VirtualNode for LineNode {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
+
     fn to_node(&self) -> web_sys::Node {
         let svgNS = "http://www.w3.org/2000/svg";
 
@@ -31,7 +39,7 @@ impl VirtualNode for LineNode {
         let mut markup: String = "<line".to_string();
 
         for (k, v) in self.attributes.iter() {
-            markup.push_str(format!(" {}:{}", k, v).as_str());
+            markup.push_str(format!(" {}='{}'", k, v).as_str());
         }
 
         markup.push_str("/>");
@@ -39,10 +47,9 @@ impl VirtualNode for LineNode {
         return markup;
     }
 }
-#[wasm_bindgen]
+
 impl LineNode {
-    #[wasm_bindgen(constructor)]
-    pub fn new(attributes: js_sys::Object) -> LineNode {
+    pub fn new_from_js(attributes: js_sys::Object) -> LineNode {
         let mut res = HashMap::new();
         for (k, v) in js_sys::Object::keys(&attributes)
             .iter()
@@ -52,6 +59,10 @@ impl LineNode {
         }
         // this.attributes = attributes || {};
         LineNode { attributes: res }
+    }
+
+    pub fn new(attributes:HashMap<String,String>) -> LineNode{
+        LineNode { attributes }
     }
 
     pub fn toNode(self) -> web_sys::Node {

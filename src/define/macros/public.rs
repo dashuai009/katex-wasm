@@ -108,7 +108,7 @@ pub struct MacroArg{
 }
 
 /** Macro tokens (in reverse order). */
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct MacroExpansion {
     pub tokens: Vec<Token>,
     pub num_args: i32,
@@ -122,6 +122,12 @@ pub enum MacroDefinition{
     Str(String),
     MacroExpansion(MacroExpansion),
     MacroContext(fn(&MacroExpander) -> MacroDefinition)
+}
+
+impl std::fmt::Debug for MacroDefinition {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f , "MacroDefinition deasdfaoiwrjtgnasdjikvn")
+    }
 }
 // pub struct MacroMap = {[string]: MacroDefinition};
 

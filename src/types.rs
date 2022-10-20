@@ -1,3 +1,4 @@
+use crate::StyleInterface;
 /**
  * This file consists only of basic flow types used in multiple places.
  * For types with javascript, create separate files by themselves.
@@ -61,7 +62,7 @@ pub enum ArgType {
 }
 
 // LaTeX display style.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum StyleStr {
     text,
     display,
@@ -69,8 +70,31 @@ pub enum StyleStr {
     scriptscript,
 }
 
+impl StyleStr {
+    pub fn as_style(&self) -> StyleInterface {
+        match self {
+            StyleStr::text => {
+                let res = crate::Style::TEXT.lock().unwrap();
+                res.clone()
+            }
+            StyleStr::display => {
+                let res = crate::Style::DISPLAY.lock().unwrap();
+                res.clone()
+            }
+            StyleStr::script => {
+                let res = crate::Style::SCRIPT.lock().unwrap();
+                res.clone()
+            }
+            StyleStr::scriptscript => {
+                let res = crate::Style::SCRIPTSCRIPT.lock().unwrap();
+                res.clone()
+            }
+        }
+    }
+}
+
 // Allowable token text for "break" arguments in parser.
-#[derive(Clone,PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum BreakToken {
     RightBracket,     // "]"
     RightBrace,       // "}"
@@ -114,6 +138,7 @@ impl BreakToken {
 }
 
 // Math font variants.
+#[derive(Copy, Clone, PartialEq)]
 pub enum FontVariant {
     bold,
     bold_italic,     // "bold-italic"
@@ -127,4 +152,23 @@ pub enum FontVariant {
     sans_serif_bold_italic,
     sans_serif_italic,
     script,
+}
+
+impl FontVariant {
+    pub fn as_str(&self) -> &str {
+        match self {
+            FontVariant::bold => "bold",
+            FontVariant::bold_italic => "bold-italic",
+            FontVariant::bold_sans_serif => "bold-sans-serif",
+            FontVariant::double_struck => "double-struck",
+            FontVariant::fraktur => "fraktur",
+            FontVariant::italic => "italic",
+            FontVariant::monospace => "monospace",
+            FontVariant::normal => "normal",
+            FontVariant::sans_serif => "sans-serif",
+            FontVariant::sans_serif_bold_italic => "sans-serif-bold-italic",
+            FontVariant::sans_serif_italic => "sans-serif-italic",
+            FontVariant::script => "script",
+        }
+    }
 }

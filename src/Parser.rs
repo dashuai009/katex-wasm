@@ -49,7 +49,7 @@ use crate::{
 pub struct Parser<'a> {
     pub mode: Mode,
     gullet: MacroExpander<'a>,
-    settings: &'a Settings,
+    pub settings: &'a Settings,
     left_right_depth: i32,
     next_token: Option<Token>,
 }
@@ -76,13 +76,13 @@ impl Parser<'_> {
      * appropriate error otherwise.
      */
     pub fn expect(&mut self, text: String, consume: bool) {
-        if (self.fetch().text != text) {
+        if self.fetch().text != text {
             // throw new ParseError(
             //     `Expected '${text}', got '${self.fetch().text}'`, self.fetch()
             // );
             panic!("Expected '{text}', got '{} ", self.fetch().text);
         }
-        if (consume) {
+        if consume {
             self.consume();
         }
     }
@@ -127,7 +127,7 @@ impl Parser<'_> {
         // Use old \color behavior (same as LaTeX's \textcolor) if requested.
         // We do this within the group for the math expression, so it doesn't
         // pollute settings.macros.
-        if (self.settings.get_color_is_text_color()) {
+        if self.settings.get_color_is_text_color() {
             self.gullet.macros.set(
                 &("\\color".to_string()),
                 Some(MacroDefinition::Str("\\textcolor".to_string())),
@@ -137,9 +137,9 @@ impl Parser<'_> {
 
         // Try to parse the input
         let parse = self.parse_expression(false, None);
-        for t in parse.iter() {
-            print!("{},", t.get_type());
-        }
+        // for t in parse.iter() {
+        //     print!("{},", t.get_type());
+        // }
 
         // If we succeeded, make sure there's an EOF at the end
         self.expect("EOF".to_string(), true);
@@ -162,7 +162,7 @@ impl Parser<'_> {
      */
     pub fn subparse(&mut self, tokens: Vec<Token>) -> Vec<Box<dyn AnyParseNode>> {
         // Save the next token from the current job.
-        let oldToken = self.next_token.clone();
+        let old_token = self.next_token.clone();
         self.consume();
 
         // Run the new job, terminating it with an excess '}'
@@ -172,7 +172,7 @@ impl Parser<'_> {
         self.expect("}".to_string(), true);
 
         // Restore the next token from the current job.
-        self.next_token = oldToken;
+        self.next_token = old_token;
 
         return parse;
     }
@@ -198,12 +198,12 @@ impl Parser<'_> {
         // we reached the end, a }, or a \right)
         loop {
             // Ignore spaces in math mode
-            if (self.mode == Mode::math) {
+            if self.mode == Mode::math {
                 self.consume_spaces();
             }
             let lex = self.fetch();
-            println!("lex = {}", lex);
-            if (END_OF_EXPRESSION.contains(&lex.text.as_str())) {
+            // println!("lex = {:#?}", lex);
+            if END_OF_EXPRESSION.contains(&lex.text.as_str()) {
                 break;
             }
             if let Some(t) = &break_on_token_text {
@@ -211,8 +211,8 @@ impl Parser<'_> {
                     break;
                 }
             }
-            if (break_on_infix) {
-                let funcs = crate::define::functions::public::_functions.lock().unwrap();
+            if break_on_infix {
+                let funcs = crate::define::functions::public::_functions.read().unwrap();
                 if let Some((f1, f2)) = funcs.get(&lex.text) {
                     if f1.get_infix() {
                         break;
@@ -220,15 +220,15 @@ impl Parser<'_> {
                 }
             }
             let atom = self.parse_atom(break_on_token_text.clone());
-            // println!("atom = {:?}",atom);
+            // println!("atom = {:#?}",atom);
             if let Some(_atom) = atom {
-                println!("atom = {}", _atom.get_type());
+                //println!("atom = {}", _atom.get_type());
                 if _atom.get_type() == "internal" {
                     continue;
                 }
                 body.push(_atom);
             } else {
-                println!("_atom is None");
+                //println!("_atom is None");
                 break;
             }
         }
@@ -307,25 +307,21 @@ impl Parser<'_> {
         return vec![node];
     }
 
-    // /**
-    //  * Handle a subscript or superscript with nice errors.
-    //  */
+    /**
+     * Handle a subscript or superscript with nice errors.
+     */
     pub fn handle_sup_sub_script(
         &mut self,
         name: String, // For error reporting.
     ) -> Option<Box<dyn AnyParseNode>> {
-        let symbolToken = self.fetch();
-        let symbol = symbolToken.text;
+        let symbol_token = self.fetch();
+        let symbol = &symbol_token.text;
         self.consume();
         self.consume_spaces(); // ignore spaces before sup/subscript argument
         let group = self.parse_group(name, None);
 
         if group.is_none() {
-            panic!("Expected group after")
-            // throw new ParseError(
-            //     "Expected group after '" + symbol + "'",
-            //     symbolToken
-            // );
+            panic!("Expected group after '{}' {:#?}", symbol, symbol_token);
         }
 
         return group;
@@ -335,7 +331,7 @@ impl Parser<'_> {
     //  * Converts the textual input of an unsupported command into a text node
     //  * contained within a color node whose color is determined by errorColor
     //  */
-    pub fn format_unsupported_cmd(&mut self, text: String) -> parse_node::types::color {
+    pub fn format_unsupported_cmd(&self, text: String) -> parse_node::types::color {
         let textordArray = text
             .chars()
             .map(|c| {
@@ -372,9 +368,10 @@ impl Parser<'_> {
         // The body of an atom is an implicit group, so that things like
         // \left(x\right)^2 work correctly.
         let mut _base = self.parse_group("atom".to_string(), breakOnTokenText);
+        // println!("base {:#?}", _base);
 
         // In text mode, we don't have superscripts or subscripts
-        if (self.mode == Mode::text) {
+        if self.mode == Mode::text {
             return _base.clone();
         }
 
@@ -553,7 +550,7 @@ impl Parser<'_> {
     ) -> Option<Box<dyn AnyParseNode>> {
         let token = self.fetch();
         let func = &token.text.clone();
-        let functions = _functions.lock().unwrap();
+        let functions = _functions.read().unwrap();
         if let Some(mut funcData) = functions.get(func) {
             self.consume(); // consume command token
 
@@ -592,18 +589,13 @@ impl Parser<'_> {
     ) -> Box<dyn AnyParseNode> {
         let context: FunctionContext = FunctionContext {
             func_name: name.clone(),
-            parser: self,
+            parser:self,
             token,
             break_on_token_text,
         };
-        let functions = _functions.lock().unwrap();
+        let functions = _functions.read().unwrap();
         let func = functions.get(name).unwrap();
-        if true {
-            return func.1(context, args, optArgs);
-        } else {
-            panic!("No function handler for ");
-            // throw new ParseError(`No function handler for ${name}`);
-        }
+        func.1(context, args, optArgs)
     }
 
     /**
@@ -612,38 +604,38 @@ impl Parser<'_> {
     pub fn parse_arguments(
         &mut self,
         func: &String, // Should look like "\name" or "\begin{name}".
-        mut funcData: &FunctionSpec,
+        mut func_data: &FunctionSpec,
     ) -> (
         Vec<Box<dyn AnyParseNode>>,
         Vec<Option<Box<dyn AnyParseNode>>>,
     ) {
-        let totalArgs = (funcData.0.get_num_args() + funcData.0.get_num_optional_args()) as usize;
-        if (totalArgs == 0) {
+        let total_args = (func_data.0.get_num_args() + func_data.0.get_num_optional_args()) as usize;
+        if total_args == 0 {
             return (vec![], vec![]);
         }
 
         let mut args = vec![];
-        let mut optArgs = vec![];
+        let mut opt_args = vec![];
 
         let mut i = 0usize;
-        while i < totalArgs {
-            let mut argType = funcData.0.get_arg_types().get(i);
-            let isOptional = i < funcData.0.get_num_optional_args() as usize;
+        for i in 0..total_args{
+            let mut arg_type = func_data.0.get_arg_types().get(i);
+            let is_optional = i < func_data.0.get_num_optional_args() as usize;
 
-            if (funcData.0.get_primitive() && argType.is_none()) ||
+            if (func_data.0.get_primitive() && arg_type.is_none()) ||
                 // \sqrt expands into primitive if optional argument doesn't exist
-                (/*funcData.type == "sqrt" &&*/ i == 1 && optArgs.get(0).is_none())
+                (/*func_data.type == "sqrt" &&*/ i == 1 && opt_args.get(0).is_none())
             {
-                argType = Some(&ArgType::primitive);
+                arg_type = Some(&ArgType::primitive);
             }
 
             let arg = self.parse_group_of_type(
                 format!("argument to {}", func),
-                argType.clone(),
-                isOptional,
+                arg_type.clone(),
+                is_optional,
             );
-            if (isOptional) {
-                optArgs.push(arg);
+            if is_optional {
+                opt_args.push(arg);
             } else if let Some(s) = arg {
                 args.push(s);
             } else {
@@ -651,10 +643,9 @@ impl Parser<'_> {
                 panic!("Null argument, please report this as a bug");
                 // throw new ParseError("Null argument, please report this as a bug");
             }
-            i += 0;
         }
 
-        return (args, optArgs);
+        return (args, opt_args);
     }
 
     /**
