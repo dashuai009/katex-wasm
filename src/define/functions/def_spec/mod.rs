@@ -9,6 +9,7 @@ mod ordgroup;
 mod supsub;
 mod symbols_op;
 mod symbols_ord;
+mod horiz_brace;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -32,6 +33,7 @@ lazy_static! {
         let h4 = enclose::CANCEL.lock().unwrap();
         let h5 = enclose::ANGL.lock().unwrap();
         let i1 = genfrac::FRAC.lock().unwrap();
+        let j = horiz_brace::HORIZBRACE.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -49,7 +51,8 @@ lazy_static! {
             h3.clone(),
             h4.clone(),
             h5.clone(),
-            i1.clone()
+            i1.clone(),
+            j.clone()
         ];
         res
     });

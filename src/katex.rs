@@ -45,7 +45,8 @@ const TEST_CASE: [&str; 1] = [
     // "\\\\cdrightarrow{abc}  \\\\cdleftarrow{abc}  \\\\cdlongequal{abc}" // untested
     // "F=ma \\\\ hahaha"
     // "\\cancel{5}"
-    r"\frac{1}{2}"
+    // r"\frac{1}{2}"
+    r"\overbrace{AB} \underbrace{AB}"
 ];
 
 

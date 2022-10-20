@@ -329,11 +329,11 @@ pub struct hbox {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct horizBrace {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
     pub label: String,
-    isOver: bool,
-    base: Box<dyn AnyParseNode>,
+    pub isOver: bool,
+    pub base: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
