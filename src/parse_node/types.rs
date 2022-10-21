@@ -338,10 +338,10 @@ pub struct horizBrace {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct href {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    href: String,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub href: String,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

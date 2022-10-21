@@ -880,7 +880,7 @@ impl Parser<'_> {
             // "undefined" behaviour, and keep them as-is. Some browser will
             // replace backslashes with forward slashes.
             lazy_static! {
-                static ref re: regex::Regex = regex::Regex::new("\\(?P<x>[#$%&~_^{}])").unwrap();
+                static ref re: regex::Regex = regex::Regex::new(r"\\(?P<x>[#$%&~_^{}])").unwrap();
             }
             let url = re.replace_all(_res.text.as_str(), "$x").to_string();
             return Some(Box::new(parse_node::types::url {
