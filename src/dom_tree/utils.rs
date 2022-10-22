@@ -62,7 +62,7 @@ macro_rules! this_to_markup {
 
         // Add the attributes
         for (k, v) in $this.attributes.iter() {
-            markup.push_str(&format!(" {}={}", k, escape(&v)));
+            markup.push_str(&format!(" {}=\"{}\"", k, escape(&v)));
         }
 
         markup.push_str(">");

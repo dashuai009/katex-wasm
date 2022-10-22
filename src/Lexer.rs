@@ -162,8 +162,8 @@ impl Lexer {
             if nl_index.is_none() {
                 self.lexer_i.set_last_index(self.lexer_i.get_input().len()); // EOF
                 self.settings.report_nonstrict(
-                    "commentAtEnd".to_string(),
-                    "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)".to_string(),
+                    "commentAtEnd" ,
+                    "% comment has no terminating newline; LaTeX would fail because of commenting the end of math mode (e.g. $)",
                     None,
                 );
             } else {

@@ -1,4 +1,5 @@
 use std::{any::Any, sync::Arc};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use struct_format::parse_node_type;
 
@@ -346,10 +347,10 @@ pub struct href {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct html {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    // attributes: {[String]: String},
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub attributes: HashMap<String,String>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

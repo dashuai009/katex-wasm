@@ -331,8 +331,8 @@ impl Parser<'_> {
     //  * Converts the textual input of an unsupported command into a text node
     //  * contained within a color node whose color is determined by errorColor
     //  */
-    pub fn format_unsupported_cmd(&self, text: String) -> parse_node::types::color {
-        let textordArray = text
+    pub fn format_unsupported_cmd(&self, text: &String) -> parse_node::types::color {
+        let textord_array = text
             .chars()
             .map(|c| {
                 Box::new(parse_node::types::textord {
@@ -343,9 +343,9 @@ impl Parser<'_> {
             })
             .collect::<Vec<_>>();
 
-        let textNode = Box::new(parse_node::types::text {
+        let text_node = Box::new(parse_node::types::text {
             mode: self.mode,
-            body: textordArray,
+            body: textord_array,
             loc: None,
             font: None,
         }) as Box<dyn AnyParseNode>;
@@ -353,7 +353,7 @@ impl Parser<'_> {
         return parse_node::types::color {
             mode: self.mode,
             color: self.settings.get_error_color(),
-            body: vec![textNode],
+            body: vec![text_node],
             loc: None,
         };
     }
@@ -991,7 +991,7 @@ impl Parser<'_> {
                     // throw new ParseError(
                     //     "Undefined control sequence: " + text, firstToken);
                 }
-                result = Some(Box::new(self.format_unsupported_cmd(text)) as Box<dyn AnyParseNode>);
+                result = Some(Box::new(self.format_unsupported_cmd(&text)) as Box<dyn AnyParseNode>);
                 self.consume();
             }
         }
@@ -1090,8 +1090,8 @@ impl Parser<'_> {
                 // This behavior is not strict (XeTeX-compatible) in math mode.
                 if (/*self.settings.get_strict() && */self.mode == Mode::math) {
                     self.settings.report_nonstrict(
-                        "unicodeTextInMathMode".to_string(),
-                        format!(
+                        "unicodeTextInMathMode" ,
+                        &format!(
                             "Accented Unicode text character \"{}\" used in math mode",
                             text
                         ),
@@ -1183,14 +1183,14 @@ impl Parser<'_> {
                 (text.chars().nth(0).unwrap() as u32).into(),
             )) {
                 self.settings.report_nonstrict(
-                    "unknownSymbol".to_string(),
-                    format!("Unrecognized Unicode character \"{}\"  ({})", text, text),
+                    "unknownSymbol",
+                    &format!("Unrecognized Unicode character \"{}\"  ({})", text, text),
                     Some(nucleus.clone()),
                 );
             } else if (self.mode == Mode::math) {
                 self.settings.report_nonstrict(
-                    "unicodeTextInMathMode".to_string(),
-                    format!("Unicode text character \"{}\" used in math mode", text2),
+                    "unicodeTextInMathMode",
+                    &format!("Unicode text character \"{}\" used in math mode", text2),
                     Some(nucleus.clone()),
                 );
             }

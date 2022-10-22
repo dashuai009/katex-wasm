@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
+pub use settings_types::TrustContext;
 
 /// Options to be passed to KaTeX.
 ///
@@ -255,7 +256,7 @@ impl Settings {
         }
         console_log!("{}", res.min_rule_thickness);
         if let Ok(opt_color_is_text_color) =
-            Reflect::get(&js_v, &JsString::from("colorIsTextColor"))
+        Reflect::get(&js_v, &JsString::from("colorIsTextColor"))
         {
             res.color_is_text_color = opt_color_is_text_color.as_bool().unwrap_or_default();
         }
@@ -315,18 +316,18 @@ impl Settings {
      * Report nonstrict (non-LaTeX-compatible) input.
      * Can safely not be called if `this.strict` is false in JavaScript.
      */
-    pub fn report_nonstrict(&self, error_code: String, error_msg: String, token: Option<Token>) {
+    pub fn report_nonstrict(&self, error_code: &str, error_msg: &str, token: Option<Token>) {
         match self.strict {
             StrictType::Ignore => {}
             StrictType::Warn => {
-                console_log!(
+                println!(
                     "LaTeX-incompatible input and strict mode is set to 'warn': {} [{}]",
                     error_code,
                     error_msg
                 );
             }
             StrictType::Error => {
-                console_log!("error lllll");
+                panic!("error lllll");
             }
         }
     }
@@ -359,7 +360,8 @@ impl Settings {
             }
         }
     }
-
+}
+impl Settings{
     /**
      * Check whether to test potentially dangerous input, and return
      * `true` (trusted) or `false` (untrusted).  The sole argument `context`
@@ -368,9 +370,8 @@ impl Settings {
      * If `context` has a `url` field, a `protocol` field will automatically
      * get added by this function (changing the specified object).
      */
-    #[wasm_bindgen(js_name = isTrusted)]
-    pub fn is_trusted(&self, context: &JsValue) -> bool {
-        web_sys::console::log_1(context);
+    // #[wasm_bindgen(js_name = isTrusted)]
+    pub fn is_trusted(&self, context: &TrustContext) -> bool {
         // if (context.url && !context.protocol) {
         //     context.protocol = utils.protocolFromUrl(context.url);
         // }

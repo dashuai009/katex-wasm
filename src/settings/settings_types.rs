@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -63,4 +64,10 @@ impl OutputType {
             OutputType::HtmlAndMathml => "htmlAndMathml",
         }
     }
+}
+
+
+pub struct TrustContext{
+    pub command :String,
+    pub context :HashMap<String,String>
 }
