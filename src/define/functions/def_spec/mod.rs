@@ -12,6 +12,7 @@ mod symbols_ord;
 mod horiz_brace;
 mod href;
 mod text;
+mod hbox;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -39,6 +40,7 @@ lazy_static! {
         let k1 = href::HREF.lock().unwrap();
         let k2 = href::URL.lock().unwrap();
         let l = text::TEXT.lock().unwrap();
+        let m = hbox::HBOX.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -60,7 +62,8 @@ lazy_static! {
             j.clone(),
             k1.clone(),
             k2.clone(),
-            l.clone()
+            l.clone(),
+            m.clone()
         ];
         res
     });

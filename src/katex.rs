@@ -47,7 +47,8 @@ const TEST_CASE: [&str; 1] = [
     // "\\cancel{5}"
     // r"\frac{1}{2}"
     // r"\overbrace{AB} \underbrace{AB}"
-    r"\href{https://www.dashuai009.icu}{dashuai009} \url{https:www.dashuai009.icu} \textbf{Ab0} \textit{Ab0} \textrm{Ab0} \textup{Ab0} \textnormal{Ab0} \text{Ab0} \textmd{Ab0} \textsf{Ab0}"
+    // r"\href{https://www.dashuai009.icu}{dashuai009} \url{https:www.dashuai009.icu} \textbf{Ab0} \textit{Ab0} \textrm{Ab0} \textup{Ab0} \textnormal{Ab0} \text{Ab0} \textmd{Ab0} \textsf{Ab0}"
+    r"\hbox{a}"
 ];
 
 

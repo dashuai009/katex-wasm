@@ -322,9 +322,9 @@ pub struct genfrac {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct hbox {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
