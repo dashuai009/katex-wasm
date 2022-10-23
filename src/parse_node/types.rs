@@ -534,10 +534,10 @@ pub struct smash {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct sqrt {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
-    index: Option<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
+    pub index: Option<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

@@ -20,7 +20,7 @@ lazy_static! {
         Mutex::new(define_all_text_symbols());
 }
 
-pub fn get_symbol(mode: Mode, name: &String) -> Option<Symbol> {
+pub fn get_symbol(mode: Mode, name: &str) -> Option<Symbol> {
     match mode {
         Mode::math => {
             let ms = mathSymbols.lock().unwrap();

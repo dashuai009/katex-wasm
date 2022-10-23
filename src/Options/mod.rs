@@ -59,10 +59,10 @@ impl Options {
     pub fn from_settings(settings: &Settings) -> Options {
         let mut res = Options::new();
         res.style = if settings.get_display_mode() {
-            let r = crate::Style::DISPLAY.lock().unwrap();
+            let r = crate::Style::DISPLAY.read().unwrap();
             r.clone()
         } else {
-            let r = crate::Style::TEXT.lock().unwrap();
+            let r = crate::Style::TEXT.read().unwrap();
             r.clone()
         };
         // console.log(`maxSiz === ${settings.maxSize}`)

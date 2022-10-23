@@ -138,10 +138,10 @@ const cramp: [usize; 8] = [Dc, Dc, Tc, Tc, Sc, Sc, SSc, SSc];
 const text: [usize; 8] = [D, Dc, T, Tc, T, Tc, T, Tc];
 
 
-use std::sync::Mutex;
+use std::sync::RwLock;
 lazy_static!{
-    pub static ref DISPLAY:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(0, 0, false));
-    pub static ref TEXT:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(2, 1, false));
-    pub static ref SCRIPT:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(4, 2, false));
-    pub static ref SCRIPTSCRIPT:Mutex<StyleInterface> = Mutex::new(StyleInterface::new(6, 3, false));
+    pub static ref DISPLAY:RwLock<StyleInterface> = RwLock::new(StyleInterface::new(0, 0, false));
+    pub static ref TEXT:RwLock<StyleInterface> = RwLock::new(StyleInterface::new(2, 1, false));
+    pub static ref SCRIPT:RwLock<StyleInterface> = RwLock::new(StyleInterface::new(4, 2, false));
+    pub static ref SCRIPTSCRIPT:RwLock<StyleInterface> = RwLock::new(StyleInterface::new(6, 3, false));
 }

@@ -32,7 +32,7 @@ pub struct TmpSymbol {
  */
 pub fn lookup_symbol(value: String, font_name: String, mode: Mode) -> TmpSymbol {
     // Replace the value with its replaced value from symbol.js
-    let tmp_metrics = get_character_metrics(&value, font_name, mode);
+    let tmp_metrics = get_character_metrics(&value, &font_name, mode);
 
     // if tmp.is_some_and(|&t| t.replace.is_some()) {}
     if let Some(tmp) = get_symbol(mode, &value) {

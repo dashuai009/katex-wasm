@@ -1,114 +1,99 @@
+use crate::dom_tree::path_node::PathNode;
+use crate::tree::HtmlDomNode;
+/**
+ * This file deals with creating delimiters of various sizes. The TeXbook
+ * discusses these routines on page 441-442, in the "Another subroutine sets box
+ * x to a specified variable delimiter" paragraph.
+ *
+ * There are three main routines here. `makeSmallDelim` makes a delimiter in the
+ * normal font, but in either text, script, or scriptscript style.
+ * `makeLargeDelim` makes a delimiter in textstyle, but in one of the Size1,
+ * Size2, Size3, or Size4 fonts. `makeStackedDelim` makes a delimiter out of
+ * smaller pieces that are stacked on top of one another.
+ *
+ * The functions take a parameter `center`, which determines if the delimiter
+ * should be centered around the axis.
+ *
+ * Then, there are three exposed functions. `sizedDelim` makes a delimiter in
+ * one of the given sizes. This is used for things like `\bigl`.
+ * `customSizedDelim` makes a delimiter with a given total height+depth. It is
+ * called in places like `\sqrt`. `leftRightDelim` makes an appropriate
+ * delimiter which surrounds an expression of a given height an depth. It is
+ * used in `\left` and `\right`.
+ */
 use crate::dom_tree::span::Span;
-use crate::Options::Options;
+use crate::dom_tree::svg_node::SvgNode;
+use crate::metrics::public::CharacterMetrics;
 use crate::types::Mode;
+use crate::Options::Options;
+use crate::{get_character_metrics, get_symbol, make_em, sqrt_path, StyleInterface, VirtualNode};
+use std::collections::HashMap;
+use std::sync::RwLock;
 
-// // @flow
-// /**
-//  * This file deals with creating delimiters of various sizes. The TeXbook
-//  * discusses these routines on page 441-442, in the "Another subroutine sets box
-//  * x to a specified variable delimiter" paragraph.
-//  *
-//  * There are three main routines here. `makeSmallDelim` makes a delimiter in the
-//  * normal font, but in either text, script, or scriptscript style.
-//  * `makeLargeDelim` makes a delimiter in textstyle, but in one of the Size1,
-//  * Size2, Size3, or Size4 fonts. `makeStackedDelim` makes a delimiter out of
-//  * smaller pieces that are stacked on top of one another.
-//  *
-//  * The functions take a parameter `center`, which determines if the delimiter
-//  * should be centered around the axis.
-//  *
-//  * Then, there are three exposed functions. `sizedDelim` makes a delimiter in
-//  * one of the given sizes. This is used for things like `\bigl`.
-//  * `customSizedDelim` makes a delimiter with a given total height+depth. It is
-//  * called in places like `\sqrt`. `leftRightDelim` makes an appropriate
-//  * delimiter which surrounds an expression of a given height an depth. It is
-//  * used in `\left` and `\right`.
-//  */
-// 
-// import ParseError from "./ParseError";
-// import Style from "./Style";
-// 
-// import {PathNode, SvgNode, SymbolNode} from "./domTree";
-// import {sqrtPath, innerPath, tallDelim} from "./svgGeometry";
-// import buildCommon from "./buildCommon";
-// import {getCharacterMetrics} from "./fontMetrics";
-// import symbols from "./symbols";
-// import utils from "./utils";
-// import {makeEm} from "./units";
-// import fontMetricsData from "./fontMetricsData";
-// 
-// import type Options from "./Options";
-// import type {CharacterMetrics} from "./fontMetrics";
-// import type {HtmlDomNode, DomSpan, SvgSpan} from "./domTree";
-// import type {Mode} from "./types";
-// import type {StyleInterface} from "./Style";
-// import type {VListElem} from "./buildCommon";
-// 
-// /**
-//  * Get the metrics for a given symbol and font, after transformation (i.e.
-//  * after following replacement from symbols.js)
-//  */
-// const getMetrics = function(
-//     symbol: String,
-//     font: String,
-//     mode: Mode,
-// ): CharacterMetrics {
-// const replace = symbols.math[symbol] && symbols.math[symbol].replace;
-// const metrics =
-//     getCharacterMetrics(replace || symbol, font, mode);
-// if ( ! metrics) {
-// throw new Error(`Unsupported symbol ${symbol} and font size ${font}.`);
-// }
-// return metrics;
-// };
-// 
+/**
+ * Get the metrics for a given symbol and font, after transformation (i.e.
+ * after following replacement from symbols.js)
+ */
+fn get_metrics(symbol: &str, font: &str, mode: Mode) -> CharacterMetrics {
+    let replace = if let Some(sym) = get_symbol(Mode::math, symbol) {
+        sym.replace.unwrap_or(symbol.to_string())
+    } else {
+        symbol.to_string()
+    };
+    if let Some(metrics) = get_character_metrics(&replace, font, mode) {
+        return metrics;
+    } else {
+        panic!("Unsupported symbol {symbol} and font size {font}.");
+    }
+}
+
 // /**
 //  * Puts a delimiter span in a given style, and adds appropriate height, depth,
 //  * and maxFontSizes.
 //  */
-// const styleWrap = function(
+// let styleWrap = function(
 //     delim: HtmlDomNode,
 //     toStyle: StyleInterface,
 //     options: Options,
 //     classes: String[],
 // ): DomSpan {
-// const newOptions = options.havingBaseStyle(toStyle);
-// 
-// const span = buildCommon.makeSpan(
+// let newOptions = options.havingBaseStyle(toStyle);
+//
+// let span = buildCommon.makeSpan(
 //     classes.concat(newOptions.sizingClasses(options)),
 //     [delim], options);
-// 
-// const delimSizeMultiplier =
+//
+// let delimSizeMultiplier =
 //     newOptions.sizeMultiplier / options.sizeMultiplier;
 // span.height *= delimSizeMultiplier;
 // span.depth *= delimSizeMultiplier;
 // span.maxFontSize = newOptions.sizeMultiplier;
-// 
+//
 // return span;
 // };
-// 
-// const centerSpan = function(
+//
+// let centerSpan = function(
 //     span: DomSpan,
 //     options: Options,
 //     style: StyleInterface,
 // ) {
-// const newOptions = options.havingBaseStyle(style);
-// const shift =
+// let newOptions = options.havingBaseStyle(style);
+// let shift =
 //     (1 - options.sizeMultiplier / newOptions.sizeMultiplier) *
 //         options.fontMetrics().axisHeight;
-// 
+//
 // span.classes.push("delimcenter");
 // span.style.top = makeEm(shift);
 // span.height -= shift;
 // span.depth += shift;
 // };
-// 
+//
 // /**
 //  * Makes a small delimiter. This is a delimiter that comes in the Main-Regular
 //  * font, but is restyled to either be in textstyle, scriptstyle, or
 //  * scriptscriptstyle.
 //  */
-// const makeSmallDelim = function(
+// let makeSmallDelim = function(
 //     delim: String,
 //     style: StyleInterface,
 //     center: bool,
@@ -116,18 +101,18 @@ use crate::types::Mode;
 //     mode: Mode,
 //     classes: String[],
 // ): DomSpan {
-// const text = buildCommon.makeSymbol(delim, "Main-Regular", mode, options);
-// const span = styleWrap(text, style, options, classes);
+// let text = buildCommon.makeSymbol(delim, "Main-Regular", mode, options);
+// let span = styleWrap(text, style, options, classes);
 // if (center) {
 // centerSpan(span, options, style);
 // }
 // return span;
 // };
-// 
+//
 // /**
 //  * Builds a symbol in the given font size (note size is an integer)
 //  */
-// const mathrmSize = function(
+// let mathrmSize = function(
 //     value: String,
 //     size: f64,
 //     mode: Mode,
@@ -136,20 +121,20 @@ use crate::types::Mode;
 // return buildCommon.makeSymbol(value, "Size" + size + "-Regular",
 // mode, options);
 // };
-// 
+//
 // /**
 //  * Makes a large delimiter. This is a delimiter that comes in the Size1, Size2,
 //  * Size3, or Size4 fonts. It is always rendered in textstyle.
 //  */
-// const makeLargeDelim = function(delim,
+// let makeLargeDelim = function(delim,
 //                                 size: f64,
 //                                 center: bool,
 //                                 options: Options,
 //                                 mode: Mode,
 //                                 classes: String[],
 // ): DomSpan {
-// const inner = mathrmSize(delim, size, mode, options);
-// const span = styleWrap(
+// let inner = mathrmSize(delim, size, mode, options);
+// let span = styleWrap(
 //     buildCommon.makeSpan(["delimsizing", "size" + size], [inner], options),
 //     Style.TEXT, options, classes);
 // if (center) {
@@ -157,12 +142,12 @@ use crate::types::Mode;
 // }
 // return span;
 // };
-// 
+//
 // /**
 //  * Make a span from a font glyph with the given offset and in the given font.
 //  * This is used in makeStackedDelim to make the stacking pieces for the delimiter.
 //  */
-// const makeGlyphSpan = function(
+// let makeGlyphSpan = function(
 //     symbol: String,
 //     font: "Size1-Regular" | "Size4-Regular",
 //     mode: Mode,
@@ -174,27 +159,27 @@ use crate::types::Mode;
 // } else /* if (font == "Size4-Regular") */ {
 // sizeClass = "delim-size4";
 // }
-// 
-// const corner = buildCommon.makeSpan(
+//
+// let corner = buildCommon.makeSpan(
 // ["delimsizinginner", sizeClass],
 // [buildCommon.makeSpan([], [buildCommon.makeSymbol(symbol, font, mode)])]);
-// 
+//
 // // Since this will be passed into `makeVList` in the end, wrap the element
 // // in the appropriate tag that VList uses.
 // return {type: "elem", elem: corner};
 // };
-// 
-// const makeInner = function(
+//
+// let makeInner = function(
 //     ch: String,
 //     height: f64,
 //     options: Options,
 // ): VListElem {
 // // Create a span with inline SVG for the inner part of a tall stacked delimiter.
-// const width = fontMetricsData['Size4-Regular'][ch.charCodeAt(0)]
+// let width = fontMetricsData['Size4-Regular'][ch.charCodeAt(0)]
 // ? fontMetricsData['Size4 - Regular'][ch.charCodeAt(0)][4]
 // : fontMetricsData['Size1 - Regular'][ch.charCodeAt(0)][4];
-// const path = new PathNode("inner", innerPath(ch,  Math.round(1000 * height)));
-// const svgNode = new SvgNode([path], {
+// let path = new PathNode("inner", innerPath(ch,  Math.round(1000 * height)));
+// let svgNode = new SvgNode([path], {
 // "width": makeEm(width),
 // "height": makeEm(height),
 // // Override CSS rule `.katex svg { width: 100% }`
@@ -202,24 +187,24 @@ use crate::types::Mode;
 // "viewBox": "0 0 " + 1000 * width + " " + Math.round(1000 * height),
 // "preserveAspectRatio": "xMinYMin",
 // });
-// const span = buildCommon.makeSvgSpan([], [svgNode], options);
+// let span = buildCommon.makeSvgSpan([], [svgNode], options);
 // span.height = height;
 // span.style.height = makeEm(height);
 // span.style.width = makeEm(width);
 // return {type: "elem", elem: span};
 // };
-// 
+//
 // // Helpers for makeStackedDelim
-// const lapInEms = 0.008;
-// const lap = { type : "kern", size: -1 * lapInEms };
-// const verts = ["|", "\\lvert", "\\rvert", "\\vert"];
-// const doubleVerts = ["\\|", "\\lVert", "\\rVert", "\\Vert"];
-// 
+// let lapInEms = 0.008;
+// let lap = { type : "kern", size: -1 * lapInEms };
+// let verts = ["|", "\\lvert", "\\rvert", "\\vert"];
+// let doubleVerts = ["\\|", "\\lVert", "\\rVert", "\\Vert"];
+//
 // /**
 //  * Make a stacked delimiter out of a given delimiter, with the total height at
 //  * least `heightTotal`. This routine is mentioned on page 442 of the TeXbook.
 //  */
-// const makeStackedDelim = function(
+// let makeStackedDelim = function(
 //     delim: String,
 //     heightTotal: f64,
 //     center: bool,
@@ -239,7 +224,7 @@ use crate::types::Mode;
 // middle = null;
 // // Also keep track of what font the delimiters are in
 // let font = "Size1-Regular";
-// 
+//
 // // We set the parts and font based on the symbol. Note that we use
 // // '\u23d0' instead of '|' and '\u2016' instead of '\\|' for the
 // // repeats of the arrows
@@ -352,34 +337,34 @@ use crate::types::Mode;
 // repeat = "\u23aa";
 // font = "Size4-Regular";
 // }
-// 
+//
 // // Get the metrics of the four sections
-// const topMetrics = getMetrics(top, font, mode);
-// const topHeightTotal = topMetrics.height + topMetrics.depth;
-// const repeatMetrics = getMetrics(repeat, font, mode);
-// const repeatHeightTotal = repeatMetrics.height + repeatMetrics.depth;
-// const bottomMetrics = getMetrics(bottom, font, mode);
-// const bottomHeightTotal = bottomMetrics.height + bottomMetrics.depth;
+// let topMetrics = get_metrics(top, font, mode);
+// let topHeightTotal = topMetrics.height + topMetrics.depth;
+// let repeatMetrics = get_metrics(repeat, font, mode);
+// let repeatHeightTotal = repeatMetrics.height + repeatMetrics.depth;
+// let bottomMetrics = get_metrics(bottom, font, mode);
+// let bottomHeightTotal = bottomMetrics.height + bottomMetrics.depth;
 // let middleHeightTotal = 0;
 // let middleFactor = 1;
 // if (middle != = null) {
-// const middleMetrics = getMetrics(middle, font, mode);
+// let middleMetrics = get_metrics(middle, font, mode);
 // middleHeightTotal = middleMetrics.height + middleMetrics.depth;
 // middleFactor = 2; // repeat symmetrically above and below middle
 // }
-// 
+//
 // // Calcuate the minimal height that the delimiter can have.
 // // It is at least the size of the top, bottom, and optional middle combined.
-// const minHeight = topHeightTotal + bottomHeightTotal + middleHeightTotal;
-// 
+// let minHeight = topHeightTotal + bottomHeightTotal + middleHeightTotal;
+//
 // // Compute the f64 of copies of the repeat symbol we will need
-// const repeatCount = Math.max(0, Math.ceil(
+// let repeatCount = Math.max(0, Math.ceil(
 //     (heightTotal - minHeight) / (middleFactor * repeatHeightTotal)));
-// 
+//
 // // Compute the total height of the delimiter including all the symbols
-// const realHeightTotal =
+// let realHeightTotal =
 //     minHeight + repeatCount * middleFactor * repeatHeightTotal;
-// 
+//
 // // The center of the delimiter is placed at the center of the axis. Note
 // // that in this context, "center" means that the delimiter should be
 // // centered around the axis in the current style, while normally it is
@@ -389,27 +374,27 @@ use crate::types::Mode;
 // axisHeight *= options.sizeMultiplier;
 // }
 // // Calculate the depth
-// const depth = realHeightTotal / 2 - axisHeight;
-// 
+// let depth = realHeightTotal / 2 - axisHeight;
+//
 // // Now, we start building the pieces that will go into the vlist
 // // Keep a list of the pieces of the stacked delimiter
-// const stack = [];
-// 
+// let stack = [];
+//
 // if (svgLabel.length > 0) {
 // // Instead of stacking glyphs, create a single SVG.
 // // This evades browser problems with imprecise positioning of spans.
-// const midHeight = realHeightTotal - topHeightTotal - bottomHeightTotal;
-// const viewBoxHeight = Math.round(realHeightTotal * 1000);
-// const pathStr = tallDelim(svgLabel, Math.round(midHeight * 1000));
-// const path = new PathNode(svgLabel, pathStr);
-// const width = (viewBoxWidth / 1000).toFixed(3) + "em";
-// const height = (viewBoxHeight / 1000).toFixed(3) + "em";
-// const svg = new SvgNode([path], {
+// let midHeight = realHeightTotal - topHeightTotal - bottomHeightTotal;
+// let viewBoxHeight = Math.round(realHeightTotal * 1000);
+// let pathStr = tallDelim(svgLabel, Math.round(midHeight * 1000));
+// let path = new PathNode(svgLabel, pathStr);
+// let width = (viewBoxWidth / 1000).toFixed(3) + "em";
+// let height = (viewBoxHeight / 1000).toFixed(3) + "em";
+// let svg = new SvgNode([path], {
 // "width": width,
 // "height": height,
 // "viewBox": `0 0 ${viewBoxWidth} ${viewBoxHeight}`,
 // });
-// const wrapper = buildCommon.makeSvgSpan([], [svg], options);
+// let wrapper = buildCommon.makeSvgSpan([], [svg], options);
 // wrapper.height = viewBoxHeight / 1000;
 // wrapper.style.width = width;
 // wrapper.style.height = height;
@@ -419,17 +404,17 @@ use crate::types::Mode;
 // // Start by adding the bottom symbol
 // stack.push(makeGlyphSpan(bottom, font, mode));
 // stack.push(lap); // overlap
-// 
+//
 // if (middle == null) {
 // // The middle section will be an SVG. Make it an extra 0.016em tall.
 // // We'll overlap by 0.008em at top and bottom.
-// const innerHeight = realHeightTotal - topHeightTotal - bottomHeightTotal
+// let innerHeight = realHeightTotal - topHeightTotal - bottomHeightTotal
 // + 2 * lapInEms;
 // stack.push(makeInner(repeat, innerHeight, options));
 // } else {
 // // When there is a middle bit, we need the middle part and two repeated
 // // sections
-// const innerHeight = (realHeightTotal - topHeightTotal -
+// let innerHeight = (realHeightTotal - topHeightTotal -
 // bottomHeightTotal - middleHeightTotal) / 2 + 2 * lapInEms;
 // stack.push(makeInner(repeat, innerHeight, options));
 // // Now insert the middle of the brace.
@@ -438,148 +423,172 @@ use crate::types::Mode;
 // stack.push(lap);
 // stack.push(makeInner(repeat, innerHeight, options));
 // }
-// 
+//
 // // Add the top symbol
 // stack.push(lap);
 // stack.push(makeGlyphSpan(top, font, mode));
 // }
-// 
+//
 // // Finally, build the vlist
-// const newOptions = options.havingBaseStyle(Style.TEXT);
-// const inner = buildCommon.makeVList({
+// let newOptions = options.havingBaseStyle(Style.TEXT);
+// let inner = buildCommon.makeVList({
 //                                         positionType: "bottom",
 //                                         positionData: depth,
 //                                         children: stack,
 //                                     }, newOptions);
-// 
+//
 // return styleWrap(
 // buildCommon.makeSpan(["delimsizing", "mult"], [inner], newOptions),
 // Style.TEXT, options, classes);
 // };
-// 
-// // All surds have 0.08em padding above the viniculum inside the SVG.
-// // That keeps browser span height rounding error from pinching the line.
-// const vbPad = 80;
-// // padding above the surd, measured inside the viewBox.
-// const emPad = 0.08; // padding, in ems, measured in the document.
-// 
-// const sqrtSvg = function(
-//     sqrtName: String,
-//     height: f64,
-//     viewBoxHeight: f64,
-//     extraViniculum: f64,
-//     options: Options,
-// ): SvgSpan {
-// const path = sqrtPath(sqrtName, extraViniculum, viewBoxHeight);
-// const pathNode = new PathNode(sqrtName, path);
-// 
-// const svg = new SvgNode([pathNode], {
-// // Note: 1000:1 ratio of viewBox to document em width.
-// "width": "400em",
-// "height": makeEm(height),
-// "viewBox": "0 0 400000 " + viewBoxHeight,
-// "preserveAspectRatio": "xMinYMin slice",
-// });
-// 
-// return buildCommon.makeSvgSpan(["hide-tail"], [svg], options);
-// };
-// 
-// /**
-//  * Make a sqrt image of the given height,
-//  */
-// const makeSqrtImage = function(
-//     height: f64,
-//     options: Options,
-// ): {
-// span: SvgSpan,
-// ruleWidth: f64,
-// advanceWidth: f64,
-// } {
-// // Define a newOptions that removes the effect of size changes such as \Huge.
-// // We don't pick different a height surd for \Huge. For it, we scale up.
-// const newOptions = options.havingBaseSizing();
-// 
-// // Pick the desired surd glyph from a sequence of surds.
-// const delim = traverseSequence("\\surd", height * newOptions.sizeMultiplier,
-// stackLargeDelimiterSequence, newOptions);
-// 
-// let sizeMultiplier = newOptions.sizeMultiplier;  // default
-// 
-// // The standard sqrt SVGs each have a 0.04em thick viniculum.
-// // If Settings.minRuleThickness is larger than that, we add extraViniculum.
-// const extraViniculum = Math.max(0,
-// options.minRuleThickness - options.fontMetrics().sqrtRuleThickness);
-// 
-// // Create a span containing an SVG image of a sqrt symbol.
-// let span;
-// let spanHeight = 0;
-// let texHeight = 0;
-// let viewBoxHeight = 0;
-// let advanceWidth;
-// 
-// // We create viewBoxes with 80 units of "padding" above each surd.
-// // Then browser rounding error on the parent span height will not
-// // encroach on the ink of the viniculum. But that padding is not
-// // included in the TeX-like `height` used for calculation of
-// // vertical alignment. So texHeight = span.height < span.style.height.
-// 
-// if (delim.type == "small") {
-// // Get an SVG that is derived from glyph U+221A in font KaTeX-Main.
-// // 1000 unit normal glyph height.
-// viewBoxHeight = 1000 + 1000 * extraViniculum + vbPad;
-// if (height < 1.0) {
-// sizeMultiplier = 1.0;   // mimic a \textfont radical
-// } else if (height < 1.4) {
-// sizeMultiplier = 0.7;   // mimic a \scriptfont radical
-// }
-// spanHeight = (1.0 + extraViniculum + emPad) / sizeMultiplier;
-// texHeight = (1.00 + extraViniculum) / sizeMultiplier;
-// span = sqrtSvg("sqrtMain", spanHeight, viewBoxHeight, extraViniculum,
-// options);
-// span.style.minWidth = "0.853em";
-// advanceWidth = 0.833 / sizeMultiplier;  // from the font.
-// 
-// } else if (delim.type == "large") {
-// // These SVGs come from fonts: KaTeX_Size1, _Size2, etc.
-// viewBoxHeight = (1000 + vbPad) * sizeToMaxHeight[delim.size];
-// texHeight = (sizeToMaxHeight[delim.size] + extraViniculum) / sizeMultiplier;
-// spanHeight = (sizeToMaxHeight[delim.size] + extraViniculum + emPad)
-// / sizeMultiplier;
-// span = sqrtSvg("sqrtSize" + delim.size, spanHeight, viewBoxHeight,
-// extraViniculum, options);
-// span.style.minWidth = "1.02em";
-// advanceWidth = 1.0 / sizeMultiplier; // 1.0 from the font.
-// 
-// } else {
-// // Tall sqrt. In TeX, this would be stacked using multiple glyphs.
-// // We'll use a single SVG to accomplish the same thing.
-// spanHeight = height + extraViniculum + emPad;
-// texHeight = height + extraViniculum;
-// viewBoxHeight = Math.floor(1000 * height + extraViniculum) + vbPad;
-// span = sqrtSvg("sqrtTall", spanHeight, viewBoxHeight, extraViniculum,
-// options);
-// span.style.minWidth = "0.742em";
-// advanceWidth = 1.056;
-// }
-// 
-// span.height = texHeight;
-// span.style.height = makeEm(spanHeight);
-// 
-// return {
-// span,
-// advanceWidth,
-// // Calculate the actual line width.
-// // This actually should depend on the chosen font -- e.g. \boldmath
-// // should use the thicker surd symbols from e.g. KaTeX_Main-Bold, and
-// // have thicker rules.
-// ruleWidth: (options.fontMetrics().sqrtRuleThickness + extraViniculum)
-// * sizeMultiplier,
-// };
-// };
-// 
+//
+// All surds have 0.08em padding above the viniculum inside the SVG.
+// That keeps browser span height rounding error from pinching the line.
+const VB_PAD: f64 = 80.0;
+// padding above the surd, measured inside the viewBox.
+const EM_PAD: f64 = 0.08;
+
+// padding, in ems, measured in the document.
+//
+fn sqrt_svg(
+    sqrtName: String,
+    height: f64,
+    viewBoxHeight: f64,
+    extraViniculum: f64,
+    options: &Options,
+) -> Span {
+    let path = sqrt_path(&sqrtName, extraViniculum, viewBoxHeight);
+    let pathNode = PathNode::new(sqrtName, Some(path));
+
+    let svg = SvgNode::new(vec![Box::new(pathNode) as Box<dyn VirtualNode>], HashMap::from([
+    // Note: 1000:1 ratio of viewBox to document em width.
+                                                             ("width".to_string(), "400em".to_string()),
+                                                             ("height".to_string(), make_em(height)),
+                                                              ("viewBox".to_string(), format!("0 0 400000 {}" , viewBoxHeight)),
+                                                              ("preserveAspectRatio".to_string(), "xMinYMin slice".to_string())
+
+    ]
+
+    )
+    );
+
+    return Span::new(vec!["hide-tail".to_string()], vec![Box::new(svg) as Box<dyn HtmlDomNode>], Some(options.clone()), Default::default());
+}
+
+//
+/**
+ * Make a sqrt image of the given height,
+ * return (img, advance_width, rule_width)
+ */
+pub fn make_sqrt_image(height: f64, options: &Options) -> (Span, f64, f64) {
+    // Define a new_options that removes the effect of size changes such as \Huge.
+    // We don't pick different a height surd for \Huge. For it, we scale up.
+    let new_options = options.having_base_sizing();
+
+    // Pick the desired surd glyph from a sequence of surds.
+    let stack_large_delimiter_sequence = STACK_LARGE_DELIMITER_SEQUEUE.read().unwrap();
+    let delim = traverse_sequence(
+        &"\\surd".to_string(),
+        height * new_options.sizeMultiplier,
+        stack_large_delimiter_sequence.clone(),
+        &new_options,
+    );
+
+    let mut size_multiplier = new_options.sizeMultiplier; // default
+
+    // The standard sqrt SVGs each have a 0.04em thick viniculum.
+    // If Settings.minRuleThickness is larger than that, we add extra_viniculum.
+    let extra_viniculum = f64::max(
+        0.0,
+        options.minRuleThickness - options.get_font_metrics().sqrtRuleThickness,
+    );
+
+    // Create a span containing an SVG image of a sqrt symbol.
+    let mut span;
+    let mut span_height = 0.0;
+    let mut tex_height = 0.0;
+    let mut view_box_height = 0.0;
+    let advance_width;
+
+    // We create viewBoxes with 80 units of "padding" above each surd.
+    // Then browser rounding error on the parent span height will not
+    // encroach on the ink of the viniculum. But that padding is not
+    // included in the TeX-like `height` used for calculation of
+    // vertical alignment. So tex_height = span.height < span.style.height.
+
+    match delim {
+        Delimiter::Small(s) => {
+            // Get an SVG that is derived from glyph U+221A in font KaTeX-Main.
+            // 1000 unit normal glyph height.
+            view_box_height = 1000.0 + 1000.0 * extra_viniculum + VB_PAD;
+            if (height < 1.0) {
+                size_multiplier = 1.0; // mimic a \textfont radical
+            } else if (height < 1.4) {
+                size_multiplier = 0.7; // mimic a \scriptfont radical
+            }
+            span_height = (1.0 + extra_viniculum + EM_PAD) / size_multiplier;
+            tex_height = (1.0 + extra_viniculum) / size_multiplier;
+            span = sqrt_svg(
+                "sqrtMain".to_string(),
+                span_height,
+                view_box_height,
+                extra_viniculum,
+                options,
+            );
+            span.get_mut_style().min_width = Some("0.853em".to_string());
+            advance_width = 0.833 / size_multiplier; // from the font.
+        }
+        Delimiter::Large(size) => {
+            // These SVGs come from fonts: KaTeX_Size1, _Size2, etc.
+            view_box_height = (1000.0 + VB_PAD) * SIZE_TO_MAX_HEIGHT[size];
+            tex_height = (SIZE_TO_MAX_HEIGHT[size] + extra_viniculum) / size_multiplier;
+            span_height = (SIZE_TO_MAX_HEIGHT[size] + extra_viniculum + EM_PAD) / size_multiplier;
+            span = sqrt_svg(
+                format!("sqrtSize{}", size),
+                span_height,
+                view_box_height,
+                extra_viniculum,
+                options,
+            );
+            span.get_mut_style().min_width = Some("1.02em".to_string());
+            advance_width = 1.0 / size_multiplier; // 1.0 from the font.
+        }
+        Delimiter::Stack => {
+            // Tall sqrt. In TeX, this would be stacked using multiple glyphs.
+            // We'll use a single SVG to accomplish the same thing.
+            span_height = height + extra_viniculum + EM_PAD;
+            tex_height = height + extra_viniculum;
+            view_box_height = f64::floor(1000.0 * height + extra_viniculum) + VB_PAD;
+            span = sqrt_svg(
+                "sqrtTall".to_string(),
+                span_height,
+                view_box_height,
+                extra_viniculum,
+                options,
+            );
+            span.get_mut_style().min_width = Some("0.742em".to_string());
+            advance_width = 1.056;
+        }
+    };
+
+    span.set_height(tex_height);
+    span.get_mut_style().height = Some(make_em(span_height));
+
+    return (
+        span,
+        advance_width,
+        // Calculate the actual line width.
+        // This actually should depend on the chosen font -- e.g. \boldmath
+        // should use the thicker surd symbols from e.g. KaTeX_Main-Bold, and
+        // have thicker rules.
+        (options.get_font_metrics().sqrtRuleThickness + extra_viniculum) * size_multiplier,
+    );
+}
+
+//
 // // There are three kinds of delimiters, delimiters that stack when they become
 // // too large
-// const stackLargeDelimiters = [
+// let stackLargeDelimiters = [
 //     "(", "\\lparen", ")", "\\rparen",
 //     "[", "\\lbrack", "]", "\\rbrack",
 //     "\\{", "\\lbrace", "\\}", "\\rbrace",
@@ -587,9 +596,9 @@ use crate::types::Mode;
 //     "\\lceil", "\\rceil", "\u2308", "\u2309",
 //     "\\surd",
 // ];
-// 
+//
 // // delimiters that always stack
-// const stackAlwaysDelimiters = [
+// let stackAlwaysDelimiters = [
 //     "\\uparrow", "\\downarrow", "\\updownarrow",
 //     "\\Uparrow", "\\Downarrow", "\\Updownarrow",
 //     "|", "\\|", "\\vert", "\\Vert",
@@ -597,21 +606,23 @@ use crate::types::Mode;
 //     "\\lgroup", "\\rgroup", "\u27ee", "\u27ef",
 //     "\\lmoustache", "\\rmoustache", "\u23b0", "\u23b1",
 // ];
-// 
+//
 // // and delimiters that never stack
-// const stackNeverDelimiters = [
+// let stackNeverDelimiters = [
 //     "<", ">", "\\langle", "\\rangle", "/", "\\backslash", "\\lt", "\\gt",
 // ];
-// 
-// // Metrics of the different sizes. Found by looking at TeX's output of
-// // $\bigl| // \Bigl| \biggl| \Biggl| \showlists$
-// // Used to create stacked delimiters of appropriate sizes in makeSizedDelim.
-// const sizeToMaxHeight = [0, 1.2, 1.8, 2.4, 3.0];
-// 
+//
+
+// Metrics of the different sizes. Found by looking at TeX's output of
+// $\bigl| // \Bigl| \biggl| \Biggl| \showlists$
+// Used to create stacked delimiters of appropriate sizes in makeSizedDelim.
+const SIZE_TO_MAX_HEIGHT: [f64; 5] = [0.0, 1.2, 1.8, 2.4, 3.0];
+
+//
 // /**
 //  * Used to create a delimiter of a specific size, where `size` is 1, 2, 3, or 4.
 //  */
-// const makeSizedDelim = function(
+// let makeSizedDelim = function(
 //     delim: String,
 //     size: f64,
 //     options: Options,
@@ -624,19 +635,19 @@ use crate::types::Mode;
 // } else if (delim == ">" | | delim == "\\gt" | | delim == "\u27e9") {
 // delim = "\\rangle";
 // }
-// 
+//
 // // Sized delimiters are never centered.
 // if (utils.contains(stackLargeDelimiters, delim) | |
 // utils.contains(stackNeverDelimiters, delim)) {
 // return makeLargeDelim(delim, size, false, options, mode, classes);
 // } else if (utils.contains(stackAlwaysDelimiters, delim)) {
 // return makeStackedDelim(
-// delim, sizeToMaxHeight[size], false, options, mode, classes);
+// delim, SIZE_TO_MAX_HEIGHT[size], false, options, mode, classes);
 // } else {
 // throw new ParseError("Illegal delimiter: '" + delim + "'");
 // }
 // };
-// 
+//
 // /**
 //  * There are three different sequences of delimiter sizes that the delimiters
 //  * follow depending on the kind of delimiter. This is used when creating custom
@@ -648,14 +659,16 @@ use crate::types::Mode;
 //  * are possible for the delimiters that TeX defines, it is easier to just encode
 //  * them explicitly here.
 //  */
-// 
-// type Delimiter =
-// { type : "small", style: StyleInterface} |
-// {type: "large", size: 1 | 2 | 3 | 4} |
-// {type: "stack"};
-// 
+//
+#[derive(Clone)]
+enum Delimiter {
+    Small(StyleInterface),
+    Large(usize),
+    Stack,
+}
+
 // // Delimiters that never stack try small delimiters and large delimiters only
-// const stackNeverDelimiterSequence = [
+// let stackNeverDelimiterSequence = [
 //     { type : "small", style: Style.SCRIPTSCRIPT },
 //     { type : "small", style: Style.SCRIPT },
 //     { type : "small", style: Style.TEXT },
@@ -664,86 +677,103 @@ use crate::types::Mode;
 //     { type : "large", size: 3 },
 //     { type : "large", size: 4 },
 // ];
-// 
+//
 // // Delimiters that always stack try the small delimiters first, then stack
-// const stackAlwaysDelimiterSequence = [
+// let stackAlwaysDelimiterSequence = [
 //     { type : "small", style: Style.SCRIPTSCRIPT },
 //     { type : "small", style: Style.SCRIPT },
 //     { type : "small", style: Style.TEXT },
 //     { type : "stack" },
 // ];
-// 
-// // Delimiters that stack when large try the small and then large delimiters, and
-// // stack afterwards
-// const stackLargeDelimiterSequence = [
-//     { type : "small", style: Style.SCRIPTSCRIPT },
-//     { type : "small", style: Style.SCRIPT },
-//     { type : "small", style: Style.TEXT },
-//     { type : "large", size: 1 },
-//     { type : "large", size: 2 },
-//     { type : "large", size: 3 },
-//     { type : "large", size: 4 },
-//     { type : "stack" },
-// ];
-// 
-// /**
-//  * Get the font used in a delimiter based on what kind of delimiter it is.
-//  * TODO(#963) Use more specific font family return type once that is introduced.
-//  */
-// const delimTypeToFont = function( type : Delimiter): String {
-// if ( type.type == "small") {
-// return "Main-Regular";
-// } else if ( type.type == "large") {
-// return "Size" + type.size + "-Regular";
-// } else if ( type.type == "stack") {
-// return "Size4-Regular";
-// } else {
-// throw new Error(`Add support for delim type '${type.type}' here.`);
-// }
-// };
-// 
-// /**
-//  * Traverse a sequence of types of delimiters to decide what kind of delimiter
-//  * should be used to create a delimiter of the given height+depth.
-//  */
-// const traverseSequence = function(
-//     delim: String,
-//     height: f64,
-//     sequence: Delimiter[],
-//     options: Options,
-// ): Delimiter {
-// // Here, we choose the index we should start at in the sequences. In smaller
-// // sizes (which correspond to larger f64s in style.size) we start earlier
-// // in the sequence. Thus, scriptscript starts at index 3-3=0, script starts
-// // at index 3-2=1, text starts at 3-1=2, and display starts at min(2,3-0)=2
-// const start = Math.min(2, 3 - options.style.size);
-// for ( let i = start; i < sequence.length; i++ ) {
-// if (sequence[i].type == "stack") {
-// // This is always the last delimiter, so we just break the loop now.
-// break;
-// }
-// 
-// const metrics = getMetrics(delim, delimTypeToFont(sequence[i]), "math");
-// let heightDepth = metrics.height + metrics.depth;
-// 
-// // Small delimiters are scaled down versions of the same font, so we
-// // account for the style change size.
-// 
-// if (sequence[i].type == "small") {
-// const newOptions = options.havingBaseStyle(sequence[i].style);
-// heightDepth *= newOptions.sizeMultiplier;
-// }
-// 
-// // Check if the delimiter at this size works for the given height.
-// if (heightDepth > height) {
-// return sequence[i];
-// }
-// }
-// 
-// // If we reached the end of the sequence, return the last sequence element.
-// return sequence[sequence.length - 1];
-// };
-// 
+//
+// Delimiters that stack when large try the small and then large delimiters, and
+// stack afterwards
+lazy_static! {
+    static ref STACK_LARGE_DELIMITER_SEQUEUE: RwLock<Vec<Delimiter>> = RwLock::new({
+        let _scriptscript = crate::Style::SCRIPTSCRIPT.read().unwrap();
+        let _script = crate::Style::SCRIPT.read().unwrap();
+        let _text = crate::Style::TEXT.read().unwrap();
+        let res = vec![
+            Delimiter::Small(_scriptscript.clone()),
+            Delimiter::Small(_script.clone()),
+            Delimiter::Small(_text.clone()),
+            Delimiter::Large(1),
+            Delimiter::Large(2),
+            Delimiter::Large(3),
+            Delimiter::Large(4),
+            Delimiter::Stack,
+        ];
+        res
+    });
+}
+
+/**
+ * Get the font used in a delimiter based on what kind of delimiter it is.
+ * TODO(#963) Use more specific font family return type once that is introduced.
+ */
+fn delim_type_to_font(t: &Delimiter) -> String {
+    return match t {
+        Delimiter::Small(_) => "Main-Regular".to_string(),
+        Delimiter::Large(size) => {
+            format!("Size{size}-Regular")
+        }
+        Delimiter::Stack => "Size4-Regular".to_string(),
+    };
+}
+
+/**
+ * Traverse a sequence of types of delimiters to decide what kind of delimiter
+ * should be used to create a delimiter of the given height+depth.
+ */
+fn traverse_sequence(
+    delim: &str,
+    height: f64,
+    sequence: Vec<Delimiter>,
+    options: &Options,
+) -> Delimiter {
+    // Here, we choose the index we should start at in the sequences. In smaller
+    // sizes (which correspond to larger f64s in style.size) we start earlier
+    // in the sequence. Thus, scriptscript starts at index 3-3=0, script starts
+    // at index 3-2=1, text starts at 3-1=2, and display starts at min(2,3-0)=2
+    let start = f64::min(2.0, 3.0 - options.get_style().size as f64) as usize;
+
+    for s in sequence[start..].iter() {
+        match s {
+            Delimiter::Small(style) => {
+                let metrics = get_metrics(delim, &delim_type_to_font(s), Mode::math);
+                let mut heightDepth = metrics.height + metrics.depth;
+
+                // Small delimiters are scaled down versions of the same font, so we
+                // account for the style change size.
+
+                let newOptions = options.having_base_style(style);
+                heightDepth *= newOptions.sizeMultiplier;
+
+                // Check if the delimiter at this size works for the given height.
+                if heightDepth > height {
+                    return s.clone();
+                }
+            }
+            Delimiter::Large(large) => {
+                let metrics = get_metrics(delim, &delim_type_to_font(s), Mode::math);
+                let heightDepth = metrics.height + metrics.depth;
+
+                // Check if the delimiter at this size works for the given height.
+                if heightDepth > height {
+                    return s.clone();
+                }
+            }
+            Delimiter::Stack => {
+                // This is always the last delimiter, so we just break the loop now.
+                break;
+            }
+        }
+    }
+
+    // If we reached the end of the sequence, return the last sequence element.
+    return sequence.last().unwrap().clone();
+}
+
 /**
  * Make a delimiter of a given height+depth, with optional centering. Here, we
  * traverse the sequences, and create a delimiter that the sequence tells us to.
@@ -757,45 +787,45 @@ pub fn make_custom_sized_delim(
     classes: Vec<String>,
 ) -> Span {
     panic!("undefined make custom sized delim");
-// if delim == "<" || delim == "\\lt" || delim == "\u{27e8}" {
-// delim = "\\langle";
-// } else if delim == ">" || delim == "\\gt" || delim == "\u{27e9}" {
-// delim = "\\rangle";
-// }
-//
-// // Decide what sequence to use
-// let sequence;
-// if (utils.contains(stackNeverDelimiters, delim)) {
-// sequence = stackNeverDelimiterSequence;
-// } else if (utils.contains(stackLargeDelimiters, delim)) {
-// sequence = stackLargeDelimiterSequence;
-// } else {
-// sequence = stackAlwaysDelimiterSequence;
-// }
-//
-// // Look through the sequence
-// const delimType = traverseSequence(delim, height, sequence, options);
-//
-// // Get the delimiter from font glyphs.
-// // Depending on the sequence element we decided on, call the
-// // appropriate function.
-// if (delimType.type == "small") {
-// return makeSmallDelim(delim, delimType.style, center, options,
-// mode, classes);
-// } else if (delimType.type == "large") {
-// return makeLargeDelim(delim, delimType.size, center, options, mode,
-// classes);
-// } else /* if (delimType.type == "stack") */ {
-// return makeStackedDelim(delim, height, center, options, mode,
-// classes);
-// }
+    // if delim == "<" || delim == "\\lt" || delim == "\u{27e8}" {
+    // delim = "\\langle";
+    // } else if delim == ">" || delim == "\\gt" || delim == "\u{27e9}" {
+    // delim = "\\rangle";
+    // }
+    //
+    // // Decide what sequence to use
+    // let sequence;
+    // if (utils.contains(stackNeverDelimiters, delim)) {
+    // sequence = stackNeverDelimiterSequence;
+    // } else if (utils.contains(stackLargeDelimiters, delim)) {
+    // sequence = stackLargeDelimiterSequence;
+    // } else {
+    // sequence = stackAlwaysDelimiterSequence;
+    // }
+    //
+    // // Look through the sequence
+    // let delimType = traverseSequence(delim, height, sequence, options);
+    //
+    // // Get the delimiter from font glyphs.
+    // // Depending on the sequence element we decided on, call the
+    // // appropriate function.
+    // if (delimType.type == "small") {
+    // return makeSmallDelim(delim, delimType.style, center, options,
+    // mode, classes);
+    // } else if (delimType.type == "large") {
+    // return makeLargeDelim(delim, delimType.size, center, options, mode,
+    // classes);
+    // } else /* if (delimType.type == "stack") */ {
+    // return makeStackedDelim(delim, height, center, options, mode,
+    // classes);
+    // }
 }
-// 
+//
 // /**
 //  * Make a delimiter for use with `\left` and `\right`, given a height and depth
 //  * of an expression that the delimiters surround.
 //  */
-// const makeLeftRightDelim = function(
+// let makeLeftRightDelim = function(
 //     delim: String,
 //     height: f64,
 //     depth: f64,
@@ -804,17 +834,17 @@ pub fn make_custom_sized_delim(
 //     classes: String[],
 // ): DomSpan {
 // // We always center \left/\right delimiters, so the axis is always shifted
-// const axisHeight =
+// let axisHeight =
 //     options.fontMetrics().axisHeight * options.sizeMultiplier;
-// 
+//
 // // Taken from TeX source, tex.web, function make_left_right
-// const delimiterFactor = 901;
-// const delimiterExtend = 5.0 / options.fontMetrics().ptPerEm;
-// 
-// const maxDistFromAxis = Math.max(
+// let delimiterFactor = 901;
+// let delimiterExtend = 5.0 / options.fontMetrics().ptPerEm;
+//
+// let maxDistFromAxis = Math.max(
 //     height - axisHeight, depth + axisHeight);
-// 
-// const totalHeight = Math.max(
+//
+// let totalHeight = Math.max(
 //     // In real TeX, calculations are done using integral values which are
 //     // 65536 per pt, or 655360 per em. So, the division here truncates in
 //     // TeX but doesn't here, producing different results. If we wanted to
@@ -826,16 +856,16 @@ pub fn make_custom_sized_delim(
 //     // in TeX and KaTeX)
 //     maxDistFromAxis / 500 * delimiterFactor,
 //     2 * maxDistFromAxis - delimiterExtend);
-// 
+//
 // // Finally, we defer to `make_custom_sized_delim` with our calculated total
 // // height
 // return make_custom_sized_delim(delim, totalHeight, true, options, mode, classes);
 // };
-// 
+//
 // export default {
 // sqrtImage: makeSqrtImage,
 // sizedDelim: makeSizedDelim,
-// sizeToMaxHeight: sizeToMaxHeight,
+// SIZE_TO_MAX_HEIGHT: SIZE_TO_MAX_HEIGHT,
 // customSizedDelim: make_custom_sized_delim,
 // leftRightDelim: makeLeftRightDelim,
 // };

@@ -56,7 +56,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                 .downcast_ref::<parse_node::types::horizBrace>()
                 .unwrap()
         };
-    let _display = crate::Style::DISPLAY.lock().unwrap();
+    let _display = crate::Style::DISPLAY.read().unwrap();
     // Build the base group
     let body = HTML::build_group(Some(group.base.clone()), options.having_base_style(&_display), None);
 

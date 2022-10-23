@@ -23,8 +23,8 @@ use wasm_bindgen::prelude::*;
     / / surd
 */
 
-fn sqrtMain(extraViniculum: f64, hLinePad: f64) -> String {
-    // sqrtMain path geometry is from glyph U221A in the font KaTeX Main
+fn sqrt_main(extraViniculum: f64, hLinePad: f64) -> String {
+    // sqrt_main path geometry is from glyph U221A in the font KaTeX Main
     return format!(
         "M95,{}
 c-2.7,0,-7.17,-2.7,-13.5,-8c-5.8,-5.3,-9.5,-10,-9.5,-14
@@ -165,17 +165,17 @@ c-4-3.333-8.333-7.667-13 -13l-13-13l77-155 77-156c66 199.333 139 419.667
     );
 }
 
-#[wasm_bindgen]
-pub fn sqrtPath(size: String, mut extraViniculum: f64, viewBoxHeight: f64) -> String {
-    extraViniculum = 1000.0 * extraViniculum; // Convert from document ems to viewBox.
-    const hLinePad: f64 = 80.0; // padding above a sqrt viniculum. Prevents image cropping.
-    match size.as_str() {
-        "sqrtMain" => sqrtMain(extraViniculum, hLinePad),
-        "sqrtSize1" => sqrtSize1(extraViniculum, hLinePad),
-        "sqrtSize2" => sqrtSize2(extraViniculum, hLinePad),
-        "sqrtSize3" => sqrtSize3(extraViniculum, hLinePad),
-        "sqrtSize4" => sqrtSize4(extraViniculum, hLinePad),
-        "sqrtTall" => sqrtTall(extraViniculum, hLinePad, viewBoxHeight),
+
+pub fn sqrt_path(size: &str, mut extra_viniculum: f64, view_box_height: f64) -> String {
+    extra_viniculum = 1000.0 * extra_viniculum; // Convert from document ems to viewBox.
+    const H_LINE_PAD: f64 = 80.0; // padding above a sqrt viniculum. Prevents image cropping.
+    match size {
+        "sqrtMain" => sqrt_main(extra_viniculum, H_LINE_PAD),
+        "sqrtSize1" => sqrtSize1(extra_viniculum, H_LINE_PAD),
+        "sqrtSize2" => sqrtSize2(extra_viniculum, H_LINE_PAD),
+        "sqrtSize3" => sqrtSize3(extra_viniculum, H_LINE_PAD),
+        "sqrtSize4" => sqrtSize4(extra_viniculum, H_LINE_PAD),
+        "sqrtTall" => sqrtTall(extra_viniculum, H_LINE_PAD, view_box_height),
         _ => String::from("_"),
     }
 }

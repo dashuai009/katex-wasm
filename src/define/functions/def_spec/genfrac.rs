@@ -19,10 +19,10 @@ use std::sync::Mutex;
 
 pub fn adjust_style(size: &String, original_style: StyleInterface) -> StyleInterface {
     use crate::Style::{DISPLAY, SCRIPT, SCRIPTSCRIPT, TEXT};
-    let _script = SCRIPT.lock().unwrap();
-    let _display = DISPLAY.lock().unwrap();
-    let _script_script = SCRIPTSCRIPT.lock().unwrap();
-    let _text = TEXT.lock().unwrap();
+    let _script = SCRIPT.read().unwrap();
+    let _display = DISPLAY.read().unwrap();
+    let _script_script = SCRIPTSCRIPT.read().unwrap();
+    let _text = TEXT.read().unwrap();
     // Figure out what style this fraction should be in based on the
     // function used
     let mut style = original_style;
@@ -106,7 +106,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     let mut numShift;
     let clearance;
     let mut denomShift;
-    let _display = crate::Style::DISPLAY.lock().unwrap();
+    let _display = crate::Style::DISPLAY.read().unwrap();
     if style.size == _display.size || group.size == "display" {
         numShift = options.get_font_metrics().num1;
         if rule_width > 0.0 {
@@ -217,8 +217,8 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     frac.set_depth(frac.get_depth() * newOptions.sizeMultiplier / options.sizeMultiplier);
 
     // Rule 15e
-    let _scriptscript = crate::Style::SCRIPTSCRIPT.lock().unwrap();
-    let _script = crate::Style::SCRIPT.lock().unwrap();
+    let _scriptscript = crate::Style::SCRIPTSCRIPT.read().unwrap();
+    let _script = crate::Style::SCRIPT.read().unwrap();
     let delimSize = if style.size == _display.size {
         options.get_font_metrics().delim1
     } else if style.size == _scriptscript.size {

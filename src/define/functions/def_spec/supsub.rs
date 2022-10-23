@@ -21,7 +21,7 @@ fn html_builder_delegate(
     group: &parse_node::types::supsub,
     options: &Options,
 ) -> Option<fn(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode>> {
-    let style = crate::Style::DISPLAY.lock().unwrap();
+    let style = crate::Style::DISPLAY.read().unwrap();
     if let Some(base) = &group.base {
         if let Some(op) = base.as_any().downcast_ref::<parse_node::types::op>() {
             // Operators handle supsubs differently when they have limits
@@ -123,7 +123,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         }
     }
 
-    let display_style = crate::Style::DISPLAY.lock().unwrap();
+    let display_style = crate::Style::DISPLAY.read().unwrap();
     // Rule 18c
     let min_sup_shift;
     if options.get_style() == display_style.clone() {

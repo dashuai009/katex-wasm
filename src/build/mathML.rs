@@ -148,13 +148,13 @@ pub fn get_variant(_group: &Box<dyn AnyParseNode>, options: &Options) -> Option<
     let font_info = font_map.get(&font.as_str()).unwrap();
     if let Some(sym) = get_symbol(mode, text) {
         if let Some(s) = sym.replace {
-            if get_character_metrics(&s, font_info.fontName.to_string(), mode).is_some() {
+            if get_character_metrics(&s, font_info.fontName , mode).is_some() {
                 return Some(font_info.variant);
             }
         }
     }
 
-    if get_character_metrics(text, font_info.fontName.to_string(), mode).is_some() {
+    if get_character_metrics(text, font_info.fontName , mode).is_some() {
         return Some(font_info.variant);
     }
 

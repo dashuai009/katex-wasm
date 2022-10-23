@@ -48,16 +48,6 @@ pub fn _get_font_char(font: String, character: String) -> Option<CharacterMetric
     get_char_metrics(&font, character)
 }
 
-#[wasm_bindgen]
-pub fn _set_font_char(
-    font: String,
-    character: String,
-    target: CharacterMetrics,
-) -> Option<CharacterMetrics> {
-    //console_log!("_set_font_char: font = {} character = {}",font,character);
-    set_char_metrics(font, character, target)
-}
-
 /**
  * This function is a convenience function for looking up information in the
  * metricMap table. It takes a character as a string, and a font.
@@ -66,16 +56,16 @@ pub fn _set_font_char(
  * built using `Make extended_metrics`.
  */
 pub fn get_character_metrics(
-    character: &String,
-    font: String,
+    character: &str,
+    font: &str,
     mode: Mode,
 ) -> Option<CharacterMetrics> {
     let mut ch = character.chars().next().unwrap();
-    let mut metrics = get_char_metrics(&font, (ch as u32).to_string());
+    let mut metrics = get_char_metrics(font, (ch as u32).to_string());
     let _extra_char = extra_character_map.lock().unwrap();
     let tmp_ch = _extra_char.get(&ch);
     if metrics.is_none() && tmp_ch.is_some() {
-        metrics = get_char_metrics(&font, (tmp_ch.unwrap().to_owned() as u32).to_string());
+        metrics = get_char_metrics(font, (tmp_ch.unwrap().to_owned() as u32).to_string());
         ch = tmp_ch.unwrap().clone();
     }
 
@@ -98,7 +88,7 @@ pub fn get_character_metrics(
 
 #[wasm_bindgen]
 pub fn wasm_getCharacterMetrics(c: String, f: String, m: String) -> Option<CharacterMetrics> {
-    get_character_metrics(&c, f, Mode::from_str(m.as_str()).unwrap())
+    get_character_metrics(&c, &f, Mode::from_str(m.as_str()).unwrap())
 }
 
 #[wasm_bindgen]

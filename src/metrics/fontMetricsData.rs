@@ -2114,8 +2114,8 @@ lazy_static! {
     );
 
 }
-pub fn get_char_metrics(font:&String,character:String)->Option<CharacterMetrics>{
-    match font.as_str(){
+pub fn get_char_metrics(font:&str,character:String)->Option<CharacterMetrics>{
+    match font {
         "AMS-Regular" => AMS_Regular_map.lock().unwrap().get(&character).copied(),
         "Caligraphic-Regular" => Caligraphic_Regular_map.lock().unwrap().get(&character).copied(),
         "Fraktur-Regular" => Fraktur_Regular_map.lock().unwrap().get(&character).copied(),
@@ -2137,8 +2137,8 @@ pub fn get_char_metrics(font:&String,character:String)->Option<CharacterMetrics>
         _ => None
     }
 }
-pub fn set_char_metrics(font:String,character:String, target:CharacterMetrics)->Option<CharacterMetrics>{
-    match font.as_str(){
+pub fn set_char_metrics(font:&str,character:String, target:CharacterMetrics)->Option<CharacterMetrics>{
+    match font{
         "AMS-Regular" => AMS_Regular_map.lock().unwrap().insert(character,target),
         "Caligraphic-Regular" => Caligraphic_Regular_map.lock().unwrap().insert(character,target),
         "Fraktur-Regular" => Fraktur_Regular_map.lock().unwrap().insert(character,target),

@@ -19,7 +19,9 @@ pub enum MathNodeType {
     Mover,
     Mstyle,
     Mspace,
-    Menclose
+    Menclose,
+    Mroot,
+    Msqrt
 }
 
 impl FromStr for MathNodeType {
@@ -42,6 +44,8 @@ impl FromStr for MathNodeType {
             "mstyle" => Ok(MathNodeType::Mstyle),
             "mspace" => Ok(MathNodeType::Mspace),
             "menclose" => Ok(MathNodeType::Menclose),
+            "mroot" =>Ok(MathNodeType::Mroot),
+            "msqrt" => Ok(MathNodeType::Msqrt),
             _ => Err(()),
         }
     }
@@ -64,7 +68,9 @@ impl MathNodeType {
             MathNodeType::Mover => "mover",
             MathNodeType::Mstyle => "mstyle",
             MathNodeType::Mspace => "mspace",
-            MathNodeType::Menclose => "menclose"
+            MathNodeType::Menclose => "menclose",
+            MathNodeType::Mroot => "mroot",
+            MathNodeType::Msqrt => "msqrt"
         }
     }
 }

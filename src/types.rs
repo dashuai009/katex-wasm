@@ -74,19 +74,19 @@ impl StyleStr {
     pub fn as_style(&self) -> StyleInterface {
         match self {
             StyleStr::text => {
-                let res = crate::Style::TEXT.lock().unwrap();
+                let res = crate::Style::TEXT.read().unwrap();
                 res.clone()
             }
             StyleStr::display => {
-                let res = crate::Style::DISPLAY.lock().unwrap();
+                let res = crate::Style::DISPLAY.read().unwrap();
                 res.clone()
             }
             StyleStr::script => {
-                let res = crate::Style::SCRIPT.lock().unwrap();
+                let res = crate::Style::SCRIPT.read().unwrap();
                 res.clone()
             }
             StyleStr::scriptscript => {
-                let res = crate::Style::SCRIPTSCRIPT.lock().unwrap();
+                let res = crate::Style::SCRIPTSCRIPT.read().unwrap();
                 res.clone()
             }
         }
