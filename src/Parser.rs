@@ -331,7 +331,7 @@ impl Parser<'_> {
     //  * Converts the textual input of an unsupported command into a text node
     //  * contained within a color node whose color is determined by errorColor
     //  */
-    pub fn format_unsupported_cmd(&self, text: &String) -> parse_node::types::color {
+    pub fn format_unsupported_cmd(&self, text: &str) -> parse_node::types::color {
         let textord_array = text
             .chars()
             .map(|c| {
@@ -617,7 +617,6 @@ impl Parser<'_> {
         let mut args = vec![];
         let mut opt_args = vec![];
 
-        let mut i = 0usize;
         for i in 0..total_args{
             let mut arg_type = func_data.0.get_arg_types().get(i);
             let is_optional = i < func_data.0.get_num_optional_args() as usize;

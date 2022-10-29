@@ -301,10 +301,10 @@ pub struct environment {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct font {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    font: String,
-    pub(crate) body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub font: String,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -363,13 +363,13 @@ pub struct htmlmathml {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct includegraphics {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    alt: String,
-    width: Measurement,
-    height: Measurement,
-    totalheight: Measurement,
-    src: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub alt: String,
+    pub width: Measurement,
+    pub height: Measurement,
+    pub totalheight: Measurement,
+    pub src: String,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

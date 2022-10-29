@@ -15,6 +15,7 @@ mod text;
 mod hbox;
 mod html;
 mod sqrt;
+mod includegraphics;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -45,6 +46,7 @@ lazy_static! {
         let m = hbox::HBOX.lock().unwrap();
         let n = html::HTML_SPEC.lock().unwrap();
         let o = sqrt::SQRT.lock().unwrap();
+        let p = includegraphics::INCLUDE_GRAPHICS.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -69,7 +71,8 @@ lazy_static! {
             l.clone(),
             m.clone(),
             n.clone(),
-            o.clone()
+            o.clone(),
+            p.clone()
         ];
         res
     });

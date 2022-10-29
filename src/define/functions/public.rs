@@ -269,16 +269,24 @@ pub fn test(a: i32, b: i32) -> i32 {
 //     });
 // }
 
-// export const normalizeArgument = function(arg: AnyParseNode): AnyParseNode {
-//     return arg.type === "ordgroup" && arg.body.length === 1 ? arg.body[0] : arg;
-// };
+pub fn normalize_argument(arg: &Box<dyn AnyParseNode>) -> &Box<dyn AnyParseNode> {
+    return if let Some(ord_group) = arg.as_any().downcast_ref::<parse_node::types::ordgroup>() {
+        if ord_group.body.len() == 1{
+            &ord_group.body[0]
+        } else{
+            arg
+        }
+    }else{
+        arg
+    };
+}
 
 // Since the corresponding buildHTML/buildMathML function expects a
 // list of elements, we normalize for different kinds of arguments
 pub fn ord_argument(arg: &Box<dyn AnyParseNode>) -> Vec<Box<dyn AnyParseNode>> {
-    if let Some(ord_group) = arg.as_any().downcast_ref::<parse_node::types::ordgroup>() {
-        return ord_group.body.clone();
+    return if let Some(ord_group) = arg.as_any().downcast_ref::<parse_node::types::ordgroup>() {
+        ord_group.body.clone()
     } else {
-        return vec![arg.clone()];
+        vec![arg.clone()]
     }
 }

@@ -50,7 +50,8 @@ const TEST_CASE: [&str; 1] = [
     // r"\href{https://www.dashuai009.icu}{dashuai009} \url{https:www.dashuai009.icu} \textbf{Ab0} \textit{Ab0} \textrm{Ab0} \textup{Ab0} \textnormal{Ab0} \text{Ab0} \textmd{Ab0} \textsf{Ab0}"
     // r"\hbox{a}"
     // r"\htmlId{bar}{x} \htmlClass{foo}{x} \htmlStyle{color: red;}{x} \htmlData{foo=a, bar=b}{x}"
-    r"\sqrt{a^2+b^2} = 1"
+    // r"\sqrt{a^2+b^2} = 1"
+    r"\includegraphics[height=0.8em, totalheight=100px, width=150px, alt=KA logo]{https://katex.org/img/khan-academy.png}"
 ];
 
 

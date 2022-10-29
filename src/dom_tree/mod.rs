@@ -1,7 +1,7 @@
 pub(crate) mod anchor;
 pub mod css_style;
 pub(crate) mod document_fragment;
-mod img;
+pub mod img;
 pub mod line_node;
 pub(crate) mod path_node;
 pub(crate) mod span;
