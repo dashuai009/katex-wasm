@@ -402,10 +402,10 @@ pub struct kern {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct lap {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    alignment: String,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub alignment: String,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
