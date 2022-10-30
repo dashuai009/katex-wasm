@@ -17,6 +17,7 @@ mod html;
 mod sqrt;
 mod includegraphics;
 mod lap;
+mod mathchoice;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -49,6 +50,7 @@ lazy_static! {
         let o = sqrt::SQRT.lock().unwrap();
         let p = includegraphics::INCLUDE_GRAPHICS.lock().unwrap();
         let q = lap::LAP.lock().unwrap();
+        let r = mathchoice::MATH_CHOICE.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -75,7 +77,8 @@ lazy_static! {
             n.clone(),
             o.clone(),
             p.clone(),
-            q.clone()
+            q.clone(),
+            r.clone()
         ];
         res
     });

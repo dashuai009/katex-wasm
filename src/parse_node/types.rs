@@ -428,12 +428,12 @@ pub struct leftright_right {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct mathchoice {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    display: Vec<Box<dyn AnyParseNode>>,
-    text: Vec<Box<dyn AnyParseNode>>,
-    script: Vec<Box<dyn AnyParseNode>>,
-    scriptscript: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub display: Vec<Box<dyn AnyParseNode>>,
+    pub text: Vec<Box<dyn AnyParseNode>>,
+    pub script: Vec<Box<dyn AnyParseNode>>,
+    pub scriptscript: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
