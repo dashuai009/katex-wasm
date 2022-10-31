@@ -1,29 +1,22 @@
-use std::str::FromStr;
+//! This file provides support for Unicode range U+1D400 to U+1D7FF,
+//! Mathematical Alphanumeric Symbols.
+//! Function wideCharacterFont takes a wide character as input and returns
+//! the font information necessary to render it properly.
 
 use crate::types::Mode;
-use wasm_bindgen::prelude::*;
-/**
- * This file provides support for Unicode range U+1D400 to U+1D7FF,
- * Mathematical Alphanumeric Symbols.
- *
- * Function wideCharacterFont takes a wide character as input and returns
- * the font information necessary to render it properly.
- */
+use std::str::FromStr;
 
-// import type {Mode} from "./types";
-// import ParseError from "./ParseError";
+///
+/// Data below is from https://www.unicode.org/charts/PDF/U1D400.pdf
+///    That document sorts characters into groups by font type, say bold or italic.
+///
+/// In the arrays below, each subarray consists three elements:
+///    - The CSS class of that group when in math mode.
+///    - The CSS class of that group when in text mode.
+///    - The font name, so that KaTeX can get font metrics.
+///
 
-/**
- * Data below is from https://www.unicode.org/charts/PDF/U1D400.pdf
- * That document sorts characters into groups by font type, say bold or italic.
- *
- * In the arrays below, each subarray consists three elements:
- *      * The CSS class of that group when in math mode.
- *      * The CSS class of that group when in text mode.
- *      * The font name, so that KaTeX can get font metrics.
- */
-
-const wideLatinLetterData: [[&'static str; 3]; 26] = [
+const WIDE_LATIN_LETTER_DATA: [[&'static str; 3]; 26] = [
     ["mathbf", "textbf", "Main-Bold"],               // A-Z bold upright
     ["mathbf", "textbf", "Main-Bold"],               // a-z bold upright
     ["mathnormal", "textit", "Math-Italic"],         // A-Z italic
@@ -54,7 +47,7 @@ const wideLatinLetterData: [[&'static str; 3]; 26] = [
     ["mathtt", "texttt", "Typewriter-Regular"], // a-z monospace
 ];
 
-const wideNumeralData: [[&'static str; 3]; 5] = [
+const WIDE_NUMERAL_DATA: [[&'static str; 3]; 5] = [
     ["mathbf", "textbf", "Main-Bold"],              // 0-9 bold
     ["", "", ""],                                   // 0-9 double-struck. No KaTeX font.
     ["mathsf", "textsf", "SansSerif-Regular"],      // 0-9 sans-serif
@@ -71,32 +64,25 @@ pub fn wide_character_font(wide_char: &String, mode: Mode) -> Result<[&'static s
 
     let j = if mode == Mode::math { 0 } else { 1 }; // column index for CSS class.
 
-    if 0x1D400 <= code_point && code_point < 0x1D6A4 {
-        // wideLatinLetterData contains exactly 26 chars on each row.
+    return if 0x1D400 <= code_point && code_point < 0x1D6A4 {
+        // WIDE_LATIN_LETTER_DATA contains exactly 26 chars on each row.
         // So we can calculate the relevant row. No traverse necessary.
         let i = (code_point - 0x1D400) / 26;
-        return Ok([wideLatinLetterData[i][2], wideLatinLetterData[i][j]]);
+        Ok([WIDE_LATIN_LETTER_DATA[i][2], WIDE_LATIN_LETTER_DATA[i][j]])
     } else if 0x1D7CE <= code_point && code_point <= 0x1D7FF {
         // Numerals, ten per row.
         let i = (code_point - 0x1D7CE) / 10;
-        return Ok([wideNumeralData[i][2], wideNumeralData[i][j]]);
+        Ok([WIDE_NUMERAL_DATA[i][2], WIDE_NUMERAL_DATA[i][j]])
     } else if code_point == 0x1D6A5 || code_point == 0x1D6A6 {
         // dotless i or j
-        return Ok([wideLatinLetterData[0][2], wideLatinLetterData[0][j]]);
+        Ok([WIDE_LATIN_LETTER_DATA[0][2], WIDE_LATIN_LETTER_DATA[0][j]])
     } else if 0x1D6A6 < code_point && code_point < 0x1D7CE {
         // Greek letters. Not supported, yet.
-        return Ok(["", ""]);
+        Ok(["", ""])
     } else {
         // We don't support any wide characters outside 1D400–1D7FF.
         let err = format!("{}{}", "Unsupported character", wide_char);
-        return Err(err);
+        Err(err)
         //throw new ParseError();
-    }
+    };
 }
-// #[wasm_bindgen]
-// pub fn wideCharacterFont(wide_char: String, mode: String) -> js_sys::Array {
-//    return wide_character_font(wide_char, Mode::from_str(mode.as_str()).unwrap()).unwrap()
-//     .iter()
-//     .map(|s| JsValue::from_str(s))
-//     .collect::<js_sys::Array>();
-// }

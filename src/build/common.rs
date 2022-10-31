@@ -11,7 +11,7 @@ use crate::symbols::LIGATURES;
 use crate::tree::{HtmlDomNode, VirtualNode};
 use crate::types::{FontVariant, Mode};
 use crate::units::make_em;
-use crate::wideCharacter::wide_character_font;
+use crate::wide_character::wide_character_font;
 use crate::Options::Options;
 use crate::{get_character_metrics, get_symbol, parse_node};
 use std::any::Any;

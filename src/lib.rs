@@ -35,7 +35,7 @@ mod unicodeSupOrSub;
 mod unicodeSysmbols;
 mod units;
 mod utils;
-mod wideCharacter;
+mod wide_character;
 mod delimiter;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -60,6 +60,6 @@ use unicodeAccents::*;
 use unicodeScripts::*;
 use unicodeSysmbols::*;
 use units::*;
-use wideCharacter::*;
+use wide_character::*;
 use Style::*;
 
