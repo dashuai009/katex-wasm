@@ -18,6 +18,8 @@ mod sqrt;
 mod includegraphics;
 mod lap;
 mod mathchoice;
+mod op;
+mod assembleSupSub;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -51,6 +53,11 @@ lazy_static! {
         let p = includegraphics::INCLUDE_GRAPHICS.lock().unwrap();
         let q = lap::LAP.lock().unwrap();
         let r = mathchoice::MATH_CHOICE.lock().unwrap();
+        let s1 = op::OP.lock().unwrap();
+        let s2 = op::MATH_OP.lock().unwrap();
+        let s3 = op::TRIGNONOMETRIC_OP.lock().unwrap();
+        let s4 = op::GCD_OP.lock().unwrap();
+        let s5 = op::INT_OP.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -78,7 +85,12 @@ lazy_static! {
             o.clone(),
             p.clone(),
             q.clone(),
-            r.clone()
+            r.clone(),
+            s1.clone(),
+            s2.clone(),
+            s3.clone(),
+            s4.clone(),
+            s5.clone()
         ];
         res
     });

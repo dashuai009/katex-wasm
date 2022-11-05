@@ -29,7 +29,7 @@ fn html_builder_delegate(
             let delegate =
                 op.limits && (options.get_style().size == style.size || op.alwaysHandleSupSub);
             return if delegate {
-                panic!("op::htmlBuilder");
+                Some(super::op::html_builder)
             } else {
                 None
             };

@@ -70,7 +70,7 @@ pub struct color_token {
     pub color: String,
 }
 // To avoid requiring run-time type assertions, this more carefully captures
-// the requirements on the fields per the op.js htmlBuilder logic:
+// the requirements on the fields per the op.rs htmlBuilder logic:
 // - `body` and `value` are NEVER set simultanouesly.
 // - When `symbol` is true, `body` is set.
 #[derive(parse_node_type, Clone, Debug)]

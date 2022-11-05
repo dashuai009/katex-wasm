@@ -53,7 +53,9 @@ const TEST_CASE: [&str; 1] = [
     // r"\sqrt{a^2+b^2} = 1"
     // r"\includegraphics[height=0.8em, totalheight=100px, width=150px, alt=KA logo]{https://katex.org/img/khan-academy.png}"
     // r"{=}\mathllap{/} \mathrlap{/}{=} \mathclap{1\le i\le j\le n}"
-    r"\mathchoice{D}{T}{S}{SS}"
+    // r"\mathchoice{D}{T}{S}{SS}"
+    // r"\sum_{i}",
+    r"\coprod^a"
 ];
 
 

@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate lazy_static;
-extern crate core;
 
 // mod define;
 mod Namespace;
