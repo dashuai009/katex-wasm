@@ -35,7 +35,7 @@ fn size_data(s: &str) -> crate::Measurement {
                 number: format!("{}{}", &cap[1], &cap[2]).parse().unwrap(), // sign + magnitude, cast to number
                 unit: (&cap[3]).to_string(),
             };
-            if !data.validUnit() {
+            if !data.unit_is_valid() {
                 panic!("Invalid unit: '{}' in \\includegraphics.", data.unit);
             }
             return data;

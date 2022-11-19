@@ -61,7 +61,7 @@ use wasm_bindgen::prelude::*;
 //     fboxrule: [0.04, 0.04, 0.04], // 0.4 pt / ptPerEm
 // };
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone, PartialEq)]
 #[wasm_bindgen]
 pub struct FontMetrics {
     pub slant: f64,

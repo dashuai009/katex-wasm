@@ -844,7 +844,7 @@ impl Parser<'_> {
                     format!("{}{}", &m[1], &m[2]).parse().unwrap(), // sign + magnitude, cast to number
                     (&m[3]).to_string(),
                 );
-                if !data.validUnit() {
+                if !data.unit_is_valid() {
                     panic!("Invalid unit: '{}'", data.unit);
                     // throw new ParseError("Invalid unit: '" + data.unit + "'", res);
                 }

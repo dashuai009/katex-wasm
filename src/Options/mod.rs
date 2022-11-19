@@ -26,7 +26,7 @@ pub fn size_at_style(size: f64, style: &StyleInterface) -> f64 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Options {
     style: StyleInterface,
     color: Option<String>,
