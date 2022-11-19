@@ -232,7 +232,7 @@ impl Parser<'_> {
                 break;
             }
         }
-        if (self.mode == Mode::text) {
+        if self.mode == Mode::text {
             body = self.form_ligatures(body);
         }
         return self.handle_infix_nodes(body);

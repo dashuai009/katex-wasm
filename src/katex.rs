@@ -55,7 +55,8 @@ const TEST_CASE: [&str; 1] = [
     // r"{=}\mathllap{/} \mathrlap{/}{=} \mathclap{1\le i\le j\le n}"
     // r"\mathchoice{D}{T}{S}{SS}"
     // r"\sum_{i}",
-    r"\coprod^a"
+    // r"\coprod^a",
+    r"\overline{A}"
 ];
 
 

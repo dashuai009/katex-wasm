@@ -1,12 +1,12 @@
 // For an operator with limits, assemble the base, sup, and sub into a span.
 
-use crate::{AnyParseNode, HtmlDomNode, make_em, StyleInterface};
-use crate::build::{common, HTML};
 use crate::build::common::{PositionType, VListChild, VListParam};
+use crate::build::{common, HTML};
 use crate::dom_tree::span::Span;
-use crate::Options::Options;
 use crate::parse_node::types::lap;
 use crate::utils::is_character_box;
+use crate::Options::Options;
+use crate::{make_em, AnyParseNode, HtmlDomNode, StyleInterface};
 
 pub fn assemble_sup_sub(
     _base: &Box<dyn HtmlDomNode>,
@@ -25,20 +25,36 @@ pub fn assemble_sup_sub(
     // aside from the kern calculations, is copied from supsub.
     if supGroup.is_some() {
         let elem = HTML::build_group(
-            supGroup.clone(), options.having_style(&style.sup()), Some(options.clone()));
+            supGroup.clone(),
+            options.having_style(&style.sup()),
+            Some(options.clone()),
+        );
 
         let elem_depth = elem.get_depth();
-        _sup = Some((elem, f64::max(options.get_font_metrics().bigOpSpacing1, options.get_font_metrics().bigOpSpacing3 - elem_depth)));
+        _sup = Some((
+            elem,
+            f64::max(
+                options.get_font_metrics().bigOpSpacing1,
+                options.get_font_metrics().bigOpSpacing3 - elem_depth,
+            ),
+        ));
     }
 
     if subGroup.is_some() {
         let elem = HTML::build_group(
-            subGroup.clone(), options.having_style(&style.sub()), Some(options.clone()));
+            subGroup.clone(),
+            options.having_style(&style.sub()),
+            Some(options.clone()),
+        );
 
         let elem_height = elem.get_height();
-        _sub = Some((elem
-                     , f64::max(options.get_font_metrics().bigOpSpacing2,
-                                options.get_font_metrics().bigOpSpacing4 - elem_height)));
+        _sub = Some((
+            elem,
+            f64::max(
+                options.get_font_metrics().bigOpSpacing2,
+                options.get_font_metrics().bigOpSpacing4 - elem_height,
+            ),
+        ));
     }
 
     // Build the final group as a vlist of the possible subscript, base,
@@ -46,38 +62,86 @@ pub fn assemble_sup_sub(
     let finalGroup;
     if let Some(sup) = _sup {
         if let Some(sub) = _sub {
-            let bottom = options.get_font_metrics().bigOpSpacing5 +
-                sub.0.get_height() + sub.0.get_depth() +
-                sub.1 +
-                base.get_depth() + baseShift;
+            let bottom = options.get_font_metrics().bigOpSpacing5
+                + sub.0.get_height()
+                + sub.0.get_depth()
+                + sub.1
+                + base.get_depth()
+                + baseShift;
 
-            finalGroup = common::make_vlist(VListParam {
-                position_type: PositionType::Bottom,
-                position_data: Some(bottom),
-                children: vec![
-                    VListChild::Kern { size: options.get_font_metrics().bigOpSpacing5 },
-                    VListChild::Elem { elem: sub.0, margin_left: Some(make_em(-slant)), margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                    VListChild::Kern { size: sub.1 },
-                    VListChild::Elem { elem: Box::new(base) as Box<dyn HtmlDomNode>, margin_left: None, margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                    VListChild::Kern { size:  sup.1 },
-                    VListChild::Elem { elem: sup.0, margin_left: Some(make_em(slant)), margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                    VListChild::Kern { size: options.get_font_metrics().bigOpSpacing5 },
-                ],
-            }, options.clone());
+            finalGroup = common::make_vlist(
+                VListParam {
+                    position_type: PositionType::Bottom,
+                    position_data: Some(bottom),
+                    children: vec![
+                        VListChild::Kern {
+                            size: options.get_font_metrics().bigOpSpacing5,
+                        },
+                        VListChild::Elem {
+                            elem: sub.0,
+                            margin_left: Some(make_em(-slant)),
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                        VListChild::Kern { size: sub.1 },
+                        VListChild::Elem {
+                            elem: Box::new(base) as Box<dyn HtmlDomNode>,
+                            margin_left: None,
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                        VListChild::Kern { size: sup.1 },
+                        VListChild::Elem {
+                            elem: sup.0,
+                            margin_left: Some(make_em(slant)),
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                        VListChild::Kern {
+                            size: options.get_font_metrics().bigOpSpacing5,
+                        },
+                    ],
+                },
+                options.clone(),
+            );
         } else {
             let bottom = base.get_depth() + baseShift;
 
-            finalGroup = common::make_vlist(VListParam {
-                position_type: PositionType::Bottom,
-                position_data: Some(bottom),
-                children: vec![
-                    VListChild::Elem
-                    { elem: Box::new(base) as Box<dyn HtmlDomNode>, margin_left: None, margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                    VListChild::Kern { size: sup.1 },
-                    VListChild::Elem { elem: sup.0, margin_left: Some(make_em(slant)), margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                    VListChild::Kern { size: options.get_font_metrics().bigOpSpacing5 },
-                ],
-            }, options.clone());
+            finalGroup = common::make_vlist(
+                VListParam {
+                    position_type: PositionType::Bottom,
+                    position_data: Some(bottom),
+                    children: vec![
+                        VListChild::Elem {
+                            elem: Box::new(base) as Box<dyn HtmlDomNode>,
+                            margin_left: None,
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                        VListChild::Kern { size: sup.1 },
+                        VListChild::Elem {
+                            elem: sup.0,
+                            margin_left: Some(make_em(slant)),
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                        VListChild::Kern {
+                            size: options.get_font_metrics().bigOpSpacing5,
+                        },
+                    ],
+                },
+                options.clone(),
+            );
         }
     } else {
         if let Some(sub) = _sub {
@@ -87,17 +151,35 @@ pub fn assemble_sup_sub(
             // that we are supposed to shift the limits by 1/2 of the slant,
             // but since we are centering the limits adding a full slant of
             // margin will shift by 1/2 that.
-            finalGroup =  common::make_vlist(VListParam {
-                position_type: PositionType::Top,
-                position_data: Some(top),
-                children: vec![
-                    VListChild::Kern
-                    { size: options.get_font_metrics().bigOpSpacing5 },
-                    VListChild::Elem { elem: sub.0, margin_left: Some(make_em(-slant)), margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                    VListChild::Kern { size: sub.1 },
-                    VListChild::Elem { elem: Box::new(base) as Box<dyn HtmlDomNode>, margin_left: None, margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None },
-                ],
-            }, options.clone());
+            finalGroup = common::make_vlist(
+                VListParam {
+                    position_type: PositionType::Top,
+                    position_data: Some(top),
+                    children: vec![
+                        VListChild::Kern {
+                            size: options.get_font_metrics().bigOpSpacing5,
+                        },
+                        VListChild::Elem {
+                            elem: sub.0,
+                            margin_left: Some(make_em(-slant)),
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                        VListChild::Kern { size: sub.1 },
+                        VListChild::Elem {
+                            elem: Box::new(base) as Box<dyn HtmlDomNode>,
+                            margin_left: None,
+                            margin_right: None,
+                            wrapper_classes: None,
+                            wrapper_style: None,
+                            shift: None,
+                        },
+                    ],
+                },
+                options.clone(),
+            );
         } else {
             // This case probably shouldn't occur (this would mean the
             // supsub was sending us a group with no superscript or
@@ -106,13 +188,23 @@ pub fn assemble_sup_sub(
         }
     }
 
-    let mut parts = vec![Box::new(finalGroup) as Box::<dyn HtmlDomNode>];
+    let mut parts = vec![Box::new(finalGroup) as Box<dyn HtmlDomNode>];
     if subGroup.is_some() && slant != 0.0 && !subIsSingleCharacter {
         // A negative margin-left was applied to the lower limit.
         // Avoid an overlap by placing a spacer on the left on the group.
-        let mut spacer = common::make_span(vec!["mspace".to_string()], vec![], Some(options), Default::default());
+        let mut spacer = common::make_span(
+            vec!["mspace".to_string()],
+            vec![],
+            Some(options),
+            Default::default(),
+        );
         spacer.get_mut_style().margin_right = Some(make_em(slant));
         parts.insert(0, Box::new(spacer) as Box<dyn HtmlDomNode>);
     }
-    return common::make_span(vec!["mop".to_string(), "op-limits".to_string()], parts, Some(options), Default::default());
+    return common::make_span(
+        vec!["mop".to_string(), "op-limits".to_string()],
+        parts,
+        Some(options),
+        Default::default(),
+    );
 }

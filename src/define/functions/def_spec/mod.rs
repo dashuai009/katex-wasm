@@ -20,6 +20,7 @@ mod lap;
 mod mathchoice;
 mod op;
 mod assembleSupSub;
+mod overline;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -58,6 +59,7 @@ lazy_static! {
         let s3 = op::TRIGNONOMETRIC_OP.lock().unwrap();
         let s4 = op::GCD_OP.lock().unwrap();
         let s5 = op::INT_OP.lock().unwrap();
+        let t = overline::OVERLINE.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -90,7 +92,8 @@ lazy_static! {
             s2.clone(),
             s3.clone(),
             s4.clone(),
-            s5.clone()
+            s5.clone(),
+            t.clone()
         ];
         res
     });

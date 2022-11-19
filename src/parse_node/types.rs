@@ -464,9 +464,9 @@ pub struct operatorname {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct overline {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
