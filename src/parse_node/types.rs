@@ -471,23 +471,23 @@ pub struct overline {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct phantom {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct hphantom {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct vphantom {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

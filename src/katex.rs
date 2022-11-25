@@ -56,7 +56,8 @@ const TEST_CASE: [&str; 1] = [
     // r"\mathchoice{D}{T}{S}{SS}"
     // r"\sum_{i}",
     // r"\coprod^a",
-    r"\overline{A}"
+    //r"\overline{A}"
+    r"b\phantom{content}a\hphantom{content}c\vphantom{content}d"
 ];
 
 

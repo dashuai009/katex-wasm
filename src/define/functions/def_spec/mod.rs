@@ -21,6 +21,7 @@ mod mathchoice;
 mod op;
 mod assembleSupSub;
 mod overline;
+mod phantom;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -60,6 +61,9 @@ lazy_static! {
         let s4 = op::GCD_OP.lock().unwrap();
         let s5 = op::INT_OP.lock().unwrap();
         let t = overline::OVERLINE.lock().unwrap();
+        let u1 = phantom::PHANTOM.lock().unwrap();
+        let u2 = phantom::HPHANTOM.lock().unwrap();
+        let u3 = phantom::VPHANTOM.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -93,7 +97,10 @@ lazy_static! {
             s3.clone(),
             s4.clone(),
             s5.clone(),
-            t.clone()
+            t.clone(),
+            u1.clone(),
+            u2.clone(),
+            u3.clone()
         ];
         res
     });
