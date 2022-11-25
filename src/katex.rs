@@ -57,7 +57,8 @@ const TEST_CASE: [&str; 1] = [
     // r"\sum_{i}",
     // r"\coprod^a",
     //r"\overline{A}"
-    r"b\phantom{content}a\hphantom{content}c\vphantom{content}d"
+    //r"b\phantom{content}a\hphantom{content}c\vphantom{content}d"
+    r"\pmb{\mu} \mu"
 ];
 
 

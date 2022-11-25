@@ -492,10 +492,10 @@ pub struct vphantom {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct pmb {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    mclass: String,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub mclass: String,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
