@@ -45,20 +45,20 @@ use crate::{parse_node, AnyParseNode};
 use regex::Regex;
 use std::collections::HashMap;
 lazy_static! {
-    static ref uppercase: Regex = Regex::new("([A-Z])").unwrap();
+    static ref UPPERCASE: Regex = Regex::new("([A-Z])").unwrap();
     static ref ESCAPE_REGEX: Regex = Regex::new("[&><\"']").unwrap();
 }
 
 // hyphenate and escape adapted from Facebook's React under Apache 2 license
 #[wasm_bindgen]
 pub fn hyphenate(s: String) -> String {
-    return uppercase
+    return UPPERCASE
         .replace_all(s.as_str(), "-$1")
         .to_string()
         .to_lowercase();
 }
 
-pub fn ESCAPE_LOOKUP(c: char) -> String {
+pub fn escape_lookup(c: char) -> String {
     return match c {
         '&' => "&amp;".to_string(),
         '>' => "&gt;".to_string(),
@@ -72,7 +72,7 @@ pub fn ESCAPE_LOOKUP(c: char) -> String {
  * Escapes text to prevent scripting attacks.
  */
 pub fn escape(text: &String) -> String {
-    return text.chars().map(ESCAPE_LOOKUP).collect();
+    return text.chars().map(escape_lookup).collect();
 }
 
 /**
@@ -81,25 +81,25 @@ pub fn escape(text: &String) -> String {
  * a single element, we want to pull that out.
  */
 pub fn get_base_elem(_group: &Box<dyn AnyParseNode>) -> &Box<dyn AnyParseNode> {
-    if let Some(group) = _group
+    return if let Some(group) = _group
         .as_any()
         .downcast_ref::<parse_node::types::ordgroup>()
     {
         if group.body.len() == 1 {
-            return get_base_elem(&group.body[0]);
+            get_base_elem(&group.body[0])
         } else {
-            return _group;
+            _group
         }
     } else if let Some(color) = _group.as_any().downcast_ref::<parse_node::types::color>() {
         if color.body.len() == 1 {
-            return get_base_elem(&color.body[0]);
+            get_base_elem(&color.body[0])
         } else {
-            return _group;
+            _group
         }
     } else if let Some(font) = _group.as_any().downcast_ref::<parse_node::types::font>() {
-        return get_base_elem(&font.body);
+        get_base_elem(&font.body)
     } else {
-        return _group;
+        _group
     }
 }
 /**
