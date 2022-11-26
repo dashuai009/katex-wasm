@@ -23,6 +23,7 @@ mod assembleSupSub;
 mod overline;
 mod phantom;
 mod pmb;
+mod raisebox;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -66,6 +67,7 @@ lazy_static! {
         let u2 = phantom::HPHANTOM.lock().unwrap();
         let u3 = phantom::VPHANTOM.lock().unwrap();
         let v = pmb::PMB.lock().unwrap();
+        let w = raisebox::RAISEBOX.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -103,7 +105,8 @@ lazy_static! {
             u1.clone(),
             u2.clone(),
             u3.clone(),
-            v.clone()
+            v.clone(),
+            w.clone()
         ];
         res
     });

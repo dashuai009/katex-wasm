@@ -58,7 +58,8 @@ const TEST_CASE: [&str; 1] = [
     // r"\coprod^a",
     //r"\overline{A}"
     //r"b\phantom{content}a\hphantom{content}c\vphantom{content}d"
-    r"\pmb{\mu} \mu"
+    // r"\pmb{\mu} \mu"
+    r"a\raisebox{0.25em}{b}c"
 ];
 
 

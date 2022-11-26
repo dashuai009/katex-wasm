@@ -500,10 +500,10 @@ pub struct pmb {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct raisebox {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    dy: Measurement,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub dy: Measurement,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
