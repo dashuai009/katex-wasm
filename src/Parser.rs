@@ -77,9 +77,6 @@ impl Parser<'_> {
      */
     pub fn expect(&mut self, text: String, consume: bool) {
         if self.fetch().text != text {
-            // throw new ParseError(
-            //     `Expected '${text}', got '${self.fetch().text}'`, self.fetch()
-            // );
             panic!("Expected '{text}', got '{} ", self.fetch().text);
         }
         if consume {
@@ -118,7 +115,7 @@ impl Parser<'_> {
      * Main parsing function, which parses an entire input.
      */
     pub fn parse(&mut self) -> Vec<Box<dyn AnyParseNode>> {
-        if (!self.settings.get_global_group()) {
+        if !self.settings.get_global_group() {
             // Create a group namespace for the math expression.
             // (LaTeX creates a new group for every $...$, $$...$$, \[...\].)
             self.gullet.begin_group();
@@ -145,7 +142,7 @@ impl Parser<'_> {
         self.expect("EOF".to_string(), true);
 
         // End the group namespace for the expression
-        if (!self.settings.get_global_group()) {
+        if !self.settings.get_global_group() {
             self.gullet.end_group();
         }
 

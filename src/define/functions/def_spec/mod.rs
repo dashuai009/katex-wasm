@@ -24,6 +24,8 @@ mod overline;
 mod phantom;
 mod pmb;
 mod raisebox;
+mod smash;
+//mod sizing;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -68,6 +70,7 @@ lazy_static! {
         let u3 = phantom::VPHANTOM.lock().unwrap();
         let v = pmb::PMB.lock().unwrap();
         let w = raisebox::RAISEBOX.lock().unwrap();
+        let x = smash::SMASH.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -106,7 +109,8 @@ lazy_static! {
             u2.clone(),
             u3.clone(),
             v.clone(),
-            w.clone()
+            w.clone(),
+            x.clone()
         ];
         res
     });

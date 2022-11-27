@@ -517,19 +517,19 @@ pub struct rule {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct sizing {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
     pub size: usize,
     pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct smash {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
-    smashHeight: bool,
-    smashDepth: bool,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
+    pub smash_height: bool,
+    pub smash_depth: bool,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
