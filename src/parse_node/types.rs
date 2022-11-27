@@ -274,11 +274,11 @@ pub struct cr {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct delimsizing {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    size: usize,    // 1 | 2 | 3 | 4,
-    mclass: String, //"mopen" | "mclose" | "mrel" | "mord",
-    delim: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub size: usize,    // 1 | 2 | 3 | 4,
+    pub mclass: String, //"mopen" | "mclose" | "mrel" | "mord",
+    pub delim: String,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -542,9 +542,9 @@ pub struct sqrt {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct underline {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

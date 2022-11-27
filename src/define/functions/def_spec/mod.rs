@@ -25,6 +25,8 @@ mod phantom;
 mod pmb;
 mod raisebox;
 mod smash;
+//mod delimsizing;
+mod underline;
 //mod sizing;
 
 use super::public::FunctionDefSpec;
@@ -34,9 +36,10 @@ lazy_static! {
     pub static ref FUNCS: Mutex<Vec<FunctionDefSpec>> = Mutex::new({
         let x = mclass::MCLASS.lock().unwrap();
         let y = symbols_ord::MATHORD.lock().unwrap();
-        let b = symbols_ord::TEXTORD.lock().unwrap();
         let z = symbols_op::ATOM.lock().unwrap();
+
         let a = supsub::SUPSUB.lock().unwrap();
+        let b = symbols_ord::TEXTORD.lock().unwrap();
         let c = accent::ACCENT.lock().unwrap();
         let c2 = accent::ACCENT2.lock().unwrap();
         let d = ordgroup::ORDGROUP.lock().unwrap();
@@ -70,11 +73,13 @@ lazy_static! {
         let u3 = phantom::VPHANTOM.lock().unwrap();
         let v = pmb::PMB.lock().unwrap();
         let w = raisebox::RAISEBOX.lock().unwrap();
-        let x = smash::SMASH.lock().unwrap();
+        let aa = smash::SMASH.lock().unwrap();
+        let bb = underline::UNDERLINE.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
             z.clone(),
+
             a.clone(),
             b.clone(),
             c.clone(),
@@ -110,7 +115,8 @@ lazy_static! {
             u3.clone(),
             v.clone(),
             w.clone(),
-            x.clone()
+            aa.clone(),
+            bb.clone()
         ];
         res
     });
