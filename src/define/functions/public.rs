@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use crate::parse_node::types::ParseNodeToAny;
 pub(crate) use crate::AnyParseNode;
 use crate::{
@@ -13,13 +14,13 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 /** Context provided to function pub(crate) handlers for error messages. */
-pub struct FunctionContext<'a> {
+pub struct FunctionContext2<'a,'b> {
     pub func_name: String,
-    pub parser: &'a Parser<'a>,
+    pub parser: &'b mut Parser<'a>,
     pub token: Option<Token>,
     pub break_on_token_text: Option<BreakToken>,
 }
-
+pub type FunctionContext<'a,'b> = RefCell<FunctionContext2<'a,'b>>;
 type FunctionHandler = fn(
     context: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
@@ -195,6 +196,17 @@ lazy_static! {
         }
         res
     });
+
+    pub static ref _environments: std::sync::RwLock<HashMap<String,FunctionSpec>> =  std::sync::RwLock::new({
+        let mut res = HashMap::new();
+        for data in super::def_spec::ENVS.lock().unwrap().iter(){
+             for name in data.names.iter() {
+                res.insert(name.clone(), (data.props.clone(), data.handler));
+            }
+        }
+        res
+    });
+
     /**
      * All HTML builders. Should be only used in the `define*` and the `build*ML`
      * functions.

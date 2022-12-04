@@ -88,10 +88,11 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
     return Box::new(node) as Box<dyn MathDomNode>;
 }
 pub fn mclass_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = &args[0];
     return Box::new(parse_node::types::mclass {
         mode: context.parser.mode,

@@ -293,10 +293,10 @@ pub struct enclose {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct environment {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    name: String,
-    nameGroup: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub name: String,
+    pub name_group: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -410,20 +410,20 @@ pub struct lap {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct leftright {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
-    left: String,
-    right: String,
-    rightColor: Option<String>, // undefined means "inherit"
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
+    pub left: String,
+    pub right: String,
+    pub right_color: Option<String>, // undefined means "inherit"
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct leftright_right {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    delim: String,
-    color: Option<String>, // undefined means "inherit"
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub delim: String,
+    pub color: Option<String>, // undefined means "inherit"
 }
 
 #[derive(parse_node_type, Clone, Debug)]

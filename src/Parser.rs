@@ -1,4 +1,5 @@
 use std::{any::Any, str::FromStr};
+use std::cell::RefCell;
 
 /**
  * This file contains the parser used to parse out a TeX expressi&on from the
@@ -31,7 +32,7 @@ use std::{any::Any, str::FromStr};
  */
 use crate::{
     define::{
-        functions::public::{FunctionContext, FunctionSpec, _functions},
+        functions::public::{FunctionSpec, _functions},
         macros::{macro_expander::MacroExpander, public::MacroDefinition},
     },
     parse_node::{
@@ -45,13 +46,14 @@ use crate::{
     types::{ArgType, BreakToken},
     unicodeSupOrSub::U_SUBS_AND_SUPS,
 };
+use crate::define::functions::public::FunctionContext2;
 
 pub struct Parser<'a> {
     pub mode: Mode,
-    gullet: MacroExpander<'a>,
+    pub gullet: MacroExpander<'a>,
     pub settings: &'a Settings,
-    left_right_depth: i32,
-    next_token: Option<Token>,
+    pub left_right_depth: i32,
+    pub next_token: Option<Token>,
 }
 
 const END_OF_EXPRESSION: [&'static str; 5] = ["}", "\\endgroup", "\\end", "\\right", "&"];
@@ -542,7 +544,7 @@ impl Parser<'_> {
      */
     pub fn parse_function(
         &mut self,
-        breakOnTokenText: Option<BreakToken>,
+        break_on_token_text: Option<BreakToken>,
         name: String, // For determining its context
     ) -> Option<Box<dyn AnyParseNode>> {
         let token = self.fetch();
@@ -566,7 +568,7 @@ impl Parser<'_> {
                 //     "Can't use function '" + func + "' in math mode", token);
             }
             let (args, optArgs) = self.parse_arguments(func, funcData);
-            return Some(self.call_function(func, args, optArgs, Some(token), breakOnTokenText));
+            return Some(self.call_function(func, args, optArgs, Some(token), break_on_token_text));
         } else {
             return None;
         }
@@ -584,12 +586,12 @@ impl Parser<'_> {
         token: Option<Token>,
         break_on_token_text: Option<BreakToken>,
     ) -> Box<dyn AnyParseNode> {
-        let context: FunctionContext = FunctionContext {
+        let context = RefCell::new(FunctionContext2 {
             func_name: name.clone(),
             parser:self,
             token,
             break_on_token_text,
-        };
+        });
         let functions = _functions.read().unwrap();
         let func = functions.get(name).unwrap();
         func.1(context, args, optArgs)

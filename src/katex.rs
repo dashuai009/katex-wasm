@@ -60,7 +60,11 @@ const TEST_CASE: [&str; 1] = [
     //r"b\phantom{content}a\hphantom{content}c\vphantom{content}d"
     // r"\pmb{\mu} \mu"
     // r"a\raisebox{0.25em}{b}c"
-    r" x^{\smash[a]{2}} "
+    //r" x^{\smash[a]{2}} "
+    //r"\underline{AB}",
+    //r"\mathrm{Ab0} \mathbf{Ab0} \mathit{Ab0}",
+    //r"\mathnormal{Ab0} \mathbb{Ab} \mathcal{Ab} \mathfrak{Ab0} \mathscr{Ab} \mathsf{Ab0} \Bbb{Ab} \bold{Ab0} \frak{Ab0}",
+    r"\boldsymbol{Ab} \bm{Ab0} \rm{a} \sf{A} \tt{a} \bf{aB0} \it{Ab0} \cal{Ab0}",
 ];
 
 

@@ -362,20 +362,20 @@ fn handler_fn_2(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let base = &args[0];
-    let mut mode = context.parser.mode;
+    let mut mode = context.borrow().parser.mode;
     if mode == Mode::math {
         // context.parser.settings.reportNonstrict("mathVsTextAccents",
         //                                         `LaTeX's accent ${context.funcName} works only in text mode`);
         println!(
             "LaTeX's accent {} works only in text mode",
-            context.func_name
+            context.borrow().func_name
         );
         mode = Mode::text;
     }
     return Box::new(parse_node::types::accent {
         mode,
         loc: None,
-        label: context.func_name,
+        label: context.borrow().func_name.clone(),
         isStretchy: false,
         isShifty: true,
         base: Some(base.clone()),
