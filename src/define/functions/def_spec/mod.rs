@@ -2,7 +2,7 @@ mod accent;
 // mod accentunder;
 // mod arrow;
 // mod cr;
-// mod delimsizing;
+mod delimsizing;
 // mod enclose;
 mod environment;
 mod font;
@@ -28,7 +28,6 @@ mod symbols_ord;
 // mod pmb;
 // mod raisebox;
 // mod smash;
-// //mod delimsizing;
 // mod underline;
 // //mod sizing;
 
@@ -86,6 +85,10 @@ lazy_static! {
         let ad = font::FONT1.lock().unwrap();
         let ae = font::FONT2.lock().unwrap();
         let af = font::FONT3.lock().unwrap();
+        let ba = delimsizing::BIG.lock().unwrap();
+        let bb = delimsizing::LEFTRIGHT.lock().unwrap();
+        let bc = delimsizing::LEFTRIGHT_RIGHT.lock().unwrap();
+        let bd = delimsizing::MIDDLE.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -131,7 +134,11 @@ lazy_static! {
             ac.clone(),
             ad.clone(),
             ae.clone(),
-            af.clone()
+            af.clone(),
+            ba.clone(),
+            bc.clone(),
+            bb.clone(),
+            bd.clone()
         ];
         res
     });

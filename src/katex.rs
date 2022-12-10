@@ -64,7 +64,8 @@ const TEST_CASE: [&str; 1] = [
     //r"\underline{AB}",
     //r"\mathrm{Ab0} \mathbf{Ab0} \mathit{Ab0}",
     //r"\mathnormal{Ab0} \mathbb{Ab} \mathcal{Ab} \mathfrak{Ab0} \mathscr{Ab} \mathsf{Ab0} \Bbb{Ab} \bold{Ab0} \frak{Ab0}",
-    r"\boldsymbol{Ab} \bm{Ab0} \rm{a} \sf{A} \tt{a} \bf{aB0} \it{Ab0} \cal{Ab0}",
+    //r"\boldsymbol{Ab} \bm{Ab0} \rm{a} \sf{A} \tt{a} \bf{aB0} \it{Ab0} \cal{Ab0}",
+    r"\big(\big) \Big(\Big)"
 ];
 
 

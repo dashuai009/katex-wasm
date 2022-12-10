@@ -1,5 +1,5 @@
 mod extra_character_map;
-mod fontMetricsData;
+pub mod fontMetricsData;
 pub(crate) mod public;
 pub(crate) mod sigmas_and_xis;
 
@@ -12,41 +12,6 @@ use crate::{
 };
 use public::*;
 use std::{collections::HashMap, str::FromStr};
-use wasm_bindgen::prelude::*;
-
-// macro_rules! get_metrics_map {
-//     ($font:expr) => {
-//         match $font.as_str(){
-//             "AMS-Regular" => AMS_Regular_map,
-//             "Caligraphic-Regular" => Caligraphic_Regular_map,
-//             "Fraktur-Regular" => Fraktur_Regular_map,
-//             "Main-Bold" => Main_Bold_map,
-//             "Main-BoldItalic" => Main_BoldItalic_map,
-//             "Main-Italic" => Main_Italic_map,
-//             "Main-Regular" => Main_Regular_map,
-//             "Math-BoldItalic" => Math_BoldItalic_map,
-//             "Math-Italic" => Math_Italic_map,
-//             "SansSerif-Bold" => SansSerif_Bold_map,
-//             "SansSerif-Italic" => SansSerif_Italic_map,
-//             "SansSerif-Regular" => SansSerif_Regular_map,
-//             "Script-Regular" => Script_Regular_map,
-//             "Size1-Regular" => Size1_Regular_map,
-//             "Size2-Regular" => Size2_Regular_map,
-//             "Size3-Regular" => Size3_Regular_map,
-//             "Size4-Regular" => Size4_Regular_map,
-//             "Typewriter-Regular" => Typewriter_Regular_map,
-//             _=> AMS_Regular_map
-//         }
-//     };
-// }
-
-// pub(crate) use get_metrics_map;
-
-#[wasm_bindgen]
-pub fn _get_font_char(font: String, character: String) -> Option<CharacterMetrics> {
-    //console_log!("_get_font_char: font = {} character = {}",font,character);
-    get_char_metrics(&font, character)
-}
 
 /**
  * This function is a convenience function for looking up information in the
@@ -84,24 +49,6 @@ pub fn get_character_metrics(
     }
 
     metrics
-}
-
-#[wasm_bindgen]
-pub fn wasm_getCharacterMetrics(c: String, f: String, m: String) -> Option<CharacterMetrics> {
-    get_character_metrics(&c, &f, Mode::from_str(m.as_str()).unwrap())
-}
-
-#[wasm_bindgen]
-pub fn getGlobalMetrics(size: f64) -> FontMetrics {
-    // console_log!("getGlobalMetrics size = {}",size);
-    let sizeIndex = if (size >= 5.0) {
-        0
-    } else if (size >= 3.0) {
-        1
-    } else {
-        2
-    };
-    return sigmasAndXis[sizeIndex].clone();
 }
 
 pub fn get_global_metrics(size: f64) -> &'static FontMetrics {

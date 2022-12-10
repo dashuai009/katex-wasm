@@ -438,9 +438,9 @@ pub struct mathchoice {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct middle {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    delim: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub delim: String,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
