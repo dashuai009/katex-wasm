@@ -30,6 +30,7 @@ mod symbols_ord;
 // mod smash;
 // mod underline;
 mod sizing;
+mod kern;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
@@ -91,6 +92,8 @@ lazy_static! {
         let bd = delimsizing::MIDDLE.lock().unwrap();
 
         let ca = sizing::SIZING.lock().unwrap();
+
+        let da = kern::KERN.lock().unwrap();
         let res = vec![
             x.clone(),
             y.clone(),
@@ -141,7 +144,8 @@ lazy_static! {
             bc.clone(),
             bb.clone(),
             bd.clone(),
-            ca.clone()
+            ca.clone(),
+            da.clone()
         ];
         res
     });

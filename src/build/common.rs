@@ -732,7 +732,7 @@ pub fn make_vlist(params: VListParam, options: Options) -> Span {
 /// Glue is a concept from TeX which is a flexible space between elements in
 /// either a vertical or horizontal list. In KaTeX, at least for now, it's
 /// static space between elements in a horizontal layout.
-pub fn make_glue(measurement: crate::units::Measurement, options: &Options) -> Span {
+pub fn make_glue(measurement: &crate::units::Measurement, options: &Options) -> Span {
     // Make an empty span for the space
     let mut rule = make_span(
         vec!["mspace".to_string()],
@@ -740,7 +740,7 @@ pub fn make_glue(measurement: crate::units::Measurement, options: &Options) -> S
         Some(&options.clone()),
         CssStyle::default(),
     );
-    let size = crate::units::calculate_size(&measurement, &options);
+    let size = crate::units::calculate_size(measurement, &options);
     rule.get_mut_style().margin_right = Some(make_em(size));
     return rule;
 }

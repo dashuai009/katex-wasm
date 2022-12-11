@@ -395,9 +395,9 @@ pub struct internal {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct kern {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    dimension: Measurement,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub dimension: Measurement,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

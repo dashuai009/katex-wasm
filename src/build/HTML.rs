@@ -210,10 +210,10 @@ pub fn build_expression(
                 } else {
                     None
                 };
-                if space.is_some() {
+                if let Some(s) = space {
                     // Insert glue (spacing) after the `prev`.
                     return Some(Box::new(super::common::make_glue(
-                        space.unwrap(),
+                        &s,
                         &glue_options.clone(),
                     )) as Box<dyn HtmlDomNode>);
                 }
