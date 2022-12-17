@@ -31,9 +31,24 @@ mod symbols_ord;
 // mod underline;
 mod sizing;
 mod kern;
+mod verb;
+mod vcenter;
+mod tag;
+mod symbols_spacing;
+mod styling;
+mod rule;
+mod relax;
+mod operatorname;
+mod math;
+mod htmlmathml;
+mod char;
+mod color;
+mod assembleSupSub;
+mod def;
 
 use super::public::FunctionDefSpec;
 use std::sync::Mutex;
+use crate::define::functions::def_spec::vcenter::VCENTER;
 
 lazy_static! {
 
@@ -94,6 +109,14 @@ lazy_static! {
         let ca = sizing::SIZING.lock().unwrap();
 
         let da = kern::KERN.lock().unwrap();
+
+        let ea = verb::VERB.lock().unwrap();
+
+        let fa = vcenter::VCENTER.lock().unwrap();
+
+        let ga = tag::TAG.lock().unwrap();
+        let ha = styling::STYLING.lock().unwrap();
+
         let res = vec![
             x.clone(),
             y.clone(),
@@ -145,7 +168,11 @@ lazy_static! {
             bb.clone(),
             bd.clone(),
             ca.clone(),
-            da.clone()
+            da.clone(),
+            ea.clone(),
+            fa.clone(),
+            ga.clone(),
+            ha.clone()
         ];
         res
     });

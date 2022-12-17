@@ -21,6 +21,9 @@ pub enum MathNodeType {
     Mroot,
     Msqrt,
     Mglyph,
+    Mtable,
+    Mtr,
+    Mtd,
 }
 
 impl FromStr for MathNodeType {
@@ -46,6 +49,9 @@ impl FromStr for MathNodeType {
             "mroot" => Ok(MathNodeType::Mroot),
             "msqrt" => Ok(MathNodeType::Msqrt),
             "mglyph" => Ok(MathNodeType::Mglyph),
+            "mtable" => Ok(MathNodeType::Mtable),
+            "mtr" => Ok(MathNodeType::Mtr),
+            "mtd" => Ok(MathNodeType::Mtd),
             _ => Err(()),
         }
     }
@@ -72,6 +78,9 @@ impl MathNodeType {
             MathNodeType::Mroot => "mroot",
             MathNodeType::Msqrt => "msqrt",
             MathNodeType::Mglyph => "mglyph",
+            MathNodeType::Mtable => "mtable",
+            MathNodeType::Mtd => "mtd",
+            MathNodeType::Mtr => "mtr",
         }
     }
 }

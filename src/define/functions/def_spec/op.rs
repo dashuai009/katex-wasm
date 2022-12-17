@@ -251,7 +251,7 @@ fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Ma
     //     // Append an <mo>&ApplyFunction;</mo>.
     //     // ref: https://www.w3.org/TR/REC-MathML/chap3_2.html#sec3.2.4
     //     let operator = MathNode::new(MathNodeType::Mo, vec![make_text("\u{2061}".to_string(), Mode::text)], vec![]);
-    //     if (group.parentIsSupSub) {
+    //     if (group.parent_is_sup_sub) {
     //         node = MathNode::new(MathNodeType::Mrow, vec![node, operator], vec![]);
     //     } else {
     //         node = mathMLTree.newDocumentFragment([node, operator]);

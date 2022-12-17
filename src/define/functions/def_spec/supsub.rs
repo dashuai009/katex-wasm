@@ -296,7 +296,7 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     //
     // if (group.base &&
     //     (group.base.type === "op" || group.base.type === "operatorname")) {
-    // group.base.parentIsSupSub = true;
+    // group.base.parent_is_sup_sub = true;
     // }
     //
     // let children = [mml.buildGroup(group.base, options)];
@@ -315,10 +315,10 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     // } else if (!group.sub) {
     //     let base = group.base;
     //     if (base && base.type === "op" && base.limits &&
-    //         (options.style === Style.DISPLAY || base.alwaysHandleSupSub)) {
+    //         (options.style === Style.DISPLAY || base.always_handle_sup_sub)) {
     //         nodeType = "mover";
     //     } else if (base && base.type === "operatorname" &&
-    //         base.alwaysHandleSupSub &&
+    //         base.always_handle_sup_sub &&
     //         (base.limits || options.style === Style.DISPLAY)) {
     //         nodeType = "mover";
     //     } else {
@@ -327,10 +327,10 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     // } else if (!group.sup) {
     //     let base = group.base;
     //     if (base && base.type === "op" && base.limits &&
-    //         (options.style === Style.DISPLAY || base.alwaysHandleSupSub)) {
+    //         (options.style === Style.DISPLAY || base.always_handle_sup_sub)) {
     //         nodeType = "munder";
     //     } else if (base && base.type === "operatorname" &&
-    //         base.alwaysHandleSupSub &&
+    //         base.always_handle_sup_sub &&
     //         (base.limits || options.style === Style.DISPLAY)) {
     //         nodeType = "munder";
     //     } else {
@@ -342,7 +342,7 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     //         options.style === Style.DISPLAY) {
     //         nodeType = "munderover";
     //     } else if (base && base.type === "operatorname" &&
-    //         base.alwaysHandleSupSub &&
+    //         base.always_handle_sup_sub &&
     //         (options.style === Style.DISPLAY || base.limits)) {
     //         nodeType = "munderover";
     //     } else {

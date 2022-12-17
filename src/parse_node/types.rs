@@ -355,10 +355,10 @@ pub struct html {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct htmlmathml {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    html: Vec<Box<dyn AnyParseNode>>,
-    mathml: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub html: Vec<Box<dyn AnyParseNode>>,
+    pub mathml: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -389,8 +389,8 @@ impl infix {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct internal {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -454,12 +454,12 @@ pub struct mclass {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct operatorname {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
-    pub alwaysHandleSupSub: bool,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
+    pub always_handle_sup_sub: bool,
     pub limits: bool,
-    parentIsSupSub: bool,
+    pub parent_is_sup_sub: bool,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -508,11 +508,11 @@ pub struct raisebox {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct rule {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    shift: Option<Measurement>,
-    width: Measurement,
-    height: Measurement,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub shift: Option<Measurement>,
+    pub width: Measurement,
+    pub height: Measurement,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -549,9 +549,9 @@ pub struct underline {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct vcenter {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

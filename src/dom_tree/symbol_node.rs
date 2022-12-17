@@ -26,7 +26,7 @@ lazy_static! {
 
 #[derive(html_dom_node, Clone, Debug)]
 pub struct SymbolNode {
-    text: String,
+    pub text: String,
     pub height: f64,
     pub depth: f64,
     pub italic: f64,

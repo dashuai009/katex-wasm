@@ -558,35 +558,35 @@ impl MacroExpander<'_> {
             IMPLICIT_COMMANDS.contains(&name.as_str());
     }
 
-    // /**
-    //  * Determine whether a command is expandable.
-    //  */
-    // pub fn isExpandable(&self, name: &String)-> bool {
-    //     use crate::define::functions::public::get_function;
-    //     let _macro = self.macros.get(name);
-    //     if let Some(m) = _macro{
-    //         match m{
-    //             MacroDefinition::Str(s)=>{
-    //                 return true;
-    //             },
-    //             MacroDefinition::MacroExpansion(expan)=>{
-    //                 if !expan.unexpandable{
-    //                     return true;
-    //                 } else {
-    //                     if let Some(f) = get_function(name){
-    //                         return !f.primitive;
-    //                     }else{
-    //                         return false;
-    //                     }
-    //                 }
-    //             },
-    //             MacroDefinition::MacroContext(context)=>{
-    //                 return true;
+    /**
+     * Determine whether a command is expandable.
+     */
+    pub fn is_expandable(&self, name: &String)-> bool {
+        let _f =  crate::define::functions::public::_functions.read().unwrap();
+        let _macro = self.macros.get(name);
+        if let Some(m) = _macro{
+            match m{
+                MacroDefinition::Str(s)=>{
+                    return true;
+                },
+                MacroDefinition::MacroExpansion(expan)=>{
+                    return if !expan.unexpandable {
+                        true
+                    } else {
+                        if let Some(f) = _f.get(name) {
+                            !f.0.get_primitive()
+                        } else {
+                            false
+                        }
+                    }
+                },
+                MacroDefinition::MacroContext(context)=>{
+                    return true;
 
-    //             }
-    //         }
-    //     }else{
-    //         return false;
-    //     }
-    // }
+                }
+            }
+        }else{
+            return false;
+        }
+    }
 }

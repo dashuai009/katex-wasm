@@ -406,7 +406,7 @@ impl Parser<'_> {
                                 .as_mut_any()
                                 .downcast_mut::<parse_node::types::operatorname>()
                             {
-                                if (op.alwaysHandleSupSub) {
+                                if (op.always_handle_sup_sub) {
                                     op.limits = lex.text == "\\limits";
                                 }
                                 Some(Box::new(op.clone()) as Box<dyn AnyParseNode>)

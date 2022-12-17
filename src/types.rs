@@ -69,6 +69,19 @@ pub enum StyleStr {
     script,
     scriptscript,
 }
+impl FromStr for StyleStr {
+    type Err = ();
+
+    fn from_str(input: &str) -> Result<StyleStr, Self::Err> {
+        match input {
+            "text" => Ok(StyleStr::text),
+            "display" => Ok(StyleStr::display),
+            "script" => Ok(StyleStr::script),
+            "scriptscript" => Ok(StyleStr::scriptscript),
+            _ => Err(()),
+        }
+    }
+}
 
 impl StyleStr {
     pub fn as_style(&self) -> StyleInterface {
