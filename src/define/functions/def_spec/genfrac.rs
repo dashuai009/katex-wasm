@@ -234,7 +234,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             group_left_delim,
             delimSize,
             true,
-            options.having_style(&style),
+            &options.having_style(&style),
             group.mode,
             vec!["mopen".to_string()],
         );
@@ -249,7 +249,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             r_del,
             delimSize,
             true,
-            options.having_style(&style),
+            &options.having_style(&style),
             group.mode,
             vec!["mclose".to_string()],
         );
@@ -343,10 +343,11 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
 }
 
 pub fn frac_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let has_bar_line;
     let mut left_delim = None;
     let mut right_delim = None;

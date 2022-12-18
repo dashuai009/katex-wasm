@@ -281,10 +281,11 @@ lazy_static! {
 }
 
 pub fn op_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let tmp = context.func_name.as_str();
     let f_name = SINGLE_CHAR_BIG_OPS
         .get(context.func_name.as_str())
@@ -347,10 +348,11 @@ lazy_static! {
 }
 
 pub fn math_op_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = &args[0];
     let res = parse_node::types::op {
         mode: context.parser.mode,
@@ -403,10 +405,11 @@ lazy_static! {
 }
 
 pub fn trigonometric_op_handler_fn(
-    context: FunctionContext,
+     ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::op {
         mode: context.parser.mode,
         loc: None,
@@ -473,10 +476,11 @@ lazy_static! {
 
 // Limits, not symbols
 pub fn gcd_op_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::op {
         mode: context.parser.mode,
         loc: None,
@@ -516,10 +520,11 @@ lazy_static! {
 
 // No limits, symbols
 pub fn int_op_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let tmp = context.func_name.as_str();
     let f_name = SINGLE_CHAR_INTEGRALS
         .get(context.func_name.as_str())

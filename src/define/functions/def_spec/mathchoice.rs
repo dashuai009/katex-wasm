@@ -31,10 +31,11 @@ fn chooseMathStyle<'a>(group: &'a parse_node::types::mathchoice, options: &Optio
 }
 
 fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::mathchoice {
         mode: context.parser.mode,
         loc: None,

@@ -37,7 +37,7 @@ fn html_builder_delegate(
             .as_any()
             .downcast_ref::<parse_node::types::operatorname>()
         {
-            let delegate = op_name.alwaysHandleSupSub
+            let delegate = op_name.always_handle_sup_sub
                 && (options.get_style().size == style.size || op_name.limits);
             return if delegate {
                 panic!("operatorname::htmlBuilder")
@@ -84,7 +84,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         ..
     } = group;
     let base = crate::build::HTML::build_group(value_base.clone(), options.clone(), None);
-    println!("base mathord HtmlDomNode = {:#?}", base);
+    //println!("base mathord HtmlDomNode = {:#?}", base);
     let mut _supm = None;
     let mut _subm = None;
 

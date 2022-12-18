@@ -317,7 +317,8 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
                     format!("{} slice", aligns[i]).to_string(),
                 ),
             ]);
-            let mut svg_node = SvgNode::new(vec![Box::new(path) as Box<dyn VirtualNode>],svg_node_attr);
+            let mut svg_node =
+                SvgNode::new(vec![Box::new(path) as Box<dyn VirtualNode>], svg_node_attr);
 
             let mut span = Span::new(
                 vec![widthClasses[i].clone()],

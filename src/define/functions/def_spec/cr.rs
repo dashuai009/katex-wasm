@@ -19,10 +19,11 @@ use crate::types::ArgType;
 
 
 fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let m = if let  Some(_size) = &opt_args[0]{
         let size = _size.as_any().downcast_ref::<parse_node::types::size>().unwrap();
         Some(size.value.clone())

@@ -64,11 +64,12 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
     return mathML::build_expression_row(group.body.clone(), new_options, false);
 }
 
-pub fn text_handler_fn(
-    context: FunctionContext,
+fn text_handler_fn(
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = &args[0];
     let res = parse_node::types::text {
         mode: context.parser.mode,

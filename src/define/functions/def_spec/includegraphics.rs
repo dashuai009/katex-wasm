@@ -46,10 +46,11 @@ fn size_data(s: &str) -> crate::Measurement {
 }
 
 fn includegraphics_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let mut width = Measurement {
         number: 0.0,
         unit: "em".to_string(),

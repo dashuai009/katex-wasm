@@ -39,10 +39,11 @@ fn phantom_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Bo
 }
 
 fn phantom_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = &args[0];
     let res = parse_node::types::phantom {
         mode: context.parser.mode,
@@ -70,10 +71,11 @@ lazy_static! {
 }
 
 fn hphantom_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = &args[0];
     let res = parse_node::types::hphantom {
         mode: context.parser.mode,
@@ -162,10 +164,11 @@ lazy_static! {
 }
 
 fn vphantom_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = args[0].clone();
     let res = parse_node::types::vphantom {
         mode: context.parser.mode,

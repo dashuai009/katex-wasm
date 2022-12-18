@@ -15,10 +15,11 @@ use crate::{parse_node, types::ArgType, AnyParseNode, HtmlDomNode};
 use std::sync::Mutex;
 
 fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = args[0].clone();
     let res = parse_node::types::overline {
         mode: context.parser.mode,
