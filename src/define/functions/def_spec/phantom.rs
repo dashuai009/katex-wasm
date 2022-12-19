@@ -119,8 +119,7 @@ fn hphantom_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
                 shift: None,
             }],
             position_data: None,
-        },
-        options.clone(),
+        }
     );
 
     // For spacing, TeX treats \smash as a math group (same spacing as ord).

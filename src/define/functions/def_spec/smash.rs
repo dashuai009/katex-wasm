@@ -126,8 +126,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                 shift: None,
             }],
             position_data: None,
-        },
-        options.clone(),
+        }
     );
 
     // For spacing, TeX treats \hphantom as a math group (same spacing as ord).

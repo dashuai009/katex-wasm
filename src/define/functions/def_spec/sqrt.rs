@@ -114,8 +114,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                 VListChild::Kern { size: rule_width },
             ],
             position_data: None,
-        },
-        options.clone(),
+        }
     );
 
     let res = if let Some(group_index) = &group.index {
@@ -143,8 +142,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     wrapper_style: None,
                     shift: None,
                 }],
-            },
-            options.clone(),
+            }
         );
         // Add a class surrounding it so we can add on the appropriate
         // kerning

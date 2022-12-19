@@ -90,8 +90,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
         // $FlowFixMe: Replace this with passing "svg-align" into makeVList.
         vlist.get_mut_children().unwrap()[0]
@@ -125,8 +124,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                         shift: None,
                     },
                 ],
-            },
-            options.clone(),
+            }
         );
         // $FlowFixMe: Replace this with passing "svg-align" into makeVList.
         vlist.get_mut_children().unwrap()[0]
@@ -179,8 +177,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                         },
                     ],
                     position_data: None,
-                },
-                options.clone(),
+                }
             );
         } else {
             vlist = common::make_vlist(
@@ -209,8 +206,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                             shift: None,
                         },
                     ],
-                },
-                options.clone(),
+                }
             );
         }
     }

@@ -157,8 +157,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         // Rule 15d
@@ -205,8 +204,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 

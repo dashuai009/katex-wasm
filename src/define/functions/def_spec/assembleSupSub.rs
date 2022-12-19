@@ -107,8 +107,7 @@ pub fn assemble_sup_sub(
                             size: options.get_font_metrics().bigOpSpacing5,
                         },
                     ],
-                },
-                options.clone(),
+                }
             );
         } else {
             let bottom = base.get_depth() + baseShift;
@@ -139,8 +138,7 @@ pub fn assemble_sup_sub(
                             size: options.get_font_metrics().bigOpSpacing5,
                         },
                     ],
-                },
-                options.clone(),
+                }
             );
         }
     } else {
@@ -177,8 +175,7 @@ pub fn assemble_sup_sub(
                             shift: None,
                         },
                     ],
-                },
-                options.clone(),
+                }
             );
         } else {
             // This case probably shouldn't occur (this would mean the

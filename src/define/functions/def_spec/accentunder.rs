@@ -50,8 +50,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     shift: None,
                 },
             ],
-        },
-        options.clone(),
+        }
     )) as Box<dyn HtmlDomNode>;
     return Box::new(build::common::make_span(
         vec!["mord".to_string(), "accentunder".to_string()],

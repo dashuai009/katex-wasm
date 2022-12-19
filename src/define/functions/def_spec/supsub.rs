@@ -105,7 +105,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         if !value_base_is_character_box {
             sup_shift = base.get_height()
                 - new_options.get_font_metrics().supDrop * new_options.sizeMultiplier
-                    / options.sizeMultiplier;
+                / options.sizeMultiplier;
         }
     }
 
@@ -119,7 +119,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         if !value_base_is_character_box {
             subShift = base.get_depth()
                 + new_options.get_font_metrics().subDrop * new_options.sizeMultiplier.clone()
-                    / options.sizeMultiplier.clone();
+                / options.sizeMultiplier.clone();
         }
     }
 
@@ -135,11 +135,11 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     }
 
     // scriptspace is a font-size-independent size, so scale it
-    // appropriately for use as the marginRight.
+    // appropriately for use as the margin_right.
     let multiplier = options.sizeMultiplier;
-    let marginRight = make_em((0.5 / metrics.ptPerEm) / multiplier);
+    let margin_right = make_em((0.5 / metrics.ptPerEm) / multiplier);
 
-    let mut marginLeft = None;
+    let mut margin_left = None;
     if _subm.is_some() {
         // Subscripts shouldn't be shifted by the base's italic correction.
         // Account for that by shifting the subscript back the appropriate
@@ -158,7 +158,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             false
         };
         if let Some(b) = base.as_any().downcast_ref::<SymbolNode>() {
-            marginLeft = Some(make_em(-b.italic));
+            margin_left = Some(make_em(-b.italic));
         } else {
             if is_oiint {
                 panic!("emmmmm base type = ");
@@ -175,12 +175,12 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             );
             subShift = f64::max(subShift, metrics.sub2);
 
-            let ruleWidth = metrics.defaultRuleThickness;
+            let rule_width = metrics.defaultRuleThickness;
 
             // Rule 18e
-            let maxWidth = 4.0 * ruleWidth;
-            if ((sup_shift - supm.get_depth()) - (subm.get_height() - subShift) < maxWidth) {
-                subShift = maxWidth - (sup_shift - supm.get_depth()) + subm.get_height();
+            let max_width = 4.0 * rule_width;
+            if (sup_shift - supm.get_depth()) - (subm.get_height() - subShift) < max_width {
+                subShift = max_width - (sup_shift - supm.get_depth()) + subm.get_height();
                 let psi = 0.8 * metrics.xHeight - (sup_shift - supm.get_depth());
                 if (psi > 0.0) {
                     sup_shift += psi;
@@ -188,30 +188,30 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                 }
             }
 
-            let vlistElem = [
+            let vlist_elem = vec![
                 VListChild::Elem {
                     elem: subm,
-                    margin_left: marginLeft,
+                    margin_left,
                     margin_right: None,
                     wrapper_classes: None,
                     wrapper_style: None,
-                    shift: Some(subShift ),
+                    shift: Some(subShift),
                 },
                 VListChild::Elem {
                     elem: supm,
                     margin_left: None,
-                    margin_right: Some(marginRight),
+                    margin_right: Some(margin_right),
                     wrapper_classes: None,
                     wrapper_style: None,
                     shift: Some(-sup_shift),
                 },
             ];
-            panic!("make_v_list");
 
-            // supsub = crate::build::common::make_VList({
-            //                                    positionType: "individualShift",
-            //                                    children: vlistElem,
-            //                                }, options);
+            supsub = crate::build::common::make_vlist(VListParam {
+                position_type: PositionType::IndividualShift,
+                children: vlist_elem,
+                position_data: None,
+            });
         } else {
             // Rule 18c, d
             sup_shift = f64::max(
@@ -224,14 +224,13 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                     children: vec![VListChild::Elem {
                         elem: supm,
                         margin_left: None,
-                        margin_right: Some(marginRight),
+                        margin_right: Some(margin_right),
                         wrapper_classes: None,
                         wrapper_style: None,
                         shift: None,
                     }],
-                    position_data: Some( - sup_shift),
-                },
-                options.clone(),
+                    position_data: Some(-sup_shift),
+                }
             );
         }
     } else {
@@ -244,7 +243,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             panic!("make_v_list");
 
             // let vlistElem =
-            //     [{type: "elem", elem: subm, marginLeft, marginRight}];
+            //     [{type: "elem", elem: subm, margin_left, margin_right}];
             //
             // supsub = buildCommon.makeVList({
             //                                    positionType: "shift",

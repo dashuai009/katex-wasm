@@ -526,21 +526,20 @@ fn makeStackedDelim(
 
     // Finally, build the vlist
     let _text = crate::Style::TEXT.read().unwrap();
-    let newOptions = options.having_base_style(&_text);
+    let new_options = options.having_base_style(&_text);
     let inner = crate::build::common::make_vlist(
         crate::build::common::VListParam {
             position_type: PositionType::Bottom,
             position_data: Some(depth),
             children: stack,
-        },
-        newOptions.clone(),
+        }
     );
 
     return style_wrap(
         Box::new(crate::build::common::make_span(
             vec!["delimsizing".to_string(), "mult".to_string()],
             vec![Box::new(inner) as Box<dyn HtmlDomNode>],
-            Some(&newOptions),
+            Some(&new_options),
             Default::default(),
         )) as Box<dyn HtmlDomNode>,
         &_text,

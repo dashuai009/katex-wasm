@@ -202,8 +202,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         accentBody = stretchy::svg_span(
@@ -241,8 +240,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 

@@ -133,8 +133,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         },
                     ],
                     position_data: None,
-                },
-                options.clone(),
+                }
             );
             group_name = format!("\\{stash}");
             tmp.get_mut_classes().insert(0, "mop".to_string());

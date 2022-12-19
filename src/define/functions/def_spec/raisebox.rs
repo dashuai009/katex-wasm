@@ -47,8 +47,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
             position_type: PositionType::Shift,
             position_data: Some(-dy),
             children: vec![VListChild::Elem { elem: body, margin_left: None, margin_right: None, wrapper_classes: None, wrapper_style: None, shift: None }],
-        },
-        options,
+        }
     );
     return Box::new(res) as Box<dyn HtmlDomNode>;
 }

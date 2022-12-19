@@ -134,8 +134,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         vlist = make_vlist(
@@ -160,8 +159,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 

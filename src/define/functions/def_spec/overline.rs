@@ -76,8 +76,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                 },
             ],
             position_data: None,
-        },
-        options.clone(),
+        }
     );
 
     let res = common::make_span(

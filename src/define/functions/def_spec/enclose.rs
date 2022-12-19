@@ -190,8 +190,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         let classes = if label.contains("cancel") || label.contains("phase") {
@@ -222,8 +221,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 

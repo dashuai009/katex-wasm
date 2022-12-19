@@ -586,7 +586,7 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
  *
  * See VListParam documentation above.
  */
-pub fn make_vlist(params: VListParam, options: Options) -> Span {
+pub fn make_vlist(params: VListParam) -> Span {
     let (children, depth) = get_vlist_children_and_depth(params);
     // Create a strut that is taller than any list item. The strut is added to
     // each item, where it will determine the item's baseline. Since it has
