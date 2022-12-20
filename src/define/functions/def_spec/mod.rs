@@ -116,6 +116,8 @@ lazy_static! {
         let ga = tag::TAG.lock().unwrap();
         let ha = styling::STYLING.lock().unwrap();
 
+        let ia = relax::RULE.lock().unwrap();
+
         let res = vec![
             x.clone(),
             y.clone(),
@@ -171,7 +173,8 @@ lazy_static! {
             ea.clone(),
             fa.clone(),
             ga.clone(),
-            ha.clone()
+            ha.clone(),
+            ia.clone()
         ];
         res
     });

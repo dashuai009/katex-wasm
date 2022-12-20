@@ -46,7 +46,7 @@ fn html_builder_delegate(
             };
         } else if let Some(ac) = base.as_any().downcast_ref::<parse_node::types::accent>() {
             return if is_character_box(&(ac.base.as_ref().unwrap())) {
-                panic!("accent::htmlBuilder")
+                Some(super::accent::html_builder)
             } else {
                 None
             };

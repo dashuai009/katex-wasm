@@ -812,7 +812,7 @@ lazy_static! {
     });
 
 
-    static ref SVG_DATA : std::sync::Mutex<HashMap<&'static str,(&'static str,f64,f64)> > = std::sync::Mutex::new({
+    pub static ref SVG_DATA : std::sync::Mutex<HashMap<&'static str,(&'static str,f64,f64)> > = std::sync::Mutex::new({
         HashMap::from([
             //   path, width, height
             ("vec", ("vec", 0.471, 0.714)),               // values from the font glyph

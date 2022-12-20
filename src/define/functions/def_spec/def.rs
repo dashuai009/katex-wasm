@@ -180,7 +180,7 @@ pub fn handler_fn_2(
         }
     }
     // replacement text, enclosed in '{' and '}' and properly nested
-    let MacroArg { mut tokens, .. } = ctx.parser.gullet.consume_arg(vec![]).unwrap();
+    let MacroArg { mut tokens, .. } = ctx.parser.gullet.consume_arg(None).unwrap();
     if let Some(i) = insert {
         tokens.insert(0, i);
     }

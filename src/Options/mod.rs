@@ -7,8 +7,6 @@ mod consts;
  */
 mod types;
 
-use serde::{Deserialize, Serialize};
-
 use crate::get_global_metrics;
 use crate::metrics::sigmas_and_xis::FontMetrics;
 use crate::settings::Settings;

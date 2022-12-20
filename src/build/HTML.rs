@@ -98,6 +98,7 @@ pub fn build_expression(
 ) -> Vec<Box<dyn HtmlDomNode>> {
     // return vec![];
     // Parse expressions into `groups`.
+    println!("build_expression groups = {:#?}", expression);
     let mut groups = vec![];
     for expr in expression.iter() {
         let mut output = build_group(Some(expr.clone()), options.clone(), None);
