@@ -23,8 +23,8 @@ use super::sourceLocation::SourceLocation;
 pub struct Token {
     pub text: String,
     pub loc: Option<SourceLocation>,
-    pub noexpand: Option<bool>,     // don't expand the token
-    pub treatAsRelax: Option<bool>, // used in \noexpand
+    pub noexpand: bool,     // don't expand the token
+    pub treatAsRelax: bool, // used in \noexpand
 }
 
 impl std::fmt::Display for Token {
@@ -42,8 +42,8 @@ impl Token {
         Token {
             text,
             loc,
-            noexpand: None,
-            treatAsRelax: None,
+            noexpand: false,
+            treatAsRelax: false,
         }
     }
     /**
@@ -62,15 +62,15 @@ impl Token {
                     self.loc.as_ref().unwrap(),
                     endToken.loc.as_ref().unwrap(),
                 )),
-                noexpand: None,
-                treatAsRelax: None,
+                noexpand: false,
+                treatAsRelax: false,
             };
         } else {
             return Token {
                 text,
                 loc: self.loc.clone(),
-                noexpand: None,
-                treatAsRelax: None,
+                noexpand: false,
+                treatAsRelax: false,
             };
         }
     }

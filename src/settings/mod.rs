@@ -17,6 +17,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
 pub use settings_types::TrustContext;
+use crate::Namespace::Namespace;
 
 /// Options to be passed to KaTeX.
 ///
@@ -40,7 +41,7 @@ pub struct Settings {
     /// Color used for invalid LaTeX.
     error_color: String,
     /// Collection of custom macros.
-    macros: Arc<HashMap<String, MacroDefinition>>,
+    macros: Arc<crate::Namespace::Mapping<MacroDefinition>>,
     /// Specifies a minimum thickness, in ems.
     min_rule_thickness: f64,
     color_is_text_color: bool,
@@ -60,7 +61,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn get_ref_macros(&self) -> Arc<HashMap<String, MacroDefinition>> {
+    pub fn get_ref_macros(&self) -> Arc<crate::Namespace::Mapping<MacroDefinition>> {
         return Arc::clone(&self.macros);
     }
 }

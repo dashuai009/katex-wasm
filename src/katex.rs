@@ -67,8 +67,8 @@ const TEST_CASE: [&str; 1] = [
     // r"\boldsymbol{Ab} \bm{Ab0} \rm{a} \sf{A} \tt{a} \bf{aB0} \it{Ab0} \cal{Ab0}",
     // r"\big(\big) \Big(\Big) \tiny tiny \Huge huge",
     // r"I\kern-2.5pt R a\mkern18mu b 	a\mskip{10mu}b 	a\mskip{10mu}b",
-    r"\sqrt{\frac{\frac{A}{B}}{\frac{A}{B}}}
-    \sqrt{\frac{\frac{\frac{A}{B}}{\frac{A}{B}}}{\frac{\frac{A}{B}}{\frac{A}{B}}}}"
+    //r"a\sqrt{\frac{a}{b}}"
+    r"\vec{A}\vec{x}\vec x^2\vec{x}_2^2\vec{A}^2\vec{xA}^2\; \underbar{X}"
 ];
 
 

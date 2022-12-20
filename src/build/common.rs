@@ -344,11 +344,11 @@ pub fn make_ord(
 // ): SvgSpan => new Span(classes, children, options, style);
 
 pub fn make_line_span(
-    className: String,
+    class_name: String,
     options: &Options,
     thickness:Option<f64>,
-)->Span {
-    let mut line = make_span(vec![className], vec![], Some(options), Default::default());
+) ->Span {
+    let mut line = make_span(vec![class_name], vec![], Some(options), Default::default());
     line.set_height(f64::max(
         thickness.unwrap_or(options.get_font_metrics().defaultRuleThickness),
         options.minRuleThickness,

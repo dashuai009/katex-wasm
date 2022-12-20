@@ -42,7 +42,7 @@ impl MacroExpander<'_> {
             lexer: Lexer::new(input, settings),
             // Make new global namespace
             macros: Namespace::<MacroDefinition>::new(
-                std::sync::Arc::new(HashMap::<String, MacroDefinition>::new()),
+                std::sync::Arc::new(crate::define::macros::macro_map::create_macro_map()),
                 settings.get_ref_macros(),
             ),
             mode,
@@ -147,8 +147,8 @@ impl MacroExpander<'_> {
                 self.push_token(Token {
                     text: "EOF".to_string(),
                     loc: arg.end.loc.clone(),
-                    noexpand: None,
-                    treatAsRelax: None,
+                    noexpand: false,
+                    treatAsRelax: false,
                 });
                 self.push_tokens(arg.tokens);
                 if let Some(start) = _start {
@@ -318,7 +318,7 @@ impl MacroExpander<'_> {
     pub fn expand_once(&mut self, expandableOnly: bool) -> Result<ExpandOneRes, ParseError> {
         let topToken = self.pop_token();
         let name = &topToken.text;
-        let _expansion = if !topToken.noexpand.unwrap_or(false) {
+        let _expansion = if !topToken.noexpand {
             self._getExpansion(name)
         } else {
             None
@@ -414,7 +414,7 @@ impl MacroExpander<'_> {
             if let ExpandOneRes::token(mut expanded) = _expanded {
                 // the token after \noexpand is interpreted as if its meaning
                 // were ‘\relax’
-                if (expanded.treatAsRelax.unwrap_or(false)) {
+                if expanded.treatAsRelax {
                     expanded.text = "\\relax".to_string();
                 }
                 return self.stack.pop().unwrap(); // == expanded
@@ -451,10 +451,10 @@ impl MacroExpander<'_> {
             let _expanded = self.expand_once(true).unwrap(); // expand only expandable tokens
                                                              // expandOnce returns Token if and only if it's fully expanded.
             if let ExpandOneRes::token(mut expanded) = _expanded {
-                if (expanded.treatAsRelax.unwrap_or(false)) {
+                if expanded.treatAsRelax {
                     // the expansion of \noexpand is the token itself
-                    expanded.noexpand = Some(false);
-                    expanded.treatAsRelax = Some(false);
+                    expanded.noexpand = false;
+                    expanded.treatAsRelax = false;
                 }
                 output.push(self.stack.pop().unwrap());
             }
@@ -561,15 +561,15 @@ impl MacroExpander<'_> {
     /**
      * Determine whether a command is expandable.
      */
-    pub fn is_expandable(&self, name: &String)-> bool {
-        let _f =  crate::define::functions::public::_functions.read().unwrap();
+    pub fn is_expandable(&self, name: &String) -> bool {
+        let _f = crate::define::functions::public::_functions.read().unwrap();
         let _macro = self.macros.get(name);
-        if let Some(m) = _macro{
-            match m{
-                MacroDefinition::Str(s)=>{
+        if let Some(m) = _macro {
+            match m {
+                MacroDefinition::Str(s) => {
                     return true;
-                },
-                MacroDefinition::MacroExpansion(expan)=>{
+                }
+                MacroDefinition::MacroExpansion(expan) => {
                     return if !expan.unexpandable {
                         true
                     } else {
@@ -579,13 +579,12 @@ impl MacroExpander<'_> {
                             false
                         }
                     }
-                },
-                MacroDefinition::MacroContext(context)=>{
+                }
+                MacroDefinition::MacroContext(context) => {
                     return true;
-
                 }
             }
-        }else{
+        } else {
             return false;
         }
     }

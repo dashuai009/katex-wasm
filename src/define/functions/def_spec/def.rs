@@ -70,7 +70,7 @@ fn let_command(parser: &mut Parser, name: &String, tok: &mut Token, global: bool
     let mut _macro = parser.gullet.macros.get(&tok.text).unwrap_or({
         // don't expand it later even if a macro with the same name is defined
         // e.g., \let\foo=\frac \def\frac{\relax} \frac12
-        tok.noexpand = Some(true);
+        tok.noexpand = true;
         &tmp
     });
     parser.gullet.macros.set(name, Some(_macro.clone()), global);

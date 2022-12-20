@@ -12,7 +12,7 @@ use crate::parse_error::ParseError;
  * `set` takes time proportional to the depth of group nesting.
  */
 
-type Mapping<T> = std::collections::HashMap<String, T>;
+pub type Mapping<T> = std::collections::HashMap<String, T>;
 #[derive(Debug)]
 pub struct Namespace<Value> {
     current: Arc<Mapping<Value>>,
@@ -27,7 +27,7 @@ impl<Value: Clone> Namespace<Value> {
      * of initial (global-level) mappings, which will constantly change
      * according to any global/top-level `set`s done.
      */
-    pub fn new(builtins: Arc<Mapping<Value>>,
+    pub fn new<'a>(builtins: Arc<Mapping<Value>>,
                global_macros: Arc<Mapping<Value>>) -> Namespace<Value> {
         Namespace {
             current: global_macros,
@@ -75,7 +75,7 @@ impl<Value: Clone> Namespace<Value> {
      * Detect whether `name` has a definition.  Equivalent to
      * `get(name) != null`.
      */
-    pub fn has(&self, name: &String) -> bool {
+    pub fn has(&self, name: &str) -> bool {
         return self.current.contains_key(name) ||
             self.builtins.contains_key(name);
     }
@@ -88,8 +88,8 @@ impl<Value: Clone> Namespace<Value> {
      * to `false` in JavaScript.  Use `if (namespace.get(...) != null)` or
      * `if (namespace.has(...))`.
      */
-    pub fn get(&self, name: &String) -> Option<&Value> {
-        if (self.current.contains_key(name)) {
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        if self.current.contains_key(name) {
             return self.current.get(name);
         } else {
             return self.builtins.get(name);
@@ -120,7 +120,7 @@ impl<Value: Clone> Namespace<Value> {
             // unless an undo is already in place, in which case that older
             // value is the correct one.
             if let Some(top) = self.undef_stack.last_mut(){
-                if(top.contains_key(name)){
+                if top.contains_key(name) {
                     top.insert(name.clone(), Some((*self.current.get(name).unwrap()).clone()));
                 }
             }

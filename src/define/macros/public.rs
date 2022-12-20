@@ -121,7 +121,7 @@ pub enum MacroDefinition{
     // #[default]
     Str(String),
     MacroExpansion(MacroExpansion),
-    MacroContext(fn(&MacroExpander) -> MacroDefinition)
+    MacroContext(fn(&mut MacroExpander) -> MacroDefinition)
 }
 
 impl std::fmt::Debug for MacroDefinition {
