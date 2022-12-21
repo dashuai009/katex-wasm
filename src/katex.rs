@@ -69,8 +69,8 @@ const TEST_CASE: [&str; 1] = [
     // r"I\kern-2.5pt R a\mkern18mu b 	a\mskip{10mu}b 	a\mskip{10mu}b",
     //r"a\sqrt{\frac{a}{b}}"
     // r"\vec{A}\vec{x}\vec x^2\vec{x}_2^2\vec{A}^2\vec{xA}^2\; \underbar{X}",
-    r"a+b-c\cdot d/e"
-
+    //r"a+b-c\cdot d/e"
+    r"\dbinom{a}{b}"
 ];
 
 

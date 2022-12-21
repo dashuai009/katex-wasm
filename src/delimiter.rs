@@ -7,10 +7,10 @@ use crate::dom_tree::path_node::PathNode;
  * discusses these routines on page 441-442, in the "Another subroutine sets box
  * x to a specified variable delimiter" paragraph.
  *
- * There are three main routines here. `makeSmallDelim` makes a delimiter in the
+ * There are three main routines here. `make_small_delim` makes a delimiter in the
  * normal font, but in either text, script, or scriptscript style.
  * `makeLargeDelim` makes a delimiter in textstyle, but in one of the Size1,
- * Size2, Size3, or Size4 fonts. `makeStackedDelim` makes a delimiter out of
+ * Size2, Size3, or Size4 fonts. `make_stacked_delim` makes a delimiter out of
  * smaller pieces that are stacked on top of one another.
  *
  * The functions take a parameter `center`, which determines if the delimiter
@@ -81,45 +81,55 @@ fn style_wrap(
     return span;
 }
 
-fn centerSpan(span: Span, options: &Options, style: StyleInterface) -> Span {
-    panic!("undefined");
-    // let newOptions = options.havingBaseStyle(style);
-    // let shift =
-    //     (1 - options.sizeMultiplier / newOptions.sizeMultiplier) *
-    //         options.fontMetrics().axisHeight;
-    //
-    // span.classes.push("delimcenter");
-    // span.style.top = makeEm(shift);
-    // span.height -= shift;
-    // span.depth += shift;
+fn center_span(mut span: Span, options: &Options, style: &StyleInterface) -> Span {
+    let new_options = options.having_base_style(style);
+    let shift = (1.0 - options.sizeMultiplier / new_options.sizeMultiplier)
+        * options.get_font_metrics().axisHeight;
+
+    span.get_mut_classes().push("delimcenter".to_string());
+    span.get_mut_style().top = Some(make_em(shift));
+    span.set_height(span.get_height() - shift);
+    span.set_depth(span.get_depth() + shift);
+    return span;
 }
 
-//
-// /**
-//  * Makes a small delimiter. This is a delimiter that comes in the Main-Regular
-//  * font, but is restyled to either be in textstyle, scriptstyle, or
-//  * scriptscriptstyle.
-//  */
-// let makeSmallDelim = function(
-//     delim: String,
-//     style: StyleInterface,
-//     center: bool,
-//     options: Options,
-//     mode: Mode,
-//     classes: String[],
-// ): DomSpan {
-// let text = buildCommon.makeSymbol(delim, "Main-Regular", mode, options);
-// let span = style_wrap(text, style, options, classes);
-// if (center) {
-// centerSpan(span, options, style);
-// }
-// return span;
-// };
-//
+/**
+ * Makes a small delimiter. This is a delimiter that comes in the Main-Regular
+ * font, but is restyled to either be in textstyle, scriptstyle, or
+ * scriptscriptstyle.
+ */
+fn make_small_delim(
+    delim: &str,
+    style: &StyleInterface,
+    center: bool,
+    options: &Options,
+    mode: Mode,
+    classes: Vec<String>,
+) -> Span {
+    let text = crate::build::common::make_symbol(
+        delim.to_string(),
+        "Main-Regular".to_string(),
+        mode,
+        Some(options),
+        vec![],
+    );
+    let span = style_wrap(
+        Box::new(text) as Box<dyn HtmlDomNode>,
+        style,
+        options,
+        classes,
+    );
+    return if center {
+        center_span(span, options, style)
+    } else {
+        span
+    };
+}
+
 /**
  * Builds a symbol in the given font size (note size is an integer)
  */
-fn mathrmSize(value: String, size: f64, mode: Mode, options: &Options) -> SymbolNode {
+fn mathrm_size(value: String, size: usize, mode: Mode, options: &Options) -> SymbolNode {
     return crate::build::common::make_symbol(
         value,
         format!("Size{size}-Regular"),
@@ -135,14 +145,14 @@ fn mathrmSize(value: String, size: f64, mode: Mode, options: &Options) -> Symbol
  * Size3, or Size4 fonts. It is always rendered in textstyle.
  */
 pub fn make_large_delim(
-    delim: &String,
-    size: f64,
+    delim: &str,
+    size: usize,
     center: bool,
     options: &Options,
     mode: Mode,
     classes: Vec<String>,
 ) -> Span {
-    let inner = mathrmSize(delim.clone(), size, mode, options);
+    let inner = mathrm_size(delim.to_string(), size, mode, options);
     let tmp_span = crate::build::common::make_span(
         vec!["delimsizing".to_string(), format!("size{size}")],
         vec![Box::new(inner) as Box<dyn HtmlDomNode>],
@@ -157,7 +167,7 @@ pub fn make_large_delim(
         classes,
     );
     return if center {
-        centerSpan(span, options, _text.clone())
+        center_span(span, options, &_text)
     } else {
         span
     };
@@ -165,21 +175,21 @@ pub fn make_large_delim(
 
 /**
  * Make a span from a font glyph with the given offset and in the given font.
- * This is used in makeStackedDelim to make the stacking pieces for the delimiter.
+ * This is used in make_stacked_delim to make the stacking pieces for the delimiter.
  */
-fn makeGlyphSpan(symbol: &str, font: &str, mode: Mode) -> crate::build::common::VListChild {
-    let sizeClass;
+fn make_glyph_span(symbol: &str, font: &str, mode: Mode) -> crate::build::common::VListChild {
+    let size_class;
     // Apply the correct CSS class to choose the right font.
     if font == "Size1-Regular" {
-        sizeClass = "delim-size1";
+        size_class = "delim-size1";
     } else if font == "Size4-Regular" {
-        sizeClass = "delim-size4";
+        size_class = "delim-size4";
     } else {
         panic!("");
     }
 
     let corner = crate::build::common::make_span(
-        vec!["delimsizinginner".to_string(), sizeClass.to_string()],
+        vec!["delimsizinginner".to_string(), size_class.to_string()],
         vec![Box::new(crate::build::common::make_span(
             vec![],
             vec![Box::new(crate::build::common::make_symbol(
@@ -226,7 +236,7 @@ fn make_inner(ch: &str, height: f64, options: &Options) -> VListChild {
             (1000.0 * height).round(),
         )),
     );
-    let svgNode = SvgNode::new(
+    let svg_node = SvgNode::new(
         vec![Box::new(path) as Box<dyn VirtualNode>],
         HashMap::from([
             ("width".to_string(), make_em(width)),
@@ -242,7 +252,7 @@ fn make_inner(ch: &str, height: f64, options: &Options) -> VListChild {
     );
     let mut span = Span::new(
         vec![],
-        vec![Box::new(svgNode) as Box<dyn HtmlDomNode>],
+        vec![Box::new(svg_node) as Box<dyn HtmlDomNode>],
         Some(options.clone()),
         Default::default(),
     );
@@ -260,19 +270,19 @@ fn make_inner(ch: &str, height: f64, options: &Options) -> VListChild {
 }
 
 //
-// Helpers for makeStackedDelim
-const lapInEms: f64 = 0.008;
-const verts: [&str; 4] = ["|", "\\lvert", "\\rvert", "\\vert"];
-const doubleVerts: [&str; 4] = ["\\|", "\\lVert", "\\rVert", "\\Vert"];
+// Helpers for make_stacked_delim
+const LAP_IN_EMS: f64 = 0.008;
+const VERTS: [&str; 4] = ["|", "\\lvert", "\\rvert", "\\vert"];
+const DOUBLE_VERTS: [&str; 4] = ["\\|", "\\lVert", "\\rVert", "\\Vert"];
 
 //
 /**
  * Make a stacked delimiter out of a given delimiter, with the total height at
- * least `heightTotal`. This routine is mentioned on page 442 of the TeXbook.
+ * least `height_total`. This routine is mentioned on page 442 of the TeXbook.
  */
-fn makeStackedDelim(
+fn make_stacked_delim(
     delim: &str,
-    heightTotal: f64,
+    height_total: f64,
     center: bool,
     options: &Options,
     mode: Mode,
@@ -284,111 +294,111 @@ fn makeStackedDelim(
     let mut middle = "";
     let mut repeat = "";
     let mut bottom = "";
-    let mut svgLabel = "";
-    let mut viewBoxWidth = 0;
+    let mut svg_label = "";
+    let mut view_box_width = 0;
     // Also keep track of what font the delimiters are in
     let mut font = "Size1-Regular";
 
     // We set the parts and font based on the symbol. Note that we use
     // '\u23d0' instead of '|' and '\u2016' instead of '\\|' for the
     // repeats of the arrows
-    if (delim == "\\uparrow") {
+    if delim == "\\uparrow" {
         bottom = "\u{23d0}";
         repeat = bottom;
-    } else if (delim == "\\Uparrow") {
+    } else if delim == "\\Uparrow" {
         bottom = "\u{2016}";
         repeat = bottom;
-    } else if (delim == "\\downarrow") {
+    } else if delim == "\\downarrow" {
         repeat = "\u{23d0}";
         top = repeat;
-    } else if (delim == "\\Downarrow") {
+    } else if delim == "\\Downarrow" {
         repeat = "\u{2016}";
         top = repeat;
-    } else if (delim == "\\updownarrow") {
+    } else if delim == "\\updownarrow" {
         top = "\\uparrow";
         repeat = "\u{23d0}";
         bottom = "\\downarrow";
-    } else if (delim == "\\Updownarrow") {
+    } else if delim == "\\Updownarrow" {
         top = "\\Uparrow";
         repeat = "\u{2016}";
         bottom = "\\Downarrow";
-    } else if verts.contains(&delim) {
+    } else if VERTS.contains(&delim) {
         repeat = "\u{2223}";
-        svgLabel = "vert";
-        viewBoxWidth = 333;
-    } else if doubleVerts.contains(&delim) {
+        svg_label = "vert";
+        view_box_width = 333;
+    } else if DOUBLE_VERTS.contains(&delim) {
         repeat = "\u{2225}";
-        svgLabel = "doublevert";
-        viewBoxWidth = 556;
-    } else if (delim == "[" || delim == "\\lbrack") {
+        svg_label = "doublevert";
+        view_box_width = 556;
+    } else if delim == "[" || delim == "\\lbrack" {
         top = "\u{23a1}";
         repeat = "\u{23a2}";
         bottom = "\u{23a3}";
         font = "Size4-Regular";
-        svgLabel = "lbrack";
-        viewBoxWidth = 667;
-    } else if (delim == "]" || delim == "\\rbrack") {
+        svg_label = "lbrack";
+        view_box_width = 667;
+    } else if delim == "]" || delim == "\\rbrack" {
         top = "\u{23a4}";
         repeat = "\u{23a5}";
         bottom = "\u{23a6}";
         font = "Size4-Regular";
-        svgLabel = "rbrack";
-        viewBoxWidth = 667;
-    } else if (delim == "\\lfloor" || delim == "\u{230a}") {
+        svg_label = "rbrack";
+        view_box_width = 667;
+    } else if delim == "\\lfloor" || delim == "\u{230a}" {
         top = "\u{23a2}";
         repeat = top;
         bottom = "\u{23a3}";
         font = "Size4-Regular";
-        svgLabel = "lfloor";
-        viewBoxWidth = 667;
-    } else if (delim == "\\lceil" || delim == "\u{2308}") {
+        svg_label = "lfloor";
+        view_box_width = 667;
+    } else if delim == "\\lceil" || delim == "\u{2308}" {
         top = "\u{23a1}";
         bottom = "\u{23a2}";
         repeat = bottom;
         font = "Size4-Regular";
-        svgLabel = "lceil";
-        viewBoxWidth = 667;
-    } else if (delim == "\\rfloor" || delim == "\u{230b}") {
+        svg_label = "lceil";
+        view_box_width = 667;
+    } else if delim == "\\rfloor" || delim == "\u{230b}" {
         top = "\u{23a5}";
         repeat = top;
         bottom = "\u{23a6}";
         font = "Size4-Regular";
-        svgLabel = "rfloor";
-        viewBoxWidth = 667;
-    } else if (delim == "\\rceil" || delim == "\u{2309}") {
+        svg_label = "rfloor";
+        view_box_width = 667;
+    } else if delim == "\\rceil" || delim == "\u{2309}" {
         top = "\u{23a4}";
         bottom = "\u{23a5}";
         repeat = bottom;
         font = "Size4-Regular";
-        svgLabel = "rceil";
-        viewBoxWidth = 667;
-    } else if (delim == "(" || delim == "\\lparen") {
+        svg_label = "rceil";
+        view_box_width = 667;
+    } else if delim == "(" || delim == "\\lparen" {
         top = "\u{239b}";
         repeat = "\u{239c}";
         bottom = "\u{239d}";
         font = "Size4-Regular";
-        svgLabel = "lparen";
-        viewBoxWidth = 875;
-    } else if (delim == ")" || delim == "\\rparen") {
+        svg_label = "lparen";
+        view_box_width = 875;
+    } else if delim == ")" || delim == "\\rparen" {
         top = "\u{239e}";
         repeat = "\u{239f}";
         bottom = "\u{23a0}";
         font = "Size4-Regular";
-        svgLabel = "rparen";
-        viewBoxWidth = 875;
-    } else if (delim == "\\{" || delim == "\\lbrace") {
+        svg_label = "rparen";
+        view_box_width = 875;
+    } else if delim == "\\{" || delim == "\\lbrace" {
         top = "\u{23a7}";
         middle = "\u{23a8}";
         bottom = "\u{23a9}";
         repeat = "\u{23aa}";
         font = "Size4-Regular";
-    } else if (delim == "\\}" || delim == "\\rbrace") {
+    } else if delim == "\\}" || delim == "\\rbrace" {
         top = "\u{23ab}";
         middle = "\u{23ac}";
         bottom = "\u{23ad}";
         repeat = "\u{23aa}";
         font = "Size4-Regular";
-    } else if (delim == "\\lgroup" || delim == "\u{27ee}") {
+    } else if delim == "\\lgroup" || delim == "\u{27ee}" {
         top = "\u{23a7}";
         bottom = "\u{23a9}";
         repeat = "\u{23aa}";
@@ -411,56 +421,56 @@ fn makeStackedDelim(
     }
 
     // Get the metrics of the four sections
-    let topMetrics = get_metrics(top, font, mode);
-    let topHeightTotal = topMetrics.height + topMetrics.depth;
-    let repeatMetrics = get_metrics(repeat, font, mode);
-    let repeatHeightTotal = repeatMetrics.height + repeatMetrics.depth;
-    let bottomMetrics = get_metrics(bottom, font, mode);
-    let bottomHeightTotal = bottomMetrics.height + bottomMetrics.depth;
-    let mut middleHeightTotal = 0.0;
-    let mut middleFactor = 1.0;
-    if (middle != "") {
-        let middleMetrics = get_metrics(middle, font, mode);
-        middleHeightTotal = middleMetrics.height + middleMetrics.depth;
-        middleFactor = 2.0; // repeat symmetrically above and below middle
+    let top_metrics = get_metrics(top, font, mode);
+    let top_height_total = top_metrics.height + top_metrics.depth;
+    let repeat_metrics = get_metrics(repeat, font, mode);
+    let repeat_height_total = repeat_metrics.height + repeat_metrics.depth;
+    let bottom_metrics = get_metrics(bottom, font, mode);
+    let bottom_height_total = bottom_metrics.height + bottom_metrics.depth;
+    let mut middle_height_total = 0.0;
+    let mut middle_factor = 1.0;
+    if middle != "" {
+        let middle_metrics = get_metrics(middle, font, mode);
+        middle_height_total = middle_metrics.height + middle_metrics.depth;
+        middle_factor = 2.0; // repeat symmetrically above and below middle
     }
 
     // Calcuate the minimal height that the delimiter can have.
     // It is at least the size of the top, bottom, and optional middle combined.
-    let minHeight = topHeightTotal + bottomHeightTotal + middleHeightTotal;
+    let min_height = top_height_total + bottom_height_total + middle_height_total;
 
     // Compute the f64 of copies of the repeat symbol we will need
-    let repeatCount = f64::max(
+    let repeat_count = f64::max(
         0.0,
-        ((heightTotal - minHeight) / (middleFactor * repeatHeightTotal).ceil()),
+        ((height_total - min_height) / (middle_factor * repeat_height_total).ceil()),
     );
 
     // Compute the total height of the delimiter including all the symbols
-    let realHeightTotal = minHeight + repeatCount * middleFactor * repeatHeightTotal;
+    let real_height_total = min_height + repeat_count * middle_factor * repeat_height_total;
 
     // The center of the delimiter is placed at the center of the axis. Note
     // that in this context, "center" means that the delimiter should be
     // centered around the axis in the current style, while normally it is
     // centered around the axis in textstyle.
-    let mut axisHeight = options.get_font_metrics().axisHeight;
+    let mut axis_height = options.get_font_metrics().axisHeight;
     if center {
-        axisHeight *= options.sizeMultiplier;
+        axis_height *= options.sizeMultiplier;
     }
     // Calculate the depth
-    let depth = realHeightTotal / 2.0 - axisHeight;
+    let depth = real_height_total / 2.0 - axis_height;
 
     // Now, we start building the pieces that will go into the vlist
     // Keep a list of the pieces of the stacked delimiter
     let mut stack = vec![];
 
-    if svgLabel.len() > 0 {
+    if svg_label.len() > 0 {
         // Instead of stacking glyphs, create a single SVG.
         // This evades browser problems with imprecise positioning of spans.
-        let mid_height = realHeightTotal - topHeightTotal - bottomHeightTotal;
-        let view_box_height = (realHeightTotal * 1000.0).round();
-        let path_str = crate::svgGeometry::tall_delim(svgLabel, (mid_height * 1000.0).round());
-        let path = PathNode::new(svgLabel.to_string(), Some(path_str));
-        let width = make_em(viewBoxWidth as f64 / 1000.0);
+        let mid_height = real_height_total - top_height_total - bottom_height_total;
+        let view_box_height = (real_height_total * 1000.0).round();
+        let path_str = crate::svgGeometry::tall_delim(svg_label, (mid_height * 1000.0).round());
+        let path = PathNode::new(svg_label.to_string(), Some(path_str));
+        let width = make_em(view_box_width as f64 / 1000.0);
         let height = make_em(view_box_height / 1000.0);
         let svg = SvgNode::new(
             vec![Box::new(path) as Box<dyn VirtualNode>],
@@ -469,7 +479,7 @@ fn makeStackedDelim(
                 ("height".to_string(), height.clone()),
                 (
                     "viewBox".to_string(),
-                    format!("0  0 {viewBoxWidth} {view_box_height}"),
+                    format!("0  0 {view_box_width} {view_box_height}"),
                 ),
             ]),
         );
@@ -492,48 +502,48 @@ fn makeStackedDelim(
             shift: None,
         });
     } else {
-        const lap: VListChild = Kern {
-            size: -1.0 * lapInEms,
+        const LAP: VListChild = Kern {
+            size: -1.0 * LAP_IN_EMS,
         };
         // Stack glyphs
         // Start by adding the bottom symbol
-        stack.push(makeGlyphSpan(bottom, font, mode));
-        stack.push(lap); // overlap
+        stack.push(make_glyph_span(bottom, font, mode));
+        stack.push(LAP); // overlap
 
-        if (middle == "") {
+        if middle == "" {
             // The middle section will be an SVG. Make it an extra 0.016em tall.
             // We'll overlap by 0.008em at top and bottom.
-            let innerHeight = realHeightTotal - topHeightTotal - bottomHeightTotal + 2.0 * lapInEms;
-            stack.push(make_inner(repeat, innerHeight, options));
+            let inner_height =
+                real_height_total - top_height_total - bottom_height_total + 2.0 * LAP_IN_EMS;
+            stack.push(make_inner(repeat, inner_height, options));
         } else {
             // When there is a middle bit, we need the middle part and two repeated
             // sections
-            let innerHeight =
-                (realHeightTotal - topHeightTotal - bottomHeightTotal - middleHeightTotal) / 2.0
-                    + 2.0 * lapInEms;
-            stack.push(make_inner(repeat, innerHeight, options));
+            let inner_height =
+                (real_height_total - top_height_total - bottom_height_total - middle_height_total)
+                    / 2.0
+                    + 2.0 * LAP_IN_EMS;
+            stack.push(make_inner(repeat, inner_height, options));
             // Now insert the middle of the brace.
-            stack.push(lap);
-            stack.push(makeGlyphSpan(middle, font, mode));
-            stack.push(lap);
-            stack.push(make_inner(repeat, innerHeight, options));
+            stack.push(LAP);
+            stack.push(make_glyph_span(middle, font, mode));
+            stack.push(LAP);
+            stack.push(make_inner(repeat, inner_height, options));
         }
 
         // Add the top symbol
-        stack.push(lap);
-        stack.push(makeGlyphSpan(top, font, mode));
+        stack.push(LAP);
+        stack.push(make_glyph_span(top, font, mode));
     }
 
     // Finally, build the vlist
     let _text = crate::Style::TEXT.read().unwrap();
     let new_options = options.having_base_style(&_text);
-    let inner = crate::build::common::make_vlist(
-        crate::build::common::VListParam {
-            position_type: PositionType::Bottom,
-            position_data: Some(depth),
-            children: stack,
-        }
-    );
+    let inner = crate::build::common::make_vlist(crate::build::common::VListParam {
+        position_type: PositionType::Bottom,
+        position_data: Some(depth),
+        children: stack,
+    });
 
     return style_wrap(
         Box::new(crate::build::common::make_span(
@@ -557,24 +567,24 @@ const EM_PAD: f64 = 0.08;
 // padding, in ems, measured in the document.
 //
 fn sqrt_svg(
-    sqrtName: String,
+    sqrt_name: String,
     height: f64,
-    viewBoxHeight: f64,
-    extraViniculum: f64,
+    view_box_height: f64,
+    extra_viniculum: f64,
     options: &Options,
 ) -> Span {
-    let path = sqrt_path(&sqrtName, extraViniculum, viewBoxHeight);
-    let pathNode = PathNode::new(sqrtName, Some(path));
+    let path = sqrt_path(&sqrt_name, extra_viniculum, view_box_height);
+    let path_node = PathNode::new(sqrt_name, Some(path));
 
     let svg = SvgNode::new(
-        vec![Box::new(pathNode) as Box<dyn VirtualNode>],
+        vec![Box::new(path_node) as Box<dyn VirtualNode>],
         HashMap::from([
             // Note: 1000:1 ratio of viewBox to document em width.
             ("width".to_string(), "400em".to_string()),
             ("height".to_string(), make_em(height)),
             (
                 "viewBox".to_string(),
-                format!("0 0 400000 {}", viewBoxHeight),
+                format!("0 0 400000 {}", view_box_height),
             ),
             (
                 "preserveAspectRatio".to_string(),
@@ -602,11 +612,10 @@ pub fn make_sqrt_image(height: f64, options: &Options) -> (Span, f64, f64) {
     let new_options = options.having_base_sizing();
 
     // Pick the desired surd glyph from a sequence of surds.
-    let stack_large_delimiter_sequence = STACK_LARGE_DELIMITER_SEQUEUE.read().unwrap();
     let delim = traverse_sequence(
         &"\\surd".to_string(),
         height * new_options.sizeMultiplier,
-        stack_large_delimiter_sequence.clone(),
+        STACK_LARGE_DELIMITER_SEQUEUE.clone(),
         &new_options,
     );
 
@@ -637,9 +646,9 @@ pub fn make_sqrt_image(height: f64, options: &Options) -> (Span, f64, f64) {
             // Get an SVG that is derived from glyph U+221A in font KaTeX-Main.
             // 1000 unit normal glyph height.
             view_box_height = 1000.0 + 1000.0 * extra_viniculum + VB_PAD;
-            if (height < 1.0) {
+            if height < 1.0 {
                 size_multiplier = 1.0; // mimic a \textfont radical
-            } else if (height < 1.4) {
+            } else if height < 1.4 {
                 size_multiplier = 0.7; // mimic a \scriptfont radical
             }
             span_height = (1.0 + extra_viniculum + EM_PAD) / size_multiplier;
@@ -757,7 +766,7 @@ const SIZE_TO_MAX_HEIGHT: [f64; 5] = [0.0, 1.2, 1.8, 2.4, 3.0];
  */
 pub fn make_sized_delim(
     delim: &String,
-    size: f64,
+    size: usize,
     options: &Options,
     mode: Mode,
     classes: Vec<String>,
@@ -775,7 +784,7 @@ pub fn make_sized_delim(
     if STACK_LARGE_DELIMITERS.contains(&angle) || STACK_NEVER_DELIMITERS.contains(&angle) {
         return make_large_delim(delim, size, false, options, mode, classes);
     } else if STACK_ALWAYS_DELIMITERS.contains(&angle) {
-        return makeStackedDelim(
+        return make_stacked_delim(
             &delim,
             SIZE_TO_MAX_HEIGHT[size as usize],
             false,
@@ -808,29 +817,41 @@ enum Delimiter {
     Stack,
 }
 
-// // Delimiters that never stack try small delimiters and large delimiters only
-// let stackNeverDelimiterSequence = [
-//     { type : "small", style: Style.SCRIPTSCRIPT },
-//     { type : "small", style: Style.SCRIPT },
-//     { type : "small", style: Style.TEXT },
-//     { type : "large", size: 1 },
-//     { type : "large", size: 2 },
-//     { type : "large", size: 3 },
-//     { type : "large", size: 4 },
-// ];
-//
-// // Delimiters that always stack try the small delimiters first, then stack
-// let stackAlwaysDelimiterSequence = [
-//     { type : "small", style: Style.SCRIPTSCRIPT },
-//     { type : "small", style: Style.SCRIPT },
-//     { type : "small", style: Style.TEXT },
-//     { type : "stack" },
-// ];
+lazy_static! {
+    // Delimiters that never stack try small delimiters and large delimiters only
+    static ref  STACK_NEVER_DELIMITER_SEQUENCE: Vec<Delimiter> = {
+        let _script_script = crate::Style::SCRIPTSCRIPT.read().unwrap();
+        let _script = crate::Style::SCRIPT.read().unwrap();
+        let _text = crate::Style::TEXT.read().unwrap();
+        vec![
+            Delimiter::Small(_script_script.clone()),
+            Delimiter::Small(_script.clone()),
+            Delimiter::Small(_text.clone()),
+            Delimiter::Large(1),
+            Delimiter::Large(2),
+            Delimiter::Large(3),
+            Delimiter::Large(4)
+        ]
+    };
+
+// Delimiters that always stack try the small delimiters first, then stack
+    static ref  STACK_ALWAYS_DELIMITER_SEQUENCE: Vec<Delimiter> = {
+        let _script_script = crate::Style::SCRIPTSCRIPT.read().unwrap();
+        let _script = crate::Style::SCRIPT.read().unwrap();
+        let _text = crate::Style::TEXT.read().unwrap();
+        vec![
+            Delimiter::Small(_script_script.clone()),
+            Delimiter::Small(_script.clone()),
+            Delimiter::Small(_text.clone()),
+            Delimiter::Stack
+        ]
+    };
+
 //
 // Delimiters that stack when large try the small and then large delimiters, and
 // stack afterwards
-lazy_static! {
-    static ref STACK_LARGE_DELIMITER_SEQUEUE: RwLock<Vec<Delimiter>> = RwLock::new({
+// stack afterwards
+    static ref STACK_LARGE_DELIMITER_SEQUEUE: Vec<Delimiter> = {
         let _scriptscript = crate::Style::SCRIPTSCRIPT.read().unwrap();
         let _script = crate::Style::SCRIPT.read().unwrap();
         let _text = crate::Style::TEXT.read().unwrap();
@@ -845,7 +866,7 @@ lazy_static! {
             Delimiter::Stack,
         ];
         res
-    });
+    };
 }
 
 /**
@@ -882,25 +903,25 @@ fn traverse_sequence(
         match s {
             Delimiter::Small(style) => {
                 let metrics = get_metrics(delim, &delim_type_to_font(s), Mode::math);
-                let mut heightDepth = metrics.height + metrics.depth;
+                let mut height_depth = metrics.height + metrics.depth;
 
                 // Small delimiters are scaled down versions of the same font, so we
                 // account for the style change size.
 
-                let newOptions = options.having_base_style(style);
-                heightDepth *= newOptions.sizeMultiplier;
+                let new_options = options.having_base_style(style);
+                height_depth *= new_options.sizeMultiplier;
 
                 // Check if the delimiter at this size works for the given height.
-                if heightDepth > height {
+                if height_depth > height {
                     return s.clone();
                 }
             }
             Delimiter::Large(large) => {
                 let metrics = get_metrics(delim, &delim_type_to_font(s), Mode::math);
-                let heightDepth = metrics.height + metrics.depth;
+                let height_depth = metrics.height + metrics.depth;
 
                 // Check if the delimiter at this size works for the given height.
-                if heightDepth > height {
+                if height_depth > height {
                     return s.clone();
                 }
             }
@@ -920,46 +941,40 @@ fn traverse_sequence(
  * traverse the sequences, and create a delimiter that the sequence tells us to.
  */
 pub fn make_custom_sized_delim(
-    delim: &String,
+    _delim: &str,
     height: f64,
     center: bool,
     options: &Options,
     mode: Mode,
     classes: Vec<String>,
 ) -> Span {
-    panic!("undefined make custom sized delim");
-    // if delim == "<" || delim == "\\lt" || delim == "\u{27e8}" {
-    // delim = "\\langle";
-    // } else if delim == ">" || delim == "\\gt" || delim == "\u{27e9}" {
-    // delim = "\\rangle";
-    // }
-    //
-    // // Decide what sequence to use
-    // let sequence;
-    // if (utils.contains(stackNeverDelimiters, delim)) {
-    // sequence = stackNeverDelimiterSequence;
-    // } else if (utils.contains(stackLargeDelimiters, delim)) {
-    // sequence = stackLargeDelimiterSequence;
-    // } else {
-    // sequence = stackAlwaysDelimiterSequence;
-    // }
-    //
-    // // Look through the sequence
-    // let delimType = traverseSequence(delim, height, sequence, options);
-    //
-    // // Get the delimiter from font glyphs.
-    // // Depending on the sequence element we decided on, call the
-    // // appropriate function.
-    // if (delimType.type == "small") {
-    // return makeSmallDelim(delim, delimType.style, center, options,
-    // mode, classes);
-    // } else if (delimType.type == "large") {
-    // return makeLargeDelim(delim, delimType.size, center, options, mode,
-    // classes);
-    // } else /* if (delimType.type == "stack") */ {
-    // return makeStackedDelim(delim, height, center, options, mode,
-    // classes);
-    // }
+    //    panic!("undefined make custom sized delim");
+    let delim = match _delim {
+        "<" | "\\lt" | "\u{27e8}" => "\\langle",
+        ">" | "\\gt" | "\u{27e9}" => "\\rangle",
+        _ => _delim,
+    };
+
+    // Decide what sequence to use
+    let sequence = if STACK_NEVER_DELIMITERS.contains(&delim) {
+        STACK_NEVER_DELIMITER_SEQUENCE.clone()
+    } else if STACK_LARGE_DELIMITERS.contains(&delim) {
+        STACK_LARGE_DELIMITER_SEQUEUE.clone()
+    } else {
+        STACK_ALWAYS_DELIMITER_SEQUENCE.clone()
+    };
+
+    // Look through the sequence
+    let delim_type = traverse_sequence(delim, height, sequence, options);
+
+    // Get the delimiter from font glyphs.
+    // Depending on the sequence element we decided on, call the
+    // appropriate function.
+    return match delim_type {
+        Delimiter::Small(s) => make_small_delim(delim, &s, center, options, mode, classes),
+        Delimiter::Large(l) => make_large_delim(delim, l, center, options, mode, classes),
+        Delimiter::Stack => make_stacked_delim(delim, height, center, options, mode, classes),
+    };
 }
 
 /**

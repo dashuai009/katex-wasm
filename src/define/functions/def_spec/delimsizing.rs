@@ -378,7 +378,7 @@ pub fn big_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<
     // Use delimiter.sizedDelim to generate the delimiter.
     let res = crate::delimiter::make_sized_delim(
         &group.delim,
-        group.size as f64,
+        group.size,
         &options,
         group.mode,
         vec![group.mclass.clone()],
@@ -717,7 +717,7 @@ pub fn middle_html_builder(
         return Box::new(middle_delim) as Box<dyn HtmlDomNode>;
     } else {
         let middle_delim = IsMiddleSpan::new(
-            crate::delimiter::make_sized_delim(&group.delim, 1.0, &options, group.mode, vec![]),
+            crate::delimiter::make_sized_delim(&group.delim, 1, &options, group.mode, vec![]),
 IsMiddle {
             delim: group.delim.clone(),
             options,
