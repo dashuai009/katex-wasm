@@ -229,6 +229,7 @@ pub fn build_expression(
         is_root,
     );
 
+    println!("build_expression groups = {:#?}", groups);
     return groups;
 }
 
@@ -280,7 +281,7 @@ fn traverse_non_space_nodes(
             if let Some(result) = callback(&mut nodes[i], &mut prev.node) {
                 //println!("result = {:#?}", result);
                 if insert_after_pos.is_some() {
-                    nodes.insert(insert_after_pos.unwrap(), result);
+                    nodes.insert(insert_after_pos.unwrap() + 1, result);
                     i+=1;
                 } else {
                     // insert at front
