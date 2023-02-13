@@ -41,7 +41,7 @@ pub struct Settings {
     /// Color used for invalid LaTeX.
     error_color: String,
     /// Collection of custom macros.
-    macros: Arc<crate::Namespace::Mapping<MacroDefinition>>,
+    macros: crate::Namespace::MapRef<MacroDefinition>,
     /// Specifies a minimum thickness, in ems.
     min_rule_thickness: f64,
     color_is_text_color: bool,
@@ -61,8 +61,8 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn get_ref_macros(&self) -> Arc<crate::Namespace::Mapping<MacroDefinition>> {
-        return Arc::clone(&self.macros);
+    pub fn get_ref_macros(&self) -> crate::Namespace::MapRef<MacroDefinition> {
+        return self.macros.clone();
     }
 }
 
@@ -302,7 +302,7 @@ impl Settings {
             // Color used for invalid LaTeX.
             error_color: String::new(),
             // Collection of custom macros.
-            macros: Arc::new(HashMap::<String, MacroDefinition>::new()),
+            macros: Arc::new(HashMap::<String, MacroDefinition>::new().into()),
             min_rule_thickness: 0.0,
             color_is_text_color: false,
             strict: StrictType::Warn,

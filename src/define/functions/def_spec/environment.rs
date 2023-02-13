@@ -1,8 +1,8 @@
 use crate::build::HTML::IsRealGroup;
 use crate::build::{common, mathML, HTML};
+use crate::define::environments::_environments;
 use crate::define::functions::public::{
     ord_argument, FunctionContext, FunctionContext2, FunctionDefSpec, FunctionPropSpec,
-    _environments,
 };
 use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::span::Span;
@@ -38,8 +38,7 @@ fn env_handler_fn(
         .collect::<Vec<_>>()
         .concat();
 
-
-    if context.borrow().func_name == "\\begin".to_string() {
+    if ctx.func_name == "\\begin".to_string() {
         // begin...end is similar to left...right
         // Build the environment object. Arguments and other information will
         // be made available to the begin and end methods using properties.
@@ -49,7 +48,7 @@ fn env_handler_fn(
             .expect(&*format!("No such environment: {env_name}"));
         let (args, opt_args) = ctx
             .parser
-            .parse_arguments(&format!("\\begin{{env_name}}"), env);
+            .parse_arguments(&format!("\\begin{env_name}"), env);
         let context = RefCell::new(FunctionContext2 {
             func_name: env_name.clone(),
             token: None,
@@ -59,9 +58,7 @@ fn env_handler_fn(
         let result = env.1(context, args, opt_args);
         ctx.parser.expect("\\end".to_string(), false);
         let end_name_token = ctx.parser.next_token.clone();
-        let tmp = ctx.parser
-            .parse_function(None,"".to_string())
-            .unwrap();
+        let tmp = ctx.parser.parse_function(None, "".to_string()).unwrap();
         let end = tmp
             .as_any()
             .downcast_ref::<parse_node::types::environment>()

@@ -92,7 +92,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
 
     // Rule 18a
     let mut sup_shift = 0.0;
-    let mut subShift = 0.0;
+    let mut sub_shift = 0.0;
 
     let value_base_is_character_box = value_base.is_some() && is_character_box(&value_base.as_ref().unwrap());
     if value_sup.is_some() {
@@ -117,7 +117,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             Some(options.clone()),
         ));
         if !value_base_is_character_box {
-            subShift = base.get_depth()
+            sub_shift = base.get_depth()
                 + new_options.get_font_metrics().subDrop * new_options.sizeMultiplier.clone()
                 / options.sizeMultiplier.clone();
         }
@@ -173,18 +173,18 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                 sup_shift,
                 f64::max(min_sup_shift, supm.get_depth() + 0.25 * metrics.xHeight),
             );
-            subShift = f64::max(subShift, metrics.sub2);
+            sub_shift = f64::max(sub_shift, metrics.sub2);
 
             let rule_width = metrics.defaultRuleThickness;
 
             // Rule 18e
             let max_width = 4.0 * rule_width;
-            if (sup_shift - supm.get_depth()) - (subm.get_height() - subShift) < max_width {
-                subShift = max_width - (sup_shift - supm.get_depth()) + subm.get_height();
+            if (sup_shift - supm.get_depth()) - (subm.get_height() - sub_shift) < max_width {
+                sub_shift = max_width - (sup_shift - supm.get_depth()) + subm.get_height();
                 let psi = 0.8 * metrics.xHeight - (sup_shift - supm.get_depth());
                 if (psi > 0.0) {
                     sup_shift += psi;
-                    subShift -= psi;
+                    sub_shift -= psi;
                 }
             }
 
@@ -195,7 +195,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                     margin_right: None,
                     wrapper_classes: None,
                     wrapper_style: None,
-                    shift: Some(subShift),
+                    shift: Some(sub_shift),
                 },
                 VListChild::Elem {
                     elem: supm,
@@ -208,10 +208,11 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             ];
 
             supsub = crate::build::common::make_vlist(VListParam {
-                position_type: PositionType::IndividualShift,
-                children: vlist_elem,
-                position_data: None,
-            });
+                            position_type: PositionType::IndividualShift,
+                            children: vlist_elem,
+                            position_data: None,
+                        },
+            );
         } else {
             // Rule 18c, d
             sup_shift = f64::max(
@@ -230,26 +231,25 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                         shift: None,
                     }],
                     position_data: Some(-sup_shift),
-                }
+                },
             );
         }
     } else {
         if let Some(subm) = _subm {
             // Rule 18b
-            subShift = f64::max(
-                f64::max(subShift, metrics.sub1),
+            sub_shift = f64::max(
+                f64::max(sub_shift, metrics.sub1),
                 subm.get_height() - 0.8 * metrics.xHeight,
             );
-            panic!("make_v_list");
 
-            // let vlistElem =
-            //     [{type: "elem", elem: subm, margin_left, margin_right}];
-            //
-            // supsub = buildCommon.makeVList({
-            //                                    positionType: "shift",
-            //                                    positionData: subShift,
-            //                                    children: vlistElem,
-            //                                }, options);
+            let vlist_elem = vec![VListChild::Elem { elem: subm, margin_left, margin_right: Some(margin_right), wrapper_classes: None, wrapper_style: None, shift: None }];
+
+            supsub = make_vlist(VListParam {
+                            position_type: PositionType::Shift,
+                            position_data: Some(sub_shift),
+                            children: vlist_elem,
+                        },
+            );
         } else {
             panic!("supsub must have either sup or sub.");
         }

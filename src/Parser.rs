@@ -553,8 +553,8 @@ impl Parser<'_> {
         if let Some(mut funcData) = functions.get(func) {
             self.consume(); // consume command token
 
-            if (name != "atom" && !funcData.0.get_allowed_in_argument()) {
-                panic!("Got function  + func +  with no arguments");
+            if (name != "" && name != "atom" && !funcData.0.get_allowed_in_argument()) {
+                panic!("Got function  + {func}+  with no arguments");
                 // throw new ParseError(
                 //     "Got function '" + func + "' with no arguments" +
                 //     (name ? " as " + name : ""), token);

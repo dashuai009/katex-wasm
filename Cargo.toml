@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["dashuai009 <1525836294@qq.com>"]
 edition = "2021"
 
+[build]
+target = "x86_64-pc-windows-gnu"
 [lib]
 crate-type = ["cdylib", "rlib"]
 

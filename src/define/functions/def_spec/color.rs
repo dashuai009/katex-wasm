@@ -143,7 +143,7 @@ lazy_static! {
 
         FunctionDefSpec {
             def_type: "color".to_string(),
-            names: vec!["\\textcolor".to_string()],
+            names: vec!["\\color".to_string()],
             props,
             handler: handler_fn_2,
             html_builder: Some(html_builder),

@@ -44,7 +44,7 @@ impl MacroExpander<'_> {
             lexer: Lexer::new(input, settings),
             // Make new global namespace
             macros: Namespace::<MacroDefinition>::new(
-                std::sync::Arc::new(crate::define::macros::macro_map::create_macro_map()),
+                std::sync::Arc::new(crate::define::macros::macro_map::create_macro_map().into()),
                 settings.get_ref_macros(),
             ),
             mode,

@@ -2,8 +2,8 @@ use crate::dom_tree::span::Span;
 use crate::parse::parseTree;
 use crate::settings::Settings;
 use crate::VirtualNode;
-use wasm_bindgen::JsValue;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
 
 /**
  * Generates and returns the katex build tree. This is used for advanced
@@ -30,12 +30,9 @@ pub fn render_to_string(expression: String, settings: Settings) -> String {
 }
 
 #[wasm_bindgen(js_name = renderToString)]
-pub fn render_to_string_for_js(expression:String, settings:  &JsValue)->String{
-    return render_to_string(expression,Settings::new_from_js(settings));
+pub fn render_to_string_for_js(expression: String, settings: &JsValue) -> String {
+    return render_to_string(expression, Settings::new_from_js(settings));
 }
-
-
-
 
 const TEST_CASE: [&str; 1] = [
     // "E=mc^2",
@@ -70,10 +67,16 @@ const TEST_CASE: [&str; 1] = [
     //r"a\sqrt{\frac{a}{b}}"
     // r"\vec{A}\vec{x}\vec x^2\vec{x}_2^2\vec{A}^2\vec{xA}^2\; \underbar{X}",
     //r"a+b-c\cdot d/e"
-    r"\dbinom{a}{b}"
+    //r"\dbinom{a}{b}\tbinom{a}{b}^{\binom{a}{b}+17}{\scriptscriptstyle \binom{a}{b}}"
+    //r"\mathbf{A}^2+\mathbf{B}_3*\mathscr{C}'"
+    //   r"\sum_{\boldsymbol{\alpha}}^{\boldsymbol{\beta}} \boldsymbol{\omega}+ \boldsymbol{\int_\alpha^\beta} \boldsymbol{\Omega + {}} \\
+    // \boldsymbol{\lim_{x \to \infty} \log Ax2k\omega\Omega\imath+} \\
+    // x \boldsymbol{+} y \boldsymbol{=} z"
+    r"    \begin{array}{lc}
+    a & a \\
+    b & b
+    \end{array}",
 ];
-
-
 
 #[cfg(test)]
 mod tests {
@@ -90,16 +93,17 @@ mod tests {
         settings.set_max_expand(Some(1000));
         settings.set_max_size(Some(200000.0));
         println!("setting = {:#?}", settings);
-        for test_str in TEST_CASE{
+        for test_str in TEST_CASE {
             println!("{test_str}");
         }
-        for test_string in TEST_CASE{
-            println!("{}",render_to_string(test_string.to_string(), settings.clone()).as_str());
+        for test_string in TEST_CASE {
+            println!(
+                "{}",
+                render_to_string(test_string.to_string(), settings.clone()).as_str()
+            );
         }
-
     }
 }
-
 
 /*****
 具有纪念意义的一行输出

@@ -50,10 +50,6 @@ use std::sync::Mutex;
 use crate::define::functions::def_spec::vcenter::VCENTER;
 
 lazy_static! {
-
-    pub static ref ENVS: Mutex<Vec<FunctionDefSpec>> = Mutex::new({
-        vec![]
-    });
     pub static ref FUNCS: Mutex<Vec<FunctionDefSpec>> = Mutex::new({
         let x = mclass::MCLASS.lock().unwrap();
         let y = symbols_ord::MATHORD.lock().unwrap();
@@ -118,6 +114,11 @@ lazy_static! {
 
         let ia = relax::RULE.lock().unwrap();
 
+        let ja = color::COLOR.lock().unwrap();
+        let jb = color::COLOR2.lock().unwrap();
+
+        let ka = htmlmathml::HTML_MATHML.lock().unwrap();
+
         let res = vec![
             x.clone(),
             y.clone(),
@@ -174,7 +175,10 @@ lazy_static! {
             fa.clone(),
             ga.clone(),
             ha.clone(),
-            ia.clone()
+            ia.clone(),
+            ja.clone(),
+            jb.clone(),
+            ka.clone()
         ];
         res
     });

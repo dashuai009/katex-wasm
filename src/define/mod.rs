@@ -1,3 +1,3 @@
 pub mod functions;
 pub(crate) mod macros;
-mod environments;
+pub(crate) mod environments;

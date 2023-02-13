@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use crate::parse_node::types::ParseNodeToAny;
 pub(crate) use crate::AnyParseNode;
 use crate::{
@@ -11,16 +10,17 @@ use crate::{
     Parser::Parser,
 };
 use lazy_static::lazy_static;
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 /** Context provided to function pub(crate) handlers for error messages. */
-pub struct FunctionContext2<'a,'b> {
+pub struct FunctionContext2<'a, 'b> {
     pub func_name: String,
     pub parser: &'b mut Parser<'a>,
     pub token: Option<Token>,
     pub break_on_token_text: Option<BreakToken>,
 }
-pub type FunctionContext<'a,'b> = RefCell<FunctionContext2<'a,'b>>;
+pub type FunctionContext<'a, 'b> = RefCell<FunctionContext2<'a, 'b>>;
 type FunctionHandler = fn(
     context: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
@@ -197,24 +197,20 @@ lazy_static! {
         res
     });
 
-    pub static ref _environments: std::sync::RwLock<HashMap<String,FunctionSpec>> =  std::sync::RwLock::new({
-        let mut res = HashMap::new();
-        for data in super::def_spec::ENVS.lock().unwrap().iter(){
-             for name in data.names.iter() {
-                res.insert(name.clone(), (data.props.clone(), data.handler));
-            }
-        }
-        res
-    });
-
-    /**
-     * All HTML builders. Should be only used in the `define*` and the `build*ML`
-     * functions.
-     */
+    ///
+    /// All HTML builders. Should be only used in the `define*` and the `build*ML`
+    /// functions.
+    ///
     pub static ref _HTML_GROUP_BUILDERS: std::sync::RwLock<HashMap<String, HtmlBuilder>> =  std::sync::RwLock::new({
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
             if let Some(h) = data.html_builder{
+                res.insert(data.def_type.clone(),h);
+            }
+        }
+
+        for data in crate::define::environments::ENVS.lock().unwrap().iter(){
+             if let Some(h) = data.html_builder{
                 res.insert(data.def_type.clone(),h);
             }
         }
@@ -228,6 +224,11 @@ lazy_static! {
         let mut res = HashMap::new();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
             if let Some(h) = data.mathml_builder{
+                res.insert(data.def_type.clone(),h);
+            }
+        }
+        for data in crate::define::environments::ENVS.lock().unwrap().iter(){
+             if let Some(h) = data.mathml_builder{
                 res.insert(data.def_type.clone(),h);
             }
         }
@@ -283,12 +284,12 @@ pub fn test(a: i32, b: i32) -> i32 {
 
 pub fn normalize_argument(arg: &Box<dyn AnyParseNode>) -> &Box<dyn AnyParseNode> {
     return if let Some(ord_group) = arg.as_any().downcast_ref::<parse_node::types::ordgroup>() {
-        if ord_group.body.len() == 1{
+        if ord_group.body.len() == 1 {
             &ord_group.body[0]
-        } else{
+        } else {
             arg
         }
-    }else{
+    } else {
         arg
     };
 }
@@ -300,5 +301,5 @@ pub fn ord_argument(arg: &Box<dyn AnyParseNode>) -> Vec<Box<dyn AnyParseNode>> {
         ord_group.body.clone()
     } else {
         vec![arg.clone()]
-    }
+    };
 }

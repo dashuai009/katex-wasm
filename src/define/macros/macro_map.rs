@@ -11,8 +11,13 @@ fn new_me(tokens: Vec<Token>, num_args: i32) -> MacroDefinition {
     })
 }
 
-pub fn create_macro_map() -> std::collections::HashMap<String, MacroDefinition> {
+pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
     let mut res = std::collections::HashMap::from([
+        //////////////////////////////////////////////////////////////////////
+        // array.js
+
+        ("\\nonumber".to_string(), MacroDefinition::Str("\\gdef\\@eqnsw{0}".to_string())),
+        ("\\notag".to_string(), MacroDefinition::Str("\\nonumber".to_string())),
         //////////////////////////////////////////////////////////////////////
         // macro tools
         (
@@ -783,7 +788,7 @@ pub fn create_macro_map() -> std::collections::HashMap<String, MacroDefinition> 
         //         defineMacro("\\varsubsetneqq", "\\html@mathml{\\@varsubsetneqq}{⫋}");
         //         defineMacro("\\varsupsetneq", "\\html@mathml{\\@varsupsetneq}{⊋}");
         //         defineMacro("\\varsupsetneqq", "\\html@mathml{\\@varsupsetneqq}{⫌}");
-        //         defineMacro("\\imath", "\\html@mathml{\\@imath}{\u0131}");
+        ("\\imath".to_string(), MacroDefinition::Str("\\html@mathml{\\@imath}{\u{0131}}".to_string())),
         //         defineMacro("\\jmath", "\\html@mathml{\\@jmath}{\u0237}");
         //
         // //////////////////////////////////////////////////////////////////////
