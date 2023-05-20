@@ -11,7 +11,7 @@ use wasm_bindgen::JsValue;
  */
 pub fn render_to_dom_tree(expression: String, settings: Settings) -> Span {
     let tree = parseTree(expression.clone(), settings.clone());
-    //println!("tree parse nodes = {:#?}", tree);
+    // println!("tree parse nodes = {:#?}", tree);
     return crate::build::build_tree(tree, expression, settings);
 }
 
@@ -72,10 +72,14 @@ const TEST_CASE: [&str; 1] = [
     //   r"\sum_{\boldsymbol{\alpha}}^{\boldsymbol{\beta}} \boldsymbol{\omega}+ \boldsymbol{\int_\alpha^\beta} \boldsymbol{\Omega + {}} \\
     // \boldsymbol{\lim_{x \to \infty} \log Ax2k\omega\Omega\imath+} \\
     // x \boldsymbol{+} y \boldsymbol{=} z"
-    r"    \begin{array}{lc}
-    a & a \\
-    b & b
-    \end{array}",
+    // r"    \begin{array}{lc}
+    // a & a \\
+    // b & b
+    // \end{array}",
+    r"\begin{align}
+      a&= b\\
+      b= & v\\
+      \end{align}"
 ];
 
 #[cfg(test)]

@@ -2,7 +2,7 @@ use crate::build::common::{PositionType, VListChild, VListParam};
 use crate::build::HTML::IsRealGroup;
 use crate::build::{common, mathML, HTML};
 use crate::define::functions::public::{
-    ord_argument, FunctionContext, FunctionDefSpec, FunctionPropSpec,
+    ord_argument, FunctionContext, FunctionContext2, FunctionDefSpec, FunctionPropSpec,
 };
 use crate::define::macros::public::MacroDefinition;
 use crate::dom_tree::css_style::CssStyle;
@@ -11,13 +11,16 @@ use crate::dom_tree::symbol_node::SymbolNode;
 use crate::mathML_tree::math_node::MathNode;
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
 use crate::parse_node::check_symbol_node_type;
-use crate::parse_node::types::{cr, ordgroup, ArrayTag, ColSeparationType, ParseNodeToAny};
+use crate::parse_node::types::{
+    cr, ordgroup, textord, ArrayTag, ColSeparationType, ParseNodeToAny,
+};
 use crate::token::Token;
 use crate::types::{BreakToken, StyleStr};
 use crate::utils::is_character_box;
 use crate::Options::Options;
 use crate::Parser::Parser;
 use crate::{parse_node, types::ArgType, AnyParseNode, HtmlDomNode};
+use std::ops::Add;
 use std::sync::Mutex;
 use std::{any::Any, sync::Arc};
 
@@ -62,27 +65,31 @@ fn get_hlines(parser: &mut crate::Parser::Parser) -> Vec<bool> {
     }
     return hline_info;
 }
-//
-// let validateAmsEnvironmentContext = context => {
-// let settings = context.parser.settings;
-// if (!settings.displayMode) {
-// panic!(`{${context.envName}} can be used only in` +
-// ` display mode.`);
-// }
-// };
+
+fn validate_ams_environment_context(context: &mut FunctionContext2) {
+    let settings = context.parser.settings;
+    if !settings.get_display_mode() {
+        panic!("{} can be used only in display mode.", context.func_name);
+    }
+}
+
 //
 // // auto_tag (an argument to parse_array) can be one of three values:
 // // * undefined: Regular (not-top-level) array; no tags on each row
 // // * true: Automatic equation numbering, overridable by \tag
 // // * false: Tags allowed on each row, but no automatic numbering
 // // This function *doesn't* work with the "split" environment name.
-// function getAutoTag(name): ?boolean {
-// if (name.indexOf("ed".to_string()) == -1) {
-// return name.indexOf("*".to_string()) == -1;
-// }
-// // return undefined;
-// }
-//
+fn get_auto_tag(name: &str) -> bool {
+    if name.contains("ed") {
+        return false;
+    }
+
+    if name.contains("*") {
+        return false;
+    }
+
+    return true;
+}
 
 struct ParseArrayArgs {
     hskip_before_and_after: bool,
@@ -156,7 +163,7 @@ fn parse_array(
     let mut row_gaps = vec![];
     let mut h_lines_before_row = vec![];
 
-    let mut tags = if auto_tag { None } else { Some(vec![]) };
+    let mut tags = if auto_tag { Some(vec![]) } else { None };
 
     // amsmath uses \global\@eqnswtrue and \global\@eqnswfalse to represent
     // whether this row should have an equation number.  Simulate this with
@@ -180,18 +187,16 @@ fn parse_array(
                     .gullet
                     .macros
                     .set(&"\\df@tag".to_string(), None, true);
-            } else {
-                if auto_tag {
-                    let tmp = parser.gullet.macros.get(&"\\@eqnsw".to_string()).unwrap();
-                    let ttt = if let MacroDefinition::Str(s) = tmp {
-                        s == "1"
-                    } else {
-                        false
-                    };
-                    t.push(crate::parse_node::types::ArrayTag::A(ttt));
+            } else if auto_tag {
+                let tmp = parser.gullet.macros.get(&"\\@eqnsw".to_string()).unwrap();
+                let ttt = if let MacroDefinition::Str(s) = tmp {
+                    s == "1"
                 } else {
-                    t.push(ArrayTag::A(false));
-                }
+                    false
+                };
+                t.push(crate::parse_node::types::ArrayTag::A(ttt));
+            } else {
+                t.push(ArrayTag::A(false));
             }
         }
     };
@@ -270,11 +275,9 @@ fn parse_array(
                     size = parser.parse_size_group(true);
                 }
                 row_gaps.push(if let Some(i) = size {
-                    if let Some(j) = i.as_any().downcast_ref::<parse_node::types::size>() {
-                        Some(j.value.clone())
-                    } else {
-                        None
-                    }
+                    i.as_any()
+                        .downcast_ref::<parse_node::types::size>()
+                        .map(|j| j.value.clone())
                 } else {
                     None
                 });
@@ -348,7 +351,8 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
     let nr = group.body.len();
     let h_lines_before_row = &group.h_lines_before_row;
     let mut nc = 0;
-    let mut body = Vec::new(); //   Array(nr);
+    let mut body = Vec::new();
+    // let mut body = Vec::with_capacity(nr); //   Array(nr);
     let mut hlines = Vec::new();
 
     let rule_thickness = f64::max(
@@ -387,11 +391,10 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
     let arstrut_height = 0.7 * arrayskip; // \strutbox in ltfsstrc.dtx and
     let arstrut_depth = 0.3 * arrayskip; // \@arstrutbox in lttab.dtx
 
-
     // Set a position for \hline(s) at the top of the array, if any.
     let mut set_hline_pos = |hlines_in_gap: &Vec<bool>, total_height: &mut f64| {
-        *total_height += 0.25 * (if hlines_in_gap.len() > 0 { hlines_in_gap.len() - 1 } else { 0 } as f64);
-        for h in hlines_in_gap {
+        for (i, h) in hlines_in_gap.iter().enumerate() {
+            if i > 0 { *total_height += 0.25; }
             hlines.push(Hline {
                 pos: total_height.clone(),
                 is_dashed: *h,
@@ -400,10 +403,9 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
     };
 
     let mut total_height = 0.0;
-    let mut r = 0;
-    set_hline_pos(&h_lines_before_row[r], &mut total_height);
+    set_hline_pos(&h_lines_before_row[0], &mut total_height);
 
-    for inrow in group.body.iter_mut() {
+    for (r, inrow) in group.body.iter_mut().enumerate() {
         let mut height = arstrut_height; // \@array adds an \@arstrut
         let mut depth = arstrut_depth; // to each tow (via the template)
 
@@ -424,7 +426,7 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
         }
 
         let mut gap = 0.0;
-        if r< group.row_gaps.len(){
+        if r < group.row_gaps.len() {
             if let Some(m) = &group.row_gaps[r] {
                 gap = crate::units::calculate_size(m, &options);
                 if gap > 0.0 {
@@ -436,7 +438,6 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
                     gap = 0.0;
                 }
             }
-
         }
         // In AMS multiline environments such as aligned and gathered, rows
         // correspond to lines that have additional \jot added to the
@@ -450,7 +451,6 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
         total_height += depth + gap; // \@yargarraycr
         // Set a position for \hline(s), if any.
         set_hline_pos(&h_lines_before_row[r + 1], &mut total_height);
-        r += 1;
     }
 
     let offset = total_height / 2.0 + options.get_font_metrics().axisHeight;
@@ -463,7 +463,7 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
         if tags.iter().any(|i| -> bool {
             return match i {
                 ArrayTag::A(a) => *a,
-                ArrayTag::B(b) => b.len() > 0,
+                ArrayTag::B(b) => true/* b.len() > 0 */,
             };
         }) {
             // An environment with manual tags and/or automatic equation numbers.
@@ -520,120 +520,147 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
     while c < nc || col_descr_num < col_descriptions.len() {
         // Continue while either there are more columns or more column
         // descriptions, so trailing separators don't get lost.
-        let mut col_descr = &col_descriptions[col_descr_num];
 
         let mut first_separator = true;
-        while let AlignSpec::Separator(col_des) = col_descr {
-            // If there is more than one separator in a row, add a space
-            // between them.
-            if !first_separator {
-                col_sep = common::make_span(
-                    vec!["arraycolsep".to_string()],
-                    vec![],
-                    None,
-                    Default::default(),
-                );
-                col_sep.get_mut_style().width = Some(crate::units::make_em(
-                    options.get_font_metrics().doubleRuleSep,
-                ));
-                cols.push(col_sep);
-            }
-
-            if col_des.separator == "|" || col_des.separator == ":".to_string() {
-                let line_type = if (col_des.separator == "|".to_string()) {
-                    "solid"
-                } else {
-                    "dashed"
-                };
-                let mut separator = common::make_span(
-                    vec!["vertical-separator".to_string()],
-                    vec![],
-                    Some(&options),
-                    Default::default(),
-                );
-                separator.get_mut_style().height = Some(crate::units::make_em(total_height));
-                separator.get_mut_style().border_right_width =
-                    Some(crate::units::make_em(rule_thickness));
-                separator.get_mut_style().border_right_style = Some(line_type.to_string());
-                separator.get_mut_style().margin =
-                    Some(format!("0 {}", crate::units::make_em(-rule_thickness / 2.0)));
-                let shift = total_height - offset;
-                if shift != 0.0 {
-                    separator.get_mut_style().vertical_align = Some(crate::units::make_em(-shift));
+        while col_descr_num < col_descriptions.len() {
+            if let AlignSpec::Separator(col_des) = &col_descriptions[col_descr_num] {
+                // If there is more than one separator in a row, add a space
+                // between them.
+                if !first_separator {
+                    col_sep = common::make_span(
+                        vec!["arraycolsep".to_string()],
+                        vec![],
+                        None,
+                        Default::default(),
+                    );
+                    col_sep.get_mut_style().width = Some(crate::units::make_em(
+                        options.get_font_metrics().doubleRuleSep,
+                    ));
+                    cols.push(col_sep);
                 }
 
-                cols.push(separator);
-            } else {
-                panic!("Invalid separator type: {}", col_des.separator);
-            }
+                if col_des.separator == "|" || col_des.separator == ":".to_string() {
+                    let line_type = if col_des.separator == "|".to_string() {
+                        "solid"
+                    } else {
+                        "dashed"
+                    };
+                    let mut separator = common::make_span(
+                        vec!["vertical-separator".to_string()],
+                        vec![],
+                        Some(&options),
+                        Default::default(),
+                    );
+                    separator.get_mut_style().height = Some(crate::units::make_em(total_height));
+                    separator.get_mut_style().border_right_width =
+                        Some(crate::units::make_em(rule_thickness));
+                    separator.get_mut_style().border_right_style = Some(line_type.to_string());
+                    separator.get_mut_style().margin = Some(format!(
+                        "0 {}",
+                        crate::units::make_em(-rule_thickness / 2.0)
+                    ));
+                    let shift = total_height - offset;
+                    if shift != 0.0 {
+                        separator.get_mut_style().vertical_align =
+                            Some(crate::units::make_em(-shift));
+                    }
 
-            col_descr_num += 1;
-            first_separator = false;
+                    cols.push(separator);
+                } else {
+                    panic!("Invalid separator type: {}", col_des.separator);
+                }
+
+                col_descr_num += 1;
+                first_separator = false;
+            } else {
+                break;
+            }
         }
 
         if c >= nc {
             continue;
         }
 
-        let mut sepwidth = 0.0;
-
-        if let AlignSpec::Align(col_align) = col_descr {
-            if c > 0 || group.hskip_before_and_after {
-                sepwidth = col_align.pregap.clone().unwrap_or(arraycolsep.to_string()).parse().unwrap();
-                if sepwidth != 0.0 {
-                    col_sep = common::make_span(
-                        vec!["arraycolsep".to_string()],
-                        vec![],
-                        None,
-                        Default::default(),
-                    );
-                    col_sep.get_mut_style().width = Some(crate::units::make_em(sepwidth));
-                    cols.push(col_sep);
+        if c > 0 || group.hskip_before_and_after {
+            let sepwidth =
+                if col_descr_num >= col_descriptions.len() {
+                    None
+                } else if let AlignSpec::Align(col_align) = &col_descriptions[col_descr_num] {
+                    col_align.clone().pregap
+                } else {
+                    None
                 }
+                    .unwrap_or_else(|| arraycolsep.to_string())
+                    .parse()
+                    .unwrap();
+            if sepwidth != 0.0 {
+                col_sep = common::make_span(
+                    vec!["arraycolsep".to_string()],
+                    vec![],
+                    None,
+                    Default::default(),
+                );
+                col_sep.get_mut_style().width = Some(crate::units::make_em(sepwidth));
+                cols.push(col_sep);
             }
+        }
 
-            let mut col_body = vec![];
-            for (row, row_height, row_depth, row_pos) in body.iter_mut() {
-                if c >= row.len() { continue; }
-                let mut elem = &mut row[c];
-                let shift = *row_pos - offset;
-                elem.set_depth(*row_depth);
-                elem.set_height(*row_height);
-                col_body.push(VListChild::Elem {
-                    elem: elem.clone(),
-                    margin_left: None,
-                    margin_right: None,
-                    wrapper_classes: None,
-                    wrapper_style: None,
-                    shift: Some(shift),
-                });
+        let mut col_body = vec![];
+        for (row, row_height, row_depth, row_pos) in body.iter_mut() {
+            if c >= row.len() {
+                continue;
             }
-            let col = common::make_span(
-                vec![format!("col-align-{}", col_align.align)],// || "c".to_string()
-                vec![Box::new(common::make_vlist(
-                    VListParam {
-                        position_type: PositionType::IndividualShift,
-                        children: col_body,
-                        position_data: None,
-                    }
-                )) as Box<dyn HtmlDomNode>],
-                None,
-                Default::default(),
-            );
-            cols.push(col);
+            let mut elem = &mut row[c];
+            let shift = *row_pos - offset;
+            elem.set_depth(*row_depth);
+            elem.set_height(*row_height);
+            col_body.push(VListChild::Elem {
+                elem: elem.clone(),
+                margin_left: None,
+                margin_right: None,
+                wrapper_classes: None,
+                wrapper_style: None,
+                shift: Some(shift),
+            });
+        }
+        let col = common::make_span(
+            vec![format!("col-align-{}", if col_descr_num >= col_descriptions.len() {
+                "c"
+            } else if let AlignSpec::Align(col_align) = &col_descriptions[col_descr_num] {
+                &col_align.align
+            } else {
+                "c"
+            })],
+            vec![Box::new(common::make_vlist(VListParam {
+                position_type: PositionType::IndividualShift,
+                children: col_body,
+                position_data: None,
+            })) as Box<dyn HtmlDomNode>],
+            None,
+            Default::default(),
+        );
+        cols.push(col);
 
-            if c < nc - 1 || group.hskip_before_and_after {
-                sepwidth = col_align.postgap.clone().unwrap_or(arraycolsep.to_string()).parse().unwrap();
-                if sepwidth != 0.0 {
-                    col_sep = common::make_span(
-                        vec!["arraycolsep".to_string()],
-                        vec![],
-                        None,
-                        Default::default(),
-                    );
-                    col_sep.get_mut_style().width = Some(crate::units::make_em(sepwidth));
-                    cols.push(col_sep);
-                }
+        if c < nc - 1 || group.hskip_before_and_after {
+            let sepwidth = if col_descr_num >= col_descriptions.len() {
+                None
+            } else if let AlignSpec::Align(col_align) = &col_descriptions[col_descr_num] {
+                col_align.clone().pregap
+            } else {
+                None
+            }
+                .unwrap_or(arraycolsep.to_string())
+                .parse()
+                .unwrap();
+            if sepwidth != 0.0 {
+                col_sep = common::make_span(
+                    vec!["arraycolsep".to_string()],
+                    vec![],
+                    None,
+                    Default::default(),
+                );
+                col_sep.get_mut_style().width = Some(crate::units::make_em(sepwidth));
+                cols.push(col_sep);
             }
         }
 
@@ -641,13 +668,20 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
         col_descr_num += 1;
     }
 
-    let mut res_body =
-        common::make_span(vec!["mtable".to_string()], cols.into_iter().map(|x| { Box::new(x) as Box<dyn HtmlDomNode> }).collect::<Vec<_>>(), None, Default::default());
+    let mut res_body = common::make_span(
+        vec!["mtable".to_string()],
+        cols.into_iter()
+            .map(|x| Box::new(x) as Box<dyn HtmlDomNode>)
+            .collect::<Vec<_>>(),
+        None,
+        Default::default(),
+    );
 
     // Add \hline(s), if any.
     if hlines.len() > 0 {
         let line = common::make_line_span("hline".to_string(), &options, Some(rule_thickness));
-        let dashes = common::make_line_span("hdashline".to_string(), &options, Some(rule_thickness));
+        let dashes =
+            common::make_line_span("hdashline".to_string(), &options, Some(rule_thickness));
         let mut v_list_elems = vec![VListChild::Elem {
             elem: Box::new(res_body) as Box<dyn HtmlDomNode>,
             margin_left: None,
@@ -660,7 +694,11 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
             let hline = hlines.pop().unwrap();
             let line_shift = hline.pos - offset;
             v_list_elems.push(VListChild::Elem {
-                elem: Box::new(if hline.is_dashed { dashes.clone() } else { line.clone() }) as Box<dyn HtmlDomNode>,
+                elem: Box::new(if hline.is_dashed {
+                    dashes.clone()
+                } else {
+                    line.clone()
+                }) as Box<dyn HtmlDomNode>,
                 margin_left: None,
                 margin_right: None,
                 wrapper_classes: None,
@@ -668,13 +706,11 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
                 shift: Some(line_shift),
             });
         }
-        res_body = common::make_vlist(
-            VListParam {
-                position_type: PositionType::IndividualShift,
-                children: v_list_elems,
-                position_data: None,
-            }
-        );
+        res_body = common::make_vlist(VListParam {
+            position_type: PositionType::IndividualShift,
+            children: v_list_elems,
+            position_data: None,
+        });
     }
 
     if tag_spans.len() == 0 {
@@ -685,21 +721,20 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
             Default::default(),
         )) as Box<dyn HtmlDomNode>;
     } else {
-        let mut
-        eqn_num_col = common::make_span(
+        let mut eqn_num_col = common::make_span(
             vec!["tag".to_string()],
-            vec![
-                Box::new(common::make_vlist(
-                    VListParam {
-                        position_type: PositionType::IndividualShift,
-                        children: tag_spans,
-                        position_data: None,
-                    }
-                )) as Box<dyn HtmlDomNode>],
+            vec![Box::new(common::make_vlist(VListParam {
+                position_type: PositionType::IndividualShift,
+                children: tag_spans,
+                position_data: None,
+            })) as Box<dyn HtmlDomNode>],
             Some(&options),
             Default::default(),
         );
-        return Box::new(crate::build::common::make_fragment(vec![Box::new(res_body) as Box<dyn HtmlDomNode>, Box::new(eqn_num_col) as Box<dyn HtmlDomNode>])) as Box<dyn HtmlDomNode>;
+        return Box::new(crate::build::common::make_fragment(vec![
+            Box::new(res_body) as Box<dyn HtmlDomNode>,
+            Box::new(eqn_num_col) as Box<dyn HtmlDomNode>,
+        ])) as Box<dyn HtmlDomNode>;
     }
 }
 
@@ -854,7 +889,149 @@ fn array_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<
     //
     // return table;
 }
-//
+
+pub fn aligned_handler(
+    ctx: FunctionContext,
+    args: Vec<Box<dyn AnyParseNode>>,
+    opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    if !context.func_name.contains("ed") {
+        validate_ams_environment_context(&mut context);
+    }
+
+    let cols = Vec::new();
+    let separation_type = if context.func_name.contains("at") {
+        ColSeparationType::AlignAt
+    } else {
+        ColSeparationType::Align
+    };
+    let is_split = context.func_name == "split";
+    let parse_array_args = ParseArrayArgs {
+        hskip_before_and_after: false,
+        add_jot: true,
+        cols: cols.clone(),
+        array_stretch: None,
+        col_separation_type: Some(separation_type),
+        auto_tag: if is_split {
+            false
+        } else {
+            get_auto_tag(&context.func_name)
+        },
+        single_row: false,
+        empty_single_row: true,
+        max_num_cols: if is_split { Some(2) } else { None },
+        leqno: context.parser.settings.get_leqno(),
+    };
+    let mut res = parse_array(
+        context.parser,
+        parse_array_args,
+        crate::types::StyleStr::display,
+    );
+
+    // Determining number of columns.
+    // 1. If the first argument is given, we use it as a number of columns,
+    //    and makes sure that each row doesn't exceed that number.
+    // 2. Otherwise, just count number of columns = maximum number
+    //    of cells in each row ("aligned" mode -- isAligned will be true).
+    //
+    // At the same time, prepend empty group {} at beginning of every second
+    // cell in each row (starting with second cell) so that operators become
+    // binary.  This behavior is implemented in amsmath's \start@aligned.
+    let mut num_maths: usize = 0;
+    let mut num_cols = 0;
+    let empty_group = parse_node::types::ordgroup {
+        mode: context.parser.mode,
+        loc: None,
+        body: Vec::new(),
+        semisimple: false,
+    };
+
+    if args.len() > 0 {
+        if let Some(ord) = args[0]
+            .as_any()
+            .downcast_ref::<parse_node::types::ordgroup>()
+        {
+            let mut arg0 = String::new();
+            for body_item in ord.body.iter() {
+                let textord = body_item
+                    .as_ref()
+                    .as_any()
+                    .downcast_ref::<parse_node::types::textord>()
+                    .unwrap();
+                arg0.push_str(&textord.text);
+            }
+            num_maths = arg0.parse().unwrap();
+            num_cols = num_maths * 2;
+        }
+    }
+    let is_aligned = (num_cols == 0);
+    res.body.iter_mut().for_each(|row| {
+        let mut i = 1;
+        while i < row.len() {
+            // Modify ordgroup node within styling node
+            let styling = row[i]
+                .as_mut_any()
+                .downcast_mut::<parse_node::types::styling>()
+                .unwrap();
+            let ordgroup = styling.body[0]
+                .as_mut_any()
+                .downcast_mut::<parse_node::types::ordgroup>()
+                .unwrap(); // assertNodeType(styling.body[0], "ordgroup");
+            ordgroup
+                .body
+                .insert(0, Box::new(empty_group.clone()) as Box<dyn AnyParseNode>);
+            i += 2;
+        }
+        if !is_aligned {
+            // Case 1
+            let cur_maths = row.len() / 2;
+            if num_maths < cur_maths {
+                panic!(
+                    "Too many math in a row: {} expected {}, but got {}",
+                    "row[0]", num_maths, cur_maths
+                );
+            }
+        } else if num_cols < row.len() {
+            // Case 2
+            num_cols = row.len();
+        }
+    });
+
+    // Adjusting alignment.
+    // In aligned mode, we add one \qquad between columns;
+    // otherwise we add nothing.
+    for i in 0..num_cols {
+        let mut align = "r";
+        let mut pregap = 0;
+        if i % 2 == 1 {
+            align = "l";
+        } else if i > 0 && is_aligned {
+            // "aligned" mode.
+            pregap = 1; // add one \quad
+        }
+        if i < res.cols.len() {
+            res.cols[i] = (AlignSpec::Align(Align {
+                align: align.to_string(),
+                pregap: Some(pregap.to_string()),
+                postgap: Some("0".to_string()),
+            }));
+        } else {
+            res.cols.push(AlignSpec::Align(Align {
+                align: align.to_string(),
+                pregap: Some(pregap.to_string()),
+                postgap: Some("0".to_string()),
+            }));
+        }
+    }
+    res.col_separation_type = if is_aligned {
+        Some(ColSeparationType::Align)
+    } else {
+        Some(ColSeparationType::AlignAt)
+    };
+    return Box::new(res) as Box<dyn AnyParseNode>;
+}
+
 // // Convenience function for align, align*, aligned, alignat, alignat*, alignedat.
 // let alignedHandler = function(context, args) {
 // if (context.envName.indexOf("ed".to_string()) == -1) {
@@ -1024,6 +1201,28 @@ lazy_static! {
             mathml_builder: Some(array_mathml_builder),
         }
     });
+
+    // In the align environment, one uses ampersands, &, to specify number of
+    // columns in each row, and to locate spacing between each column.
+    // align gets automatic numbering. align* and aligned do not.
+    // The alignedat environment can be used in math mode.
+    // Note that we assume \nomallineskiplimit to be zero,
+    // so that \strut@ is the same as \strut.
+    pub static ref ARRAY_ALIGN: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec{
+            def_type: "array".to_string(),
+            names: vec!["align".to_string(), "align*".to_string(), "aligned".to_string(), "split".to_string()],
+            props,
+            handler: aligned_handler,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+
+        }
+});
+
 }
 
 // // The matrix environments of amsmath builds on the array environment
@@ -1210,23 +1409,7 @@ lazy_static! {
 // html_builder,
 // mathml_builder,
 // });
-//
-// // In the align environment, one uses ampersands, &, to specify number of
-// // columns in each row, and to locate spacing between each column.
-// // align gets automatic numbering. align* and aligned do not.
-// // The alignedat environment can be used in math mode.
-// // Note that we assume \nomallineskiplimit to be zero,
-// // so that \strut@ is the same as \strut.
-// defineEnvironment({
-// type: "array".to_string(),
-// names: ["align".to_string(), "align*".to_string(), "aligned".to_string(), "split".to_string()],
-// props: {
-// numArgs: 0,
-// },
-// handler: alignedHandler,
-// html_builder,
-// mathml_builder,
-// });
+
 //
 // // A gathered environment is like an array environment with one centered
 // // column, but where rows are considered lines so get \jot line spacing

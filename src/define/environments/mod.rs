@@ -8,8 +8,10 @@ use crate::define::functions::public::FunctionSpec;
 lazy_static! {
     pub static ref ENVS: Mutex<Vec<FunctionDefSpec>> = Mutex::new({
         let a = array::ARRAY.lock().unwrap();
+        let b = array::ARRAY_ALIGN.lock().unwrap();
         vec![
-            a.clone()
+            a.clone(),
+            b.clone()
         ]
     });
     pub static ref _environments: std::sync::RwLock<HashMap<String, FunctionSpec>> =

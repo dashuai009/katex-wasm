@@ -10,3 +10,6 @@ test.rs
 test
 fonts/*
 dockers/*
+
+
+*.profraw

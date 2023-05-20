@@ -108,7 +108,7 @@ pub fn build_expression(
             groups.push(output);
         }
     }
-    println!("build_expression groups = {:#?}", groups);
+    //println!("build_expression groups = {:#?}", groups);
 
     // Combine consecutive domTree.symbolNodes into a single symbolNode.
     super::common::try_combine_chars(&mut groups);
@@ -229,7 +229,7 @@ pub fn build_expression(
         is_root,
     );
 
-    println!("build_expression groups = {:#?}", groups);
+    // println!("build_expression groups = {:#?}", groups);
     return groups;
 }
 
