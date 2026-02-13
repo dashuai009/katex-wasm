@@ -38,6 +38,8 @@ mod utils;
 mod wideCharacter;
 mod delimiter;
 
+pub use crate::katex::render_to_string;
+
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
 #[cfg(feature = "wee_alloc")]
@@ -62,4 +64,3 @@ use unicodeSysmbols::*;
 use units::*;
 use wideCharacter::*;
 use Style::*;
-
