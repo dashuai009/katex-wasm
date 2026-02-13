@@ -114,7 +114,7 @@ pub fn derive_node_type(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let struct_name = input.ident;
     let struct_name_str = struct_name.to_string();
-    let sstr = struct_name_str.replace("_","-");
+    let sstr = struct_name_str.replace("_", "-");
     let expended = quote! {
         // #[wasm_bindgen]
         // impl #struct_name{

@@ -21,19 +21,21 @@ use super::public::{MacroArg, MacroDefinition, MacroExpansion};
 // List of commands that act like macros but aren't defined as a macro,
 // function, or symbol.  Used in `isDefined`.
 pub const IMPLICIT_COMMANDS: [&str; 4] = ["^", "_", "\\limits", "\\nolimits"];
+
 pub struct MacroExpander<'a> {
     settings: &'a Settings,
     expansion_count: i32,
     lexer: Lexer,
     pub macros: Namespace<MacroDefinition>,
     stack: Vec<Token>,
-    mode: Mode,
+    pub mode: Mode,
 }
 
 pub enum ExpandOneRes {
     token(Token),
     tokens(Vec<Token>),
 }
+
 impl MacroExpander<'_> {
     pub fn new(input: String, settings: &Settings, mode: Mode) -> MacroExpander {
         MacroExpander {
@@ -42,7 +44,7 @@ impl MacroExpander<'_> {
             lexer: Lexer::new(input, settings),
             // Make new global namespace
             macros: Namespace::<MacroDefinition>::new(
-                std::sync::Arc::new(HashMap::<String, MacroDefinition>::new()),
+                std::sync::Arc::new(crate::define::macros::macro_map::create_macro_map().into()),
                 settings.get_ref_macros(),
             ),
             mode,
@@ -138,17 +140,17 @@ impl MacroExpander<'_> {
                 return None;
             }
             _start = Some(self.pop_token()); // don't include [ in tokens
-            self.consume_arg(vec!["]".to_string()])
+            self.consume_arg(Some(vec!["]".to_string()]))
         } else {
-            self.consume_arg(vec![])
+            self.consume_arg(None)
         };
         match res {
             Ok(arg) => {
                 self.push_token(Token {
                     text: "EOF".to_string(),
                     loc: arg.end.loc.clone(),
-                    noexpand: None,
-                    treatAsRelax: None,
+                    noexpand: false,
+                    treatAsRelax: false,
                 });
                 self.push_tokens(arg.tokens);
                 if let Some(start) = _start {
@@ -181,7 +183,7 @@ impl MacroExpander<'_> {
      * Consume an argument from the token stream, and return the resulting array
      * of tokens and start/end token.
      */
-    pub fn consume_arg(&mut self, delims: Vec<String>) -> Result<MacroArg, ParseError> {
+    pub fn consume_arg(&mut self, delims: Option<Vec<String>>) -> Result<MacroArg, ParseError> {
         // The argument for a delimited parameter is the shortest (possibly
         // empty) sequence of tokens with properly nested {...} groups that is
         // followed ... by this particular list of non-parameter tokens.
@@ -189,8 +191,12 @@ impl MacroExpander<'_> {
         // token, unless that token is ‘{’, when the argument will be the
         // entire {...} group that follows.
         let mut tokens: Vec<Token> = vec![];
-        let is_delimited = delims.len() > 0;
-        if (!is_delimited) {
+        let is_delimited = if let Some(d) = &delims {
+            d.len() > 0
+        } else {
+            false
+        };
+        if !is_delimited {
             // Ignore spaces between arguments.  As the TeXbook says:
             // "After you have said ‘\def\row#1#2{...}’, you are allowed to
             //  put spaces between the arguments (e.g., ‘\row x n’), because
@@ -204,33 +210,33 @@ impl MacroExpander<'_> {
         loop {
             tok = self.pop_token();
             tokens.push(tok.clone());
-            if (tok.text == "{") {
+            if tok.text == "{" {
                 depth += 1;
-            } else if (tok.text == "}") {
+            } else if tok.text == "}" {
                 depth -= 1;
-                if (depth == -1) {
+                if depth == -1 {
                     return Err(ParseError {
                         msg: String::from("Extra }"),
                         loc: tok.loc,
                     });
                 }
-            } else if (tok.text == "EOF") {
+            } else if tok.text == "EOF" {
                 let msg = format!(
                     "Unexpected end of input in a macro argument, expected '{}'",
                     if is_delimited {
-                        delims[match_pos].clone()
+                        delims.as_ref().unwrap()[match_pos].clone()
                     } else {
                         "}".to_string()
                     }
                 );
                 return Err(ParseError { msg, loc: tok.loc });
             }
-            if (is_delimited) {
-                if ((depth == 0 || (depth == 1 && delims[match_pos] == "{"))
-                    && tok.text == delims[match_pos])
+            if is_delimited {
+                if (depth == 0 || (depth == 1 && delims.as_ref().unwrap()[match_pos] == "{"))
+                    && tok.text == delims.as_ref().unwrap()[match_pos]
                 {
                     match_pos += 1;
-                    if (match_pos == delims.len()) {
+                    if match_pos == delims.as_ref().unwrap().len() {
                         // don't include delims in tokens
                         // tokens.splice(-match_pos, match_pos);
                         break;
@@ -245,7 +251,7 @@ impl MacroExpander<'_> {
         }
         // If the argument found ... has the form ‘{<nested tokens>}’,
         // ... the outermost braces enclosing the argument are removed
-        if (start.text == "{" && tokens[tokens.len() - 1].text == "}") {
+        if start.text == "{" && tokens[tokens.len() - 1].text == "}" {
             tokens.pop();
             tokens.remove(0);
         }
@@ -264,27 +270,33 @@ impl MacroExpander<'_> {
     pub fn consume_args(
         &mut self,
         num_args: usize,
-        delimiters: Vec<Vec<String>>,
+        _delimiters: Option<Vec<Vec<String>>>,
     ) -> Result<Vec<Vec<Token>>, ParseError> {
-        if delimiters.len() != num_args + 1 {
-            return Err(ParseError {
-                msg: "The length of delimiters doesn't match the number of args!".to_string(),
-                loc: None,
-            });
-        }
-        for delims in delimiters[0].iter() {
-            let tok = self.pop_token();
-            if delims != &tok.text {
+        if let Some(delimiters) = &_delimiters {
+            if delimiters.len() != num_args + 1 {
                 return Err(ParseError {
-                    msg: "Use of the macro doesn't match its definition".to_string(),
-                    loc: tok.loc,
+                    msg: "The length of delimiters doesn't match the number of args!".to_string(),
+                    loc: None,
                 });
+            }
+            for delims in delimiters[0].iter() {
+                let tok = self.pop_token();
+                if delims != &tok.text {
+                    return Err(ParseError {
+                        msg: "Use of the macro doesn't match its definition".to_string(),
+                        loc: tok.loc,
+                    });
+                }
             }
         }
 
         let mut res: Vec<Vec<Token>> = vec![];
-        for delims in delimiters[1..].iter() {
-            match self.consume_arg(delims.to_vec()) {
+        for i in 0..num_args {
+            match self.consume_arg(if let Some(d) = &_delimiters {
+                Some(d[i + 1].to_vec())
+            } else {
+                None
+            }) {
                 Ok(arg) => {
                     res.push(arg.tokens);
                 }
@@ -318,7 +330,7 @@ impl MacroExpander<'_> {
     pub fn expand_once(&mut self, expandableOnly: bool) -> Result<ExpandOneRes, ParseError> {
         let topToken = self.pop_token();
         let name = &topToken.text;
-        let _expansion = if !topToken.noexpand.unwrap_or(false) {
+        let _expansion = if !topToken.noexpand {
             self._getExpansion(name)
         } else {
             None
@@ -341,7 +353,7 @@ impl MacroExpander<'_> {
             return Ok(ExpandOneRes::token(topToken));
         }
         self.expansion_count += 1;
-        if (self.expansion_count > self.settings.get_max_expand().unwrap_or(0)) {
+        if self.expansion_count > self.settings.get_max_expand().unwrap_or(0) {
             return Err(ParseError {
                 msg: "Too many expansions: infinite loop or \
                 need to increase maxExpand setting"
@@ -351,31 +363,31 @@ impl MacroExpander<'_> {
         }
         let mut tokens = expansion.tokens;
         let args = self
-            .consume_args(expansion.num_args as usize, expansion.delimiters.unwrap())
+            .consume_args(expansion.num_args as usize, expansion.delimiters)
             .unwrap();
-        if (expansion.num_args > 0) {
+        if expansion.num_args > 0 {
             // paste arguments in place of the placeholders
             // tokens = tokens.slice(); // make a shallow copy
-            let mut i = tokens.len();
+            let mut i = tokens.len() as i32 - 1;
             while i >= 0 {
-                let mut tok = &tokens[i];
-                if (tok.text == "#") {
-                    if (i == 0) {
+                let mut tok = &tokens[i as usize];
+                if tok.text == "#" {
+                    if i == 0 {
                         return Err(ParseError {
                             msg: "Incomplete placeholder at end of macro body".to_string(),
                             loc: tok.loc.clone(),
                         });
                     }
                     i -= 1;
-                    tok = &tokens[i]; // next token on stack
-                    let number = Regex::new("^[1-9]$").unwrap();
-                    if (tok.text == "#") {
+                    tok = &tokens[i as usize]; // next token on stack
+                    let number = Regex::new(r"^[1-9]$").unwrap();
+                    if tok.text == "#" {
                         // ## → #
-                        tokens.remove(i + 1); // drop first #
+                        tokens.remove((i + 1) as usize); // drop first #
                     } else if number.is_match(&tok.text) {
                         // replace the placeholder with the indicated argument
                         tokens.splice(
-                            i..i + 2,
+                            (i as usize)..(i + 2) as usize,
                             args[(tok.text.parse::<i32>().unwrap() - 1) as usize].clone(),
                         );
                     } else {
@@ -414,7 +426,7 @@ impl MacroExpander<'_> {
             if let ExpandOneRes::token(mut expanded) = _expanded {
                 // the token after \noexpand is interpreted as if its meaning
                 // were ‘\relax’
-                if (expanded.treatAsRelax.unwrap_or(false)) {
+                if expanded.treatAsRelax {
                     expanded.text = "\\relax".to_string();
                 }
                 return self.stack.pop().unwrap(); // == expanded
@@ -449,12 +461,12 @@ impl MacroExpander<'_> {
         self.push_tokens(tokens);
         while (self.stack.len() > oldStackLength) {
             let _expanded = self.expand_once(true).unwrap(); // expand only expandable tokens
-                                                             // expandOnce returns Token if and only if it's fully expanded.
+            // expandOnce returns Token if and only if it's fully expanded.
             if let ExpandOneRes::token(mut expanded) = _expanded {
-                if (expanded.treatAsRelax.unwrap_or(false)) {
+                if expanded.treatAsRelax {
                     // the expansion of \noexpand is the token itself
-                    expanded.noexpand = Some(false);
-                    expanded.treatAsRelax = Some(false);
+                    expanded.noexpand = false;
+                    expanded.treatAsRelax = false;
                 }
                 output.push(self.stack.pop().unwrap());
             }
@@ -526,7 +538,7 @@ impl MacroExpander<'_> {
                 }
                 // console.log("_getExpansion",tokens);
                 tokens.reverse(); // to fit in with stack using push and pop
-                                  // const expanded = {tokens, numArgs};
+                // const expanded = {tokens, numArgs};
                 return Some(MacroExpansion {
                     tokens: tokens,
                     num_args: numArgs,
@@ -535,11 +547,10 @@ impl MacroExpander<'_> {
                 });
             }
             MacroDefinition::MacroContext(m) => {
-                // ! error
-                return None;
+                panic!("impossible")
             }
             MacroDefinition::MacroExpansion(exp) => {
-                return None;
+                return Some(exp);
             }
         }
     }
@@ -554,39 +565,38 @@ impl MacroExpander<'_> {
         return self.macros.has(name) ||
             // functions.hasOwnProperty(name) ||  //!todo
             get_symbol(Mode::math, &name).is_some() ||
-            get_symbol(Mode::text, &name).is_some()  ||
+            get_symbol(Mode::text, &name).is_some() ||
             IMPLICIT_COMMANDS.contains(&name.as_str());
     }
 
-    // /**
-    //  * Determine whether a command is expandable.
-    //  */
-    // pub fn isExpandable(&self, name: &String)-> bool {
-    //     use crate::define::functions::public::get_function;
-    //     let _macro = self.macros.get(name);
-    //     if let Some(m) = _macro{
-    //         match m{
-    //             MacroDefinition::Str(s)=>{
-    //                 return true;
-    //             },
-    //             MacroDefinition::MacroExpansion(expan)=>{
-    //                 if !expan.unexpandable{
-    //                     return true;
-    //                 } else {
-    //                     if let Some(f) = get_function(name){
-    //                         return !f.primitive;
-    //                     }else{
-    //                         return false;
-    //                     }
-    //                 }
-    //             },
-    //             MacroDefinition::MacroContext(context)=>{
-    //                 return true;
-
-    //             }
-    //         }
-    //     }else{
-    //         return false;
-    //     }
-    // }
+    /**
+     * Determine whether a command is expandable.
+     */
+    pub fn is_expandable(&self, name: &String) -> bool {
+        let _f = crate::define::functions::public::_functions.read().unwrap();
+        let _macro = self.macros.get(name);
+        if let Some(m) = _macro {
+            match m {
+                MacroDefinition::Str(s) => {
+                    return true;
+                }
+                MacroDefinition::MacroExpansion(expan) => {
+                    return if !expan.unexpandable {
+                        true
+                    } else {
+                        if let Some(f) = _f.get(name) {
+                            !f.0.get_primitive()
+                        } else {
+                            false
+                        }
+                    };
+                }
+                MacroDefinition::MacroContext(context) => {
+                    return true;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
 }

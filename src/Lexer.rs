@@ -129,8 +129,8 @@ impl Lexer {
             return Token {
                 text: "EOF".to_string(),
                 loc: Some(SourceLocation::new(&self.lexer_i, pos as f64, pos as f32)),
-                noexpand: None,
-                treatAsRelax: None,
+                noexpand: false,
+                treatAsRelax: false,
             };
         }
 
@@ -179,9 +179,9 @@ impl Lexer {
                 start: pos as i32,
                 end: self.lexer_i.get_last_index() as i32,
             }),
-            noexpand: None,
+            noexpand: false,
 
-            treatAsRelax: None,
+            treatAsRelax: false,
         };
     }
 }

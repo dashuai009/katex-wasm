@@ -81,4 +81,8 @@ impl Span {
             self.max_font_size = f64::max(self.max_font_size, child.get_max_font_size());
         }
     }
+
+    pub fn set_width(&mut self,width:f64){
+        self.width = width;
+    }
 }

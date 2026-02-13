@@ -181,9 +181,9 @@ pub fn sqrt_path(size: &str, mut extra_viniculum: f64, view_box_height: f64) -> 
 }
 
 #[wasm_bindgen]
-pub fn innerPath(name: String, height: f64) -> String {
+pub fn inner_path(name: &str, height: f64) -> String {
     // The inner part of stretchy tall delimiters
-    match name.as_str() {
+    match name {
         "\u{239c}" => format!("M291 0 H417 V{height} H291z M291 0 H417 V{height} H291z"),
         "\u{2223}" => format!("M145 0 H188 V{height} H145z M145 0 H188 V{height} H145z"),
         "\u{2225}" => format!(
@@ -202,6 +202,7 @@ pub fn innerPath(name: String, height: f64) -> String {
         _ => String::from("_"),
     }
 }
+
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -695,4 +696,71 @@ pub fn path_get(key: String) -> String {
         .unwrap()
         .to_string();
     return res;
+}
+
+
+pub fn tall_delim(label: &str, mid_height: f64) -> String {
+    match label {
+        "lbrack" => {
+            format!("M403 1759 V84 H666 V0 H319 V1759 v{mid_height} v1759 h347 v-84
+     H403z M403 1759 V0 H319 V1759 v{mid_height} v1759 h84z")
+        }
+        "rbrack" => {
+            format!("M347 1759 V0 H0 V84 H263 V1759 v{mid_height} v1759 H0 v84 H347z
+M347 1759 V0 H263 V1759 v{mid_height} v1759 h84z")
+        }
+        "vert" => {
+            format!("M145 15 v585 v{mid_height} v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v{} v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v{mid_height} v585 h43z", -mid_height)
+        }
+        "doublevert" => {
+            format!("M145 15 v585 v{mid_height} v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v{} v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v{mid_height} v585 h43z
+M367 15 v585 v{mid_height} v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v{} v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v{mid_height} v585 h43z", -mid_height, -mid_height)
+        }
+        "lfloor" => {
+            format!("M319 602 V0 H403 V602 v{mid_height} v1715 h263 v84 H319z
+MM319 602 V0 H403 V602 v${mid_height} v1715 H319z")
+        }
+        "rfloor" => {
+            format!("M319 602 V0 H403 V602 v{mid_height} v1799 H0 v-84 H319z
+MM319 602 V0 H403 V602 v{mid_height} v1715 H319z")
+        }
+        "lceil" => {
+            format!("M403 1759 V84 H666 V0 H319 V1759 v{mid_height} v602 h84z
+M403 1759 V0 H319 V1759 v{mid_height} v602 h84z")
+        }
+        "rceil" => {
+            format!("M347 1759 V0 H0 V84 H263 V1759 v{mid_height} v602 h84z
+M347 1759 V0 h-84 V1759 v{mid_height} v602 h84z")
+        }
+        "lparen" => {
+            format!("M863,9c0,-2,-2,-5,-6,-9c0,0,-17,0,-17,0c-12.7,0,-19.3,0.3,-20,1
+c-5.3,5.3,-10.3,11,-15,17c-242.7,294.7,-395.3,682,-458,1162c-21.3,163.3,-33.3,349,
+-36,557 l0,{}c0.2,6,0,26,0,60c2,159.3,10,310.7,24,454c53.3,528,210,
+949.7,470,1265c4.7,6,9.7,11.7,15,17c0.7,0.7,7,1,19,1c0,0,18,0,18,0c4,-4,6,-7,6,-9
+c0,-2.7,-3.3,-8.7,-10,-18c-135.3,-192.7,-235.5,-414.3,-300.5,-665c-65,-250.7,-102.5,
+-544.7,-112.5,-882c-2,-104,-3,-167,-3,-189
+l0,-{}c0,-162.7,5.7,-314,17,-454c20.7,-272,63.7,-513,129,-723c65.3,
+-210,155.3,-396.3,270,-559c6.7,-9.3,10,-15.3,10,-18z", mid_height + 84.0, mid_height + 92.0)
+        }
+        "rparen" => {
+            format!("M76,0c-16.7,0,-25,3,-25,9c0,2,2,6.3,6,13c21.3,28.7,42.3,60.3,
+63,95c96.7,156.7,172.8,332.5,228.5,527.5c55.7,195,92.8,416.5,111.5,664.5
+c11.3,139.3,17,290.7,17,454c0,28,1.7,43,3.3,45l0,{}
+c-3,4,-3.3,16.7,-3.3,38c0,162,-5.7,313.7,-17,455c-18.7,248,-55.8,469.3,-111.5,664
+c-55.7,194.7,-131.8,370.3,-228.5,527c-20.7,34.7,-41.7,66.3,-63,95c-2,3.3,-4,7,-6,11
+c0,7.3,5.7,11,17,11c0,0,11,0,11,0c9.3,0,14.3,-0.3,15,-1c5.3,-5.3,10.3,-11,15,-17
+c242.7,-294.7,395.3,-681.7,458,-1161c21.3,-164.7,33.3,-350.7,36,-558
+l0,-{}c-2,-159.3,-10,-310.7,-24,-454c-53.3,-528,-210,-949.7,
+-470,-1265c-4.7,-6,-9.7,-11.7,-15,-17c-0.7,-0.7,-6.7,-1,-18,-1z", mid_height + 9.0, mid_height + 144.0)
+        }
+        _ => {
+            panic!("Unknown stretchy delimiter.")
+        }
+    }
 }

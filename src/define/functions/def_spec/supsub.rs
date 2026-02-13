@@ -29,7 +29,7 @@ fn html_builder_delegate(
             let delegate =
                 op.limits && (options.get_style().size == style.size || op.alwaysHandleSupSub);
             return if delegate {
-                panic!("op::htmlBuilder");
+                Some(super::op::html_builder)
             } else {
                 None
             };
@@ -37,7 +37,7 @@ fn html_builder_delegate(
             .as_any()
             .downcast_ref::<parse_node::types::operatorname>()
         {
-            let delegate = op_name.alwaysHandleSupSub
+            let delegate = op_name.always_handle_sup_sub
                 && (options.get_style().size == style.size || op_name.limits);
             return if delegate {
                 panic!("operatorname::htmlBuilder")
@@ -46,7 +46,7 @@ fn html_builder_delegate(
             };
         } else if let Some(ac) = base.as_any().downcast_ref::<parse_node::types::accent>() {
             return if is_character_box(&(ac.base.as_ref().unwrap())) {
-                panic!("accent::htmlBuilder")
+                Some(super::accent::html_builder)
             } else {
                 None
             };
@@ -84,7 +84,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         ..
     } = group;
     let base = crate::build::HTML::build_group(value_base.clone(), options.clone(), None);
-    println!("base mathord HtmlDomNode = {:#?}", base);
+    //println!("base mathord HtmlDomNode = {:#?}", base);
     let mut _supm = None;
     let mut _subm = None;
 
@@ -92,7 +92,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
 
     // Rule 18a
     let mut sup_shift = 0.0;
-    let mut subShift = 0.0;
+    let mut sub_shift = 0.0;
 
     let value_base_is_character_box = value_base.is_some() && is_character_box(&value_base.as_ref().unwrap());
     if value_sup.is_some() {
@@ -105,7 +105,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         if !value_base_is_character_box {
             sup_shift = base.get_height()
                 - new_options.get_font_metrics().supDrop * new_options.sizeMultiplier
-                    / options.sizeMultiplier;
+                / options.sizeMultiplier;
         }
     }
 
@@ -117,9 +117,9 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             Some(options.clone()),
         ));
         if !value_base_is_character_box {
-            subShift = base.get_depth()
+            sub_shift = base.get_depth()
                 + new_options.get_font_metrics().subDrop * new_options.sizeMultiplier.clone()
-                    / options.sizeMultiplier.clone();
+                / options.sizeMultiplier.clone();
         }
     }
 
@@ -135,11 +135,11 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     }
 
     // scriptspace is a font-size-independent size, so scale it
-    // appropriately for use as the marginRight.
+    // appropriately for use as the margin_right.
     let multiplier = options.sizeMultiplier;
-    let marginRight = make_em((0.5 / metrics.ptPerEm) / multiplier);
+    let margin_right = make_em((0.5 / metrics.ptPerEm) / multiplier);
 
-    let mut marginLeft = None;
+    let mut margin_left = None;
     if _subm.is_some() {
         // Subscripts shouldn't be shifted by the base's italic correction.
         // Account for that by shifting the subscript back the appropriate
@@ -158,7 +158,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
             false
         };
         if let Some(b) = base.as_any().downcast_ref::<SymbolNode>() {
-            marginLeft = Some(make_em(-b.italic));
+            margin_left = Some(make_em(-b.italic));
         } else {
             if is_oiint {
                 panic!("emmmmm base type = ");
@@ -173,45 +173,46 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                 sup_shift,
                 f64::max(min_sup_shift, supm.get_depth() + 0.25 * metrics.xHeight),
             );
-            subShift = f64::max(subShift, metrics.sub2);
+            sub_shift = f64::max(sub_shift, metrics.sub2);
 
-            let ruleWidth = metrics.defaultRuleThickness;
+            let rule_width = metrics.defaultRuleThickness;
 
             // Rule 18e
-            let maxWidth = 4.0 * ruleWidth;
-            if ((sup_shift - supm.get_depth()) - (subm.get_height() - subShift) < maxWidth) {
-                subShift = maxWidth - (sup_shift - supm.get_depth()) + subm.get_height();
+            let max_width = 4.0 * rule_width;
+            if (sup_shift - supm.get_depth()) - (subm.get_height() - sub_shift) < max_width {
+                sub_shift = max_width - (sup_shift - supm.get_depth()) + subm.get_height();
                 let psi = 0.8 * metrics.xHeight - (sup_shift - supm.get_depth());
                 if (psi > 0.0) {
                     sup_shift += psi;
-                    subShift -= psi;
+                    sub_shift -= psi;
                 }
             }
 
-            let vlistElem = [
+            let vlist_elem = vec![
                 VListChild::Elem {
                     elem: subm,
-                    margin_left: marginLeft,
+                    margin_left,
                     margin_right: None,
                     wrapper_classes: None,
                     wrapper_style: None,
-                    shift: Some(subShift ),
+                    shift: Some(sub_shift),
                 },
                 VListChild::Elem {
                     elem: supm,
                     margin_left: None,
-                    margin_right: Some(marginRight),
+                    margin_right: Some(margin_right),
                     wrapper_classes: None,
                     wrapper_style: None,
                     shift: Some(-sup_shift),
                 },
             ];
-            panic!("make_v_list");
 
-            // supsub = crate::build::common::make_VList({
-            //                                    positionType: "individualShift",
-            //                                    children: vlistElem,
-            //                                }, options);
+            supsub = crate::build::common::make_vlist(VListParam {
+                            position_type: PositionType::IndividualShift,
+                            children: vlist_elem,
+                            position_data: None,
+                        },
+            );
         } else {
             // Rule 18c, d
             sup_shift = f64::max(
@@ -224,33 +225,31 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                     children: vec![VListChild::Elem {
                         elem: supm,
                         margin_left: None,
-                        margin_right: Some(marginRight),
+                        margin_right: Some(margin_right),
                         wrapper_classes: None,
                         wrapper_style: None,
                         shift: None,
                     }],
-                    position_data: Some( - sup_shift),
+                    position_data: Some(-sup_shift),
                 },
-                options.clone(),
             );
         }
     } else {
         if let Some(subm) = _subm {
             // Rule 18b
-            subShift = f64::max(
-                f64::max(subShift, metrics.sub1),
+            sub_shift = f64::max(
+                f64::max(sub_shift, metrics.sub1),
                 subm.get_height() - 0.8 * metrics.xHeight,
             );
-            panic!("make_v_list");
 
-            // let vlistElem =
-            //     [{type: "elem", elem: subm, marginLeft, marginRight}];
-            //
-            // supsub = buildCommon.makeVList({
-            //                                    positionType: "shift",
-            //                                    positionData: subShift,
-            //                                    children: vlistElem,
-            //                                }, options);
+            let vlist_elem = vec![VListChild::Elem { elem: subm, margin_left, margin_right: Some(margin_right), wrapper_classes: None, wrapper_style: None, shift: None }];
+
+            supsub = make_vlist(VListParam {
+                            position_type: PositionType::Shift,
+                            position_data: Some(sub_shift),
+                            children: vlist_elem,
+                        },
+            );
         } else {
             panic!("supsub must have either sup or sub.");
         }
@@ -296,7 +295,7 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     //
     // if (group.base &&
     //     (group.base.type === "op" || group.base.type === "operatorname")) {
-    // group.base.parentIsSupSub = true;
+    // group.base.parent_is_sup_sub = true;
     // }
     //
     // let children = [mml.buildGroup(group.base, options)];
@@ -315,10 +314,10 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     // } else if (!group.sub) {
     //     let base = group.base;
     //     if (base && base.type === "op" && base.limits &&
-    //         (options.style === Style.DISPLAY || base.alwaysHandleSupSub)) {
+    //         (options.style === Style.DISPLAY || base.always_handle_sup_sub)) {
     //         nodeType = "mover";
     //     } else if (base && base.type === "operatorname" &&
-    //         base.alwaysHandleSupSub &&
+    //         base.always_handle_sup_sub &&
     //         (base.limits || options.style === Style.DISPLAY)) {
     //         nodeType = "mover";
     //     } else {
@@ -327,10 +326,10 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     // } else if (!group.sup) {
     //     let base = group.base;
     //     if (base && base.type === "op" && base.limits &&
-    //         (options.style === Style.DISPLAY || base.alwaysHandleSupSub)) {
+    //         (options.style === Style.DISPLAY || base.always_handle_sup_sub)) {
     //         nodeType = "munder";
     //     } else if (base && base.type === "operatorname" &&
-    //         base.alwaysHandleSupSub &&
+    //         base.always_handle_sup_sub &&
     //         (base.limits || options.style === Style.DISPLAY)) {
     //         nodeType = "munder";
     //     } else {
@@ -342,7 +341,7 @@ fn supsub_mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box
     //         options.style === Style.DISPLAY) {
     //         nodeType = "munderover";
     //     } else if (base && base.type === "operatorname" &&
-    //         base.alwaysHandleSupSub &&
+    //         base.always_handle_sup_sub &&
     //         (options.style === Style.DISPLAY || base.limits)) {
     //         nodeType = "munderover";
     //     } else {

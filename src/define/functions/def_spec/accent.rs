@@ -1,7 +1,5 @@
 use crate::build::common::{PositionType, VListChild, VListParam};
-use crate::define::functions::public::{
-    ord_argument, FunctionContext, FunctionDefSpec, FunctionPropSpec,
-};
+use crate::define::functions::public::{ord_argument, FunctionContext, FunctionDefSpec, FunctionPropSpec, normalize_argument};
 use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::span::Span;
 use crate::dom_tree::symbol_node::SymbolNode;
@@ -15,7 +13,7 @@ use std::sync::Mutex;
 
 // NOTE: Unlike most `htmlBuilder`s, this one handles not only "accent", but
 // also "supsub" since an accent can affect super/subscripting.
-fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
+pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     // Accents are handled in the TeXbook pg. 443, rule 12.
 
     let mut supSubGroup = None;
@@ -122,7 +120,10 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                 "vec".to_string(),
                 options.clone(),
             )) as Box<dyn HtmlDomNode>;
-            // width = crate::build::common::svgData.vec[1];
+            width = {
+                let svg_data = crate::build::common::SVG_DATA.lock().unwrap();
+                svg_data.get("vec").unwrap().1
+            }
         } else {
             let mut _accent = crate::build::common::make_ord(
                 Box::new(parse_node::types::textord {
@@ -154,8 +155,8 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
         // "Full" accents expand the width of the resulting symbol to be
         // at least the width of the accent, and overlap directly onto the
         // character without any vertical offset.
-        let accentFull = (group.label == "\\textcircled");
-        if accentFull {
+        let accent_full = (group.label == "\\textcircled");
+        if accent_full {
             accentBody.get_mut_classes().push("accent-full".to_string());
             clearance = body.get_height();
         }
@@ -167,7 +168,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
         // so that the accent doesn't contribute to the bounding box.
         // We need to shift the character by its width (effectively half
         // its width) to compensate.
-        if (!accentFull) {
+        if !accent_full {
             left -= width / 2.0;
         }
 
@@ -202,8 +203,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         accentBody = stretchy::svg_span(
@@ -241,8 +241,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 
@@ -288,33 +287,36 @@ fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Ma
     // return node;
 }
 
-// let NON_STRETCHY_ACCENT_REGEX = new RegExp([
-//     "\\acute", "\\grave", "\\ddot", "\\tilde", "\\bar", "\\breve",
-//     "\\check", "\\hat", "\\vec", "\\dot", "\\mathring",
-// ].map(accent => `\\${accent}`).join("|"));
+lazy_static! {
+static ref NON_STRETCHY_ACCENT_REGEX : regex::Regex = regex::Regex::new([
+    r"\\acute", r"\\grave", r"\\ddot", r"\\tilde", r"\\bar", r"\\breve",
+    r"\\check", r"\\hat", r"\\vec", r"\\dot", r"\\mathring",
+].join("|").as_str()).unwrap();
+
+}
 
 fn handler_fn_1(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
-    panic!("undefined handler");
-    // let base = normalizeArgument(args[0]);
-    //
-    // let isStretchy = !NON_STRETCHY_ACCENT_REGEX.test(context.funcName);
-    // let isShifty = !isStretchy
-    //     || context.funcName == "\\widehat"
-    //     || context.funcName == "\\widetilde"
-    //     || context.funcName == "\\widecheck";
-    //
-    // return Box::new(parse_node::types::accent {
-    //     mode: context.parser.mode,
-    //     loc: None,
-    //     label: context.funcName,
-    //     isStretchy: isStretchy,
-    //     isShifty: isShifty,
-    //     base: base,
-    // }) as Box<dyn Any>;
+    let context = ctx.borrow();
+    let base = normalize_argument(&args[0]);
+
+    let is_stretchy = !NON_STRETCHY_ACCENT_REGEX.is_match(&context.func_name);
+    let is_shifty = !is_stretchy
+        || context.func_name == "\\widehat"
+        || context.func_name == "\\widetilde"
+        || context.func_name == "\\widecheck";
+
+    return Box::new(parse_node::types::accent {
+        mode: context.parser.mode,
+        loc: None,
+        label: context.func_name.clone(),
+        isStretchy: is_stretchy,
+        isShifty: is_shifty,
+        base: Some(base.clone()),
+    }) as Box<dyn AnyParseNode>;
 }
 // Accents
 lazy_static! {
@@ -362,20 +364,20 @@ fn handler_fn_2(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let base = &args[0];
-    let mut mode = context.parser.mode;
+    let mut mode = context.borrow().parser.mode;
     if mode == Mode::math {
         // context.parser.settings.reportNonstrict("mathVsTextAccents",
         //                                         `LaTeX's accent ${context.funcName} works only in text mode`);
         println!(
             "LaTeX's accent {} works only in text mode",
-            context.func_name
+            context.borrow().func_name
         );
         mode = Mode::text;
     }
     return Box::new(parse_node::types::accent {
         mode,
         loc: None,
-        label: context.func_name,
+        label: context.borrow().func_name.clone(),
         isStretchy: false,
         isShifty: true,
         base: Some(base.clone()),

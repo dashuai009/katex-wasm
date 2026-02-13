@@ -11,7 +11,7 @@ use crate::symbols::LIGATURES;
 use crate::tree::{HtmlDomNode, VirtualNode};
 use crate::types::{FontVariant, Mode};
 use crate::units::make_em;
-use crate::wideCharacter::wide_character_font;
+use crate::wide_character::wide_character_font;
 use crate::Options::Options;
 use crate::{get_character_metrics, get_symbol, parse_node};
 use std::any::Any;
@@ -344,11 +344,11 @@ pub fn make_ord(
 // ): SvgSpan => new Span(classes, children, options, style);
 
 pub fn make_line_span(
-    className: String,
+    class_name: String,
     options: &Options,
     thickness:Option<f64>,
-)->Span {
-    let mut line = make_span(vec![className], vec![], Some(options), Default::default());
+) ->Span {
+    let mut line = make_span(vec![class_name], vec![], Some(options), Default::default());
     line.set_height(f64::max(
         thickness.unwrap_or(options.get_font_metrics().defaultRuleThickness),
         options.minRuleThickness,
@@ -586,7 +586,7 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
  *
  * See VListParam documentation above.
  */
-pub fn make_vlist(params: VListParam, options: Options) -> Span {
+pub fn make_vlist(params: VListParam) -> Span {
     let (children, depth) = get_vlist_children_and_depth(params);
     // Create a strut that is taller than any list item. The strut is added to
     // each item, where it will determine the item's baseline. Since it has
@@ -732,7 +732,7 @@ pub fn make_vlist(params: VListParam, options: Options) -> Span {
 /// Glue is a concept from TeX which is a flexible space between elements in
 /// either a vertical or horizontal list. In KaTeX, at least for now, it's
 /// static space between elements in a horizontal layout.
-pub fn make_glue(measurement: crate::units::Measurement, options: &Options) -> Span {
+pub fn make_glue(measurement: &crate::units::Measurement, options: &Options) -> Span {
     // Make an empty span for the space
     let mut rule = make_span(
         vec!["mspace".to_string()],
@@ -740,7 +740,7 @@ pub fn make_glue(measurement: crate::units::Measurement, options: &Options) -> S
         Some(&options.clone()),
         CssStyle::default(),
     );
-    let size = crate::units::calculate_size(&measurement, &options);
+    let size = crate::units::calculate_size(measurement, &options);
     rule.get_mut_style().margin_right = Some(make_em(size));
     return rule;
 }
@@ -812,7 +812,7 @@ lazy_static! {
     });
 
 
-    static ref SVG_DATA : std::sync::Mutex<HashMap<&'static str,(&'static str,f64,f64)> > = std::sync::Mutex::new({
+    pub static ref SVG_DATA : std::sync::Mutex<HashMap<&'static str,(&'static str,f64,f64)> > = std::sync::Mutex::new({
         HashMap::from([
             //   path, width, height
             ("vec", ("vec", 0.471, 0.714)),               // values from the font glyph

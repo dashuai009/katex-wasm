@@ -1,6 +1,6 @@
-use std::{any::Any, sync::Arc};
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::{any::Any, sync::Arc};
 use struct_format::parse_node_type;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-pub trait ParseNodeToAny{
+pub trait ParseNodeToAny {
     fn as_any(&self) -> &dyn Any;
 
     fn as_mut_any(&mut self) -> &mut dyn Any;
@@ -38,10 +38,43 @@ impl Clone for Box<dyn AnyParseNode> {
     }
 }
 
-pub trait AnyParseNode: ParseNodeToAny + NodeClone + Debug{
+pub trait AnyParseNode: ParseNodeToAny + NodeClone + Debug {
     fn get_type(&self) -> &str;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// Type to indicate column separation in MathML
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ColSeparationType{
+    Align,
+    AlignAt,
+    Gather,
+    Small,
+    CD
+}
+#[derive(Clone, Debug)]
+pub enum ArrayTag{
+    A(bool),
+    B(Vec<Box<dyn AnyParseNode>>)
+}
+#[derive(parse_node_type, Clone, Debug)]
+pub struct array {
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub col_separation_type: Option<ColSeparationType>,
+    pub hskip_before_and_after: bool,
+    pub add_jot: bool,
+    pub cols: Vec<crate::define::environments::array::AlignSpec>,
+    pub array_stretch: f64,
+    pub body: Vec<Vec<Box<dyn AnyParseNode>>>,
+    // List of rows in the (2D) array.
+    pub row_gaps: Vec<Option<Measurement>>,
+    pub h_lines_before_row: Vec<Vec<bool>>,
+    // Whether each row should be automatically numbered, or an explicit tag
+    pub tags: Option<Vec<ArrayTag>>,
+    pub leqno: bool,
+    pub is_cd: bool,
+}
+
 #[derive(parse_node_type, Clone, Debug)]
 pub struct cdlabel {
     mode: Mode,
@@ -49,12 +82,14 @@ pub struct cdlabel {
     side: String,
     label: Box<dyn AnyParseNode>,
 }
+
 #[derive(parse_node_type, Clone, Debug)]
 pub struct cdlabelparent {
     mode: Mode,
     loc: Option<SourceLocation>,
     fragment: Box<dyn AnyParseNode>,
 }
+
 #[derive(parse_node_type, Clone, Debug)]
 pub struct color {
     pub mode: Mode,
@@ -69,8 +104,9 @@ pub struct color_token {
     pub loc: Option<SourceLocation>,
     pub color: String,
 }
+
 // To avoid requiring run-time type assertions, this more carefully captures
-// the requirements on the fields per the op.js htmlBuilder logic:
+// the requirements on the fields per the op.rs htmlBuilder logic:
 // - `body` and `value` are NEVER set simultanouesly.
 // - When `symbol` is true, `body` is set.
 #[derive(parse_node_type, Clone, Debug)]
@@ -157,7 +193,7 @@ pub struct verb {
     pub star: bool,
 }
 
-#[derive(Clone,PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Atom {
     bin,
     close,
@@ -167,15 +203,15 @@ pub enum Atom {
     rel,
 }
 
-impl Atom{
-    pub fn as_str(&self)->&str{
-        match self{
-            Atom::bin => {"bin"}
-            Atom::close => {"close"}
-            Atom::inner => {"inner"}
-            Atom::open => {"open"}
-            Atom::punct => {"punct"}
-            Atom::rel => {"rel"}
+impl Atom {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Atom::bin => "bin",
+            Atom::close => "close",
+            Atom::inner => "inner",
+            Atom::open => "open",
+            Atom::punct => "punct",
+            Atom::rel => "rel",
         }
     }
 }
@@ -197,6 +233,7 @@ impl Atom {
         }
     }
 }
+
 // From symbol groups, constructed in Parser.js via `symbols` lookup.
 // (Some of these have "-token" suffix to distinguish them from existing
 // `ParseNode` types.)
@@ -228,6 +265,7 @@ pub struct textord {
     pub loc: Option<SourceLocation>,
     pub text: String,
 }
+
 // These "-token" types don't have corresponding HTML/MathML builders.
 #[derive(parse_node_type, Clone, Debug)]
 pub struct accent_token {
@@ -242,6 +280,7 @@ pub struct op_token {
     loc: Option<SourceLocation>,
     pub text: String,
 }
+
 // From functions.js and functions/*.js. See also "color", "op", "styling",
 // and "text" above.
 #[derive(parse_node_type, Clone, Debug)]
@@ -274,11 +313,13 @@ pub struct cr {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct delimsizing {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    size: usize,    // 1 | 2 | 3 | 4,
-    mclass: String, //"mopen" | "mclose" | "mrel" | "mord",
-    delim: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub size: usize,
+    // 1 | 2 | 3 | 4,
+    pub mclass: String,
+    //"mopen" | "mclose" | "mrel" | "mord",
+    pub delim: String,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -293,18 +334,18 @@ pub struct enclose {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct environment {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    name: String,
-    nameGroup: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub name: String,
+    pub name_group: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct font {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    font: String,
-    pub(crate) body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub font: String,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -317,7 +358,8 @@ pub struct genfrac {
     pub hasBarLine: bool,
     pub leftDelim: Option<String>,
     pub rightDelim: Option<String>,
-    pub size: String, //StyleStr | "auto",
+    pub size: String,
+    //StyleStr | "auto",
     pub barSize: Option<Measurement>,
 }
 
@@ -349,27 +391,27 @@ pub struct href {
 pub struct html {
     pub mode: Mode,
     pub loc: Option<SourceLocation>,
-    pub attributes: HashMap<String,String>,
+    pub attributes: HashMap<String, String>,
     pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct htmlmathml {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    html: Vec<Box<dyn AnyParseNode>>,
-    mathml: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub html: Vec<Box<dyn AnyParseNode>>,
+    pub mathml: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct includegraphics {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    alt: String,
-    width: Measurement,
-    height: Measurement,
-    totalheight: Measurement,
-    src: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub alt: String,
+    pub width: Measurement,
+    pub height: Measurement,
+    pub totalheight: Measurement,
+    pub src: String,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -389,58 +431,58 @@ impl infix {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct internal {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct kern {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    dimension: Measurement,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub dimension: Measurement,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct lap {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    alignment: String,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub alignment: String,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct leftright {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
-    left: String,
-    right: String,
-    rightColor: Option<String>, // undefined means "inherit"
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
+    pub left: String,
+    pub right: String,
+    pub right_color: Option<String>, // undefined means "inherit"
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct leftright_right {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    delim: String,
-    color: Option<String>, // undefined means "inherit"
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub delim: String,
+    pub color: Option<String>, // undefined means "inherit"
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct mathchoice {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    display: Vec<Box<dyn AnyParseNode>>,
-    text: Vec<Box<dyn AnyParseNode>>,
-    script: Vec<Box<dyn AnyParseNode>>,
-    scriptscript: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub display: Vec<Box<dyn AnyParseNode>>,
+    pub text: Vec<Box<dyn AnyParseNode>>,
+    pub script: Vec<Box<dyn AnyParseNode>>,
+    pub scriptscript: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct middle {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    delim: String,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub delim: String,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -454,82 +496,82 @@ pub struct mclass {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct operatorname {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
-    pub alwaysHandleSupSub: bool,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
+    pub always_handle_sup_sub: bool,
     pub limits: bool,
-    parentIsSupSub: bool,
+    pub parent_is_sup_sub: bool,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct overline {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct phantom {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct hphantom {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct vphantom {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct pmb {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    mclass: String,
-    body: Vec<Box<dyn AnyParseNode>>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub mclass: String,
+    pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct raisebox {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    dy: Measurement,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub dy: Measurement,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct rule {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    shift: Option<Measurement>,
-    width: Measurement,
-    height: Measurement,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub shift: Option<Measurement>,
+    pub width: Measurement,
+    pub height: Measurement,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct sizing {
-    mode: Mode,
-    loc: Option<SourceLocation>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
     pub size: usize,
     pub body: Vec<Box<dyn AnyParseNode>>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct smash {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
-    smashHeight: bool,
-    smashDepth: bool,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
+    pub smash_height: bool,
+    pub smash_depth: bool,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
@@ -542,16 +584,16 @@ pub struct sqrt {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct underline {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct vcenter {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    body: Box<dyn AnyParseNode>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub body: Box<dyn AnyParseNode>,
 }
 
 #[derive(parse_node_type, Clone, Debug)]

@@ -119,7 +119,6 @@ lazy_static! {
 
 }
 
-#[wasm_bindgen]
 pub fn get_spacings(k1: String, k2: String) -> Option<Measurement> {
     let _spacings = spacings.lock().unwrap();
     let res = _spacings.get(&k1);
@@ -159,7 +158,6 @@ macro_rules!  console_log {
 
 use std::panic;
 
-#[wasm_bindgen]
 pub fn get_tightSpacings(k1: String, k2: String) -> Option<Measurement> {
     let _tight_spacings = tightSpacings.lock().unwrap();
     let res = _tight_spacings.get(&k1);

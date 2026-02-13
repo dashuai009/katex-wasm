@@ -35,7 +35,7 @@ pub fn build_tree(
     settings: Settings,
 ) -> Span {
     let options = Options::from_settings(&settings);
-    println!("build::build_tree options = {:#?}", options);
+    //println!("build::build_tree options = {:#?}", options);
     let katex_node;
     if settings.get_output() == "mathml" {
         return mathML::build_math_ml(

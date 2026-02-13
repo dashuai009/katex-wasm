@@ -190,8 +190,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         let classes = if label.contains("cancel") || label.contains("phase") {
@@ -222,8 +221,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 
@@ -331,10 +329,11 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
 }
 
 pub fn color_box_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let ct = args[0]
         .as_any()
         .downcast_ref::<parse_node::types::color_token>()
@@ -345,7 +344,7 @@ pub fn color_box_handler_fn(
     let res = parse_node::types::enclose {
         mode: context.parser.mode,
         loc: None,
-        label: context.func_name,
+        label: context.func_name.clone(),
         backgroundColor: Some(color.clone()),
         borderColor: None,
         body,
@@ -371,10 +370,11 @@ lazy_static! {
 }
 
 pub fn fcolor_box_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let ct0 = args[0]
         .as_any()
         .downcast_ref::<parse_node::types::color_token>()
@@ -389,7 +389,7 @@ pub fn fcolor_box_handler_fn(
     let res = parse_node::types::enclose {
         mode: context.parser.mode,
         loc: None,
-        label: context.func_name,
+        label: context.func_name.clone(),
         backgroundColor,
         borderColor,
         body,
@@ -416,10 +416,11 @@ lazy_static! {
 }
 
 pub fn fbox_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::enclose {
         mode: context.parser.mode,
         loc: None,
@@ -449,14 +450,15 @@ lazy_static! {
 }
 
 pub fn cancel_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::enclose {
         mode: context.parser.mode,
         loc: None,
-        label: context.func_name,
+        label: context.func_name.clone(),
         backgroundColor: None,
         borderColor: None,
         body: args[0].clone(),
@@ -486,10 +488,11 @@ lazy_static! {
 }
 
 pub fn angl_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::enclose {
         mode: context.parser.mode,
         loc: None,

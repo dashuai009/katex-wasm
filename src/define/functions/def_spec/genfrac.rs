@@ -55,25 +55,25 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
 
     let nstyle = style.fracNum();
     let dstyle = style.fracDen();
-    let mut newOptions = options.having_style(&nstyle);
+    let mut new_options = options.having_style(&nstyle);
     let mut numerm =
-        HTML::build_group(Some(group.numer.clone()), newOptions, Some(options.clone()));
+        HTML::build_group(Some(group.numer.clone()), new_options, Some(options.clone()));
 
     if group.continued {
         // \cfrac inserts a \strut into the numerator.
         // Get \strut dimensions from TeXbook page 353.
-        let hStrut = 8.5 / options.get_font_metrics().ptPerEm;
-        let dStrut = 3.5 / options.get_font_metrics().ptPerEm;
-        if numerm.get_height() < hStrut {
-            numerm.set_height(hStrut);
+        let h_strut = 8.5 / options.get_font_metrics().ptPerEm;
+        let d_strut = 3.5 / options.get_font_metrics().ptPerEm;
+        if numerm.get_height() < h_strut {
+            numerm.set_height(h_strut);
         }
-        if numerm.get_depth() < dStrut {
-            numerm.set_depth(dStrut);
+        if numerm.get_depth() < d_strut {
+            numerm.set_depth(d_strut);
         }
     }
 
-    newOptions = options.having_style(&dstyle);
-    let denomm = HTML::build_group(Some(group.denom.clone()), newOptions, Some(options.clone()));
+    new_options = options.having_style(&dstyle);
+    let denomm = HTML::build_group(Some(group.denom.clone()), new_options, Some(options.clone()));
 
     let mut rule = None;
     let mut rule_width;
@@ -103,36 +103,36 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     }
 
     // Rule 15b
-    let mut numShift;
+    let mut num_shift;
     let clearance;
-    let mut denomShift;
+    let mut denom_shift;
     let _display = crate::Style::DISPLAY.read().unwrap();
     if style.size == _display.size || group.size == "display" {
-        numShift = options.get_font_metrics().num1;
+        num_shift = options.get_font_metrics().num1;
         if rule_width > 0.0 {
             clearance = 3.0 * rule_spacing;
         } else {
             clearance = 7.0 * rule_spacing;
         }
-        denomShift = options.get_font_metrics().denom1;
+        denom_shift = options.get_font_metrics().denom1;
     } else {
         if rule_width > 0.0 {
-            numShift = options.get_font_metrics().num2;
+            num_shift = options.get_font_metrics().num2;
             clearance = rule_spacing;
         } else {
-            numShift = options.get_font_metrics().num3;
+            num_shift = options.get_font_metrics().num3;
             clearance = 3.0 * rule_spacing;
         }
-        denomShift = options.get_font_metrics().denom2;
+        denom_shift = options.get_font_metrics().denom2;
     }
 
     let mut frac;
     if rule.is_none() {
         // Rule 15c
-        let candidateClearance = (numShift - numerm.get_depth()) - (denomm.get_height() - denomShift);
-        if (candidateClearance < clearance) {
-            numShift += 0.5 * (clearance - candidateClearance);
-            denomShift += 0.5 * (clearance - candidateClearance);
+        let candidate_clearance = (num_shift - numerm.get_depth()) - (denomm.get_height() - denom_shift);
+        if candidate_clearance < clearance {
+            num_shift += 0.5 * (clearance - candidate_clearance);
+            denom_shift += 0.5 * (clearance - candidate_clearance);
         }
 
         frac = common::make_vlist(
@@ -145,7 +145,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         margin_right: None,
                         wrapper_classes: None,
                         wrapper_style: None,
-                        shift: Some(denomShift),
+                        shift: Some(denom_shift),
                     },
                     VListChild::Elem {
                         elem: numerm,
@@ -153,27 +153,26 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         margin_right: None,
                         wrapper_classes: None,
                         wrapper_style: None,
-                        shift: Some(-numShift),
+                        shift: Some(-num_shift),
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         // Rule 15d
-        let axisHeight = options.get_font_metrics().axisHeight;
+        let axis_height = options.get_font_metrics().axisHeight;
 
-        if (numShift - numerm.get_depth()) - (axisHeight + 0.5 * rule_width) < clearance {
-            numShift += clearance - ((numShift - numerm.get_depth()) - (axisHeight + 0.5 * rule_width));
+        if (num_shift - numerm.get_depth()) - (axis_height + 0.5 * rule_width) < clearance {
+            num_shift += clearance - ((num_shift - numerm.get_depth()) - (axis_height + 0.5 * rule_width));
         }
 
-        if (axisHeight - 0.5 * rule_width) - (denomm.get_height() - denomShift) < clearance {
-            denomShift +=
-                clearance - ((axisHeight - 0.5 * rule_width) - (denomm.get_height() - denomShift));
+        if (axis_height - 0.5 * rule_width) - (denomm.get_height() - denom_shift) < clearance {
+            denom_shift +=
+                clearance - ((axis_height - 0.5 * rule_width) - (denomm.get_height() - denom_shift));
         }
 
-        let midShift = -(axisHeight - 0.5 * rule_width);
+        let mid_shift = -(axis_height - 0.5 * rule_width);
 
         frac = common::make_vlist(
             VListParam {
@@ -185,7 +184,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         margin_right: None,
                         wrapper_classes: None,
                         wrapper_style: None,
-                        shift: Some(denomShift),
+                        shift: Some(denom_shift),
                     },
                     VListChild::Elem {
                         elem: Box::new(rule.unwrap()) as Box<dyn HtmlDomNode>,
@@ -193,7 +192,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         margin_right: None,
                         wrapper_classes: None,
                         wrapper_style: None,
-                        shift: Some(midShift),
+                        shift: Some(mid_shift),
                     },
                     VListChild::Elem {
                         elem: numerm,
@@ -201,25 +200,24 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         margin_right: None,
                         wrapper_classes: None,
                         wrapper_style: None,
-                        shift: Some(-numShift),
+                        shift: Some(-num_shift),
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 
     // Since we manually change the style sometimes (with \dfrac or \tfrac),
     // account for the possible size change here.
-    newOptions = options.having_style(&style);
-    frac.set_height(frac.get_height() * newOptions.sizeMultiplier / options.sizeMultiplier);
-    frac.set_depth(frac.get_depth() * newOptions.sizeMultiplier / options.sizeMultiplier);
+    new_options = options.having_style(&style);
+    frac.set_height(frac.get_height() * new_options.sizeMultiplier / options.sizeMultiplier);
+    frac.set_depth(frac.get_depth() * new_options.sizeMultiplier / options.sizeMultiplier);
 
     // Rule 15e
     let _scriptscript = crate::Style::SCRIPTSCRIPT.read().unwrap();
     let _script = crate::Style::SCRIPT.read().unwrap();
-    let delimSize = if style.size == _display.size {
+    let delim_size = if style.size == _display.size {
         options.get_font_metrics().delim1
     } else if style.size == _scriptscript.size {
         options.having_style(&_script).get_font_metrics().delim2
@@ -227,55 +225,55 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
         options.get_font_metrics().delim2
     };
 
-    let leftDelim;
-    let rightDelim;
+    let left_delim;
+    let          right_delim;
     if let Some(group_left_delim) = &group.leftDelim {
-        leftDelim = crate::delimiter::make_custom_sized_delim(
+        left_delim = crate::delimiter::make_custom_sized_delim(
             group_left_delim,
-            delimSize,
+            delim_size,
             true,
-            options.having_style(&style),
+            &options.having_style(&style),
             group.mode,
             vec!["mopen".to_string()],
         );
     } else {
-        leftDelim = HTML::make_null_delimiter(&options, vec!["mopen".to_string()]);
+        left_delim = HTML::make_null_delimiter(&options, vec!["mopen".to_string()]);
     }
     if group.continued {
-        rightDelim = common::make_span(vec![], vec![], None, Default::default());
-    // zero width for \cfrac
+        right_delim = common::make_span(vec![], vec![], None, Default::default());
+        // zero width for \cfrac
     } else if let Some(r_del) = &group.rightDelim {
-        rightDelim = crate::delimiter::make_custom_sized_delim(
+        right_delim = crate::delimiter::make_custom_sized_delim(
             r_del,
-            delimSize,
+            delim_size,
             true,
-            options.having_style(&style),
+            &options.having_style(&style),
             group.mode,
             vec!["mclose".to_string()],
         );
     } else {
-        rightDelim = HTML::make_null_delimiter(&options, vec!["mclose".to_string()]);
+        right_delim = HTML::make_null_delimiter(&options, vec!["mclose".to_string()]);
     }
 
     let chidren = vec![
-        leftDelim,
+        left_delim,
         common::make_span(
             vec!["mfrac".to_string()],
             vec![Box::new(frac) as Box<dyn HtmlDomNode>],
             None,
             Default::default(),
         ),
-        rightDelim,
+        right_delim,
     ]
-    .into_iter()
-    .map(|x| Box::new(x) as Box<dyn HtmlDomNode>)
-    .collect();
+        .into_iter()
+        .map(|x| Box::new(x) as Box<dyn HtmlDomNode>)
+        .collect();
     let res = common::make_span(
         [
             vec!["mord".to_string()],
-            newOptions.sizing_classes(&options),
+            new_options.sizing_classes(&options),
         ]
-        .concat(),
+            .concat(),
         chidren,
         Some(&options),
         Default::default(),
@@ -343,10 +341,11 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
 }
 
 pub fn frac_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let has_bar_line;
     let mut left_delim = None;
     let mut right_delim = None;

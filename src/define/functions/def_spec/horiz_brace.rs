@@ -90,8 +90,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
         // $FlowFixMe: Replace this with passing "svg-align" into makeVList.
         vlist.get_mut_children().unwrap()[0]
@@ -125,8 +124,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                         shift: None,
                     },
                 ],
-            },
-            options.clone(),
+            }
         );
         // $FlowFixMe: Replace this with passing "svg-align" into makeVList.
         vlist.get_mut_children().unwrap()[0]
@@ -179,8 +177,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                         },
                     ],
                     position_data: None,
-                },
-                options.clone(),
+                }
             );
         } else {
             vlist = common::make_vlist(
@@ -209,8 +206,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                             shift: None,
                         },
                     ],
-                },
-                options.clone(),
+                }
             );
         }
     }
@@ -241,14 +237,15 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
 }
 
 fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let is_over = context.func_name.starts_with("\\over");
     let res = parse_node::types::horizBrace {
         mode: context.parser.mode,
-        label: context.func_name,
+        label: context.func_name.clone(),
         isOver: is_over,
         base: args[0].clone(),
         loc: None,

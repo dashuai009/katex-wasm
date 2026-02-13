@@ -7,8 +7,6 @@ mod consts;
  */
 mod types;
 
-use serde::{Deserialize, Serialize};
-
 use crate::get_global_metrics;
 use crate::metrics::sigmas_and_xis::FontMetrics;
 use crate::settings::Settings;
@@ -26,7 +24,7 @@ pub fn size_at_style(size: f64, style: &StyleInterface) -> f64 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Options {
     style: StyleInterface,
     color: Option<String>,

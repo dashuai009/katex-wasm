@@ -9,12 +9,12 @@ use std::sync::Mutex;
 use unicode_normalization::UnicodeNormalization;
 use wasm_bindgen::prelude::*;
 
-const letters: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\
+const LETTERS: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\
     αβγδεϵζηθϑικλμνξοπϖρϱςστυφϕχψωΓΔΘΛΞΠΣΥΦΨΩ";
 lazy_static! {
     pub static ref unicodeSysmbols: Mutex<HashMap<String, String>> = Mutex::new({
         let mut m = HashMap::new();
-        for letter in letters.chars() {
+        for letter in LETTERS.chars() {
             for accent in unicodeAccents.iter() {
                 let combined = format!("{}{}", letter, accent.0);
                 let normalized = combined.nfc().collect::<String>();

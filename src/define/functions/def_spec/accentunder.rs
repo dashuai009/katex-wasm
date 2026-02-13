@@ -17,20 +17,23 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
         .downcast_ref::<parse_node::types::accentUnder>()
         .unwrap();
     // Treat under accents much like underlines.
-    let innerGroup =
+    let inner_group =
         crate::build::HTML::build_group(Some(group.base.clone()), options.clone(), None);
 
-    let accentBody = stretchy::svg_span(Box::new(group.clone()) as Box<dyn AnyParseNode>, options.clone());
+    let accent_body = stretchy::svg_span(
+        Box::new(group.clone()) as Box<dyn AnyParseNode>,
+        options.clone(),
+    );
     let kern = if group.label == "\\utilde" { 0.12 } else { 0.0 };
 
     // Generate the vlist, with the appropriate kerns
     let vlist = Box::new(build::common::make_vlist(
         VListParam {
             position_type: PositionType::Top,
-            position_data: Some(innerGroup.get_height()),
+            position_data: Some(inner_group.get_height()),
             children: vec![
                 build::common::VListChild::Elem {
-                    elem: Box::new(accentBody) as Box<dyn HtmlDomNode>,
+                    elem: Box::new(accent_body) as Box<dyn HtmlDomNode>,
                     margin_left: None,
                     margin_right: None,
                     wrapper_classes: Some(vec!["svg-align".to_string()]),
@@ -39,7 +42,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                 },
                 VListChild::Kern { size: kern },
                 VListChild::Elem {
-                    elem: innerGroup,
+                    elem: inner_group,
                     margin_left: None,
                     margin_right: None,
                     wrapper_classes: None,
@@ -47,8 +50,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     shift: None,
                 },
             ],
-        },
-        options.clone(),
+        }
     )) as Box<dyn HtmlDomNode>;
     return Box::new(build::common::make_span(
         vec!["mord".to_string(), "accentunder".to_string()],
@@ -58,15 +60,16 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     )) as Box<dyn HtmlDomNode>;
 }
 pub fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let base = &args[0];
     return Box::new(parse_node::types::accentUnder {
         mode: context.parser.mode,
         loc: None,
-        label: context.func_name,
+        label: context.func_name.clone(),
         isStretchy: false,
         isShifty: false,
         base: base.clone(),
@@ -77,10 +80,13 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
         .as_any()
         .downcast_ref::<parse_node::types::accentUnder>()
         .unwrap();
-    let accentNode = stretchy::math_ml_node(&group.label);
+    let accent_node = stretchy::math_ml_node(&group.label);
     let mut node = MathNode::new(
         MathNodeType::Munder,
-        vec![mathML::build_group(Some(group.base.clone()), options), Box::new(accentNode) as Box<dyn MathDomNode>],
+        vec![
+            mathML::build_group(Some(group.base.clone()), options),
+            Box::new(accent_node) as Box<dyn MathDomNode>,
+        ],
         vec![],
     );
     node.set_attribute("accentunder".to_string(), "true".to_string());

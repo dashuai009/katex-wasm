@@ -1,7 +1,5 @@
 use crate::VirtualNode;
 use std::str::FromStr;
-use crate::mathML_tree::math_node::MathNode;
-use crate::mathML_tree::public::MathNodeType::Math;
 
 #[derive(Clone, Debug)]
 pub enum MathNodeType {
@@ -21,7 +19,11 @@ pub enum MathNodeType {
     Mspace,
     Menclose,
     Mroot,
-    Msqrt
+    Msqrt,
+    Mglyph,
+    Mtable,
+    Mtr,
+    Mtd,
 }
 
 impl FromStr for MathNodeType {
@@ -44,8 +46,12 @@ impl FromStr for MathNodeType {
             "mstyle" => Ok(MathNodeType::Mstyle),
             "mspace" => Ok(MathNodeType::Mspace),
             "menclose" => Ok(MathNodeType::Menclose),
-            "mroot" =>Ok(MathNodeType::Mroot),
+            "mroot" => Ok(MathNodeType::Mroot),
             "msqrt" => Ok(MathNodeType::Msqrt),
+            "mglyph" => Ok(MathNodeType::Mglyph),
+            "mtable" => Ok(MathNodeType::Mtable),
+            "mtr" => Ok(MathNodeType::Mtr),
+            "mtd" => Ok(MathNodeType::Mtd),
             _ => Err(()),
         }
     }
@@ -70,7 +76,11 @@ impl MathNodeType {
             MathNodeType::Mspace => "mspace",
             MathNodeType::Menclose => "menclose",
             MathNodeType::Mroot => "mroot",
-            MathNodeType::Msqrt => "msqrt"
+            MathNodeType::Msqrt => "msqrt",
+            MathNodeType::Mglyph => "mglyph",
+            MathNodeType::Mtable => "mtable",
+            MathNodeType::Mtd => "mtd",
+            MathNodeType::Mtr => "mtr",
         }
     }
 }

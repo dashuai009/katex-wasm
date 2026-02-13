@@ -15,11 +15,12 @@ use crate::{parse_node, types::ArgType, AnyParseNode, HtmlDomNode};
 use std::sync::Mutex;
 
 
-pub fn sqrt_handler_fn(
-    context: FunctionContext,
+fn sqrt_handler_fn(
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let index = opt_args[0].clone();
     let body = args[0].clone();
     let res = parse_node::types::sqrt {
@@ -45,7 +46,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
         options.having_cramped_style(),
         None,
     );
-    println!("inner = {:#?}", inner);
+    //println!("inner = {:#?}", inner);
     if inner.get_height() == 0.0 {
         // Render a small surd.
         inner.set_height(options.get_font_metrics().xHeight);
@@ -113,8 +114,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                 VListChild::Kern { size: rule_width },
             ],
             position_data: None,
-        },
-        options.clone(),
+        }
     );
 
     let res = if let Some(group_index) = &group.index {
@@ -142,8 +142,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
                     wrapper_style: None,
                     shift: None,
                 }],
-            },
-            options.clone(),
+            }
         );
         // Add a class surrounding it so we can add on the appropriate
         // kerning

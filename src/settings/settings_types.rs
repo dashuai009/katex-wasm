@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
-#[derive(Clone, Debug, Serialize, Deserialize,Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) enum StrictType {
     Ignore,
     #[default]
@@ -33,7 +32,7 @@ impl StrictType {
 }
 
 /// Output type from KaTeX.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
 pub enum OutputType {
     /// Outputs KaTeX in HTML only.
     #[default]

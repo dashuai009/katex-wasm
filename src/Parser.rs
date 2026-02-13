@@ -1,4 +1,5 @@
 use std::{any::Any, str::FromStr};
+use std::cell::RefCell;
 
 /**
  * This file contains the parser used to parse out a TeX expressi&on from the
@@ -31,7 +32,7 @@ use std::{any::Any, str::FromStr};
  */
 use crate::{
     define::{
-        functions::public::{FunctionContext, FunctionSpec, _functions},
+        functions::public::{FunctionSpec, _functions},
         macros::{macro_expander::MacroExpander, public::MacroDefinition},
     },
     parse_node::{
@@ -45,13 +46,14 @@ use crate::{
     types::{ArgType, BreakToken},
     unicodeSupOrSub::U_SUBS_AND_SUPS,
 };
+use crate::define::functions::public::FunctionContext2;
 
 pub struct Parser<'a> {
     pub mode: Mode,
-    gullet: MacroExpander<'a>,
+    pub gullet: MacroExpander<'a>,
     pub settings: &'a Settings,
-    left_right_depth: i32,
-    next_token: Option<Token>,
+    pub left_right_depth: i32,
+    pub next_token: Option<Token>,
 }
 
 const END_OF_EXPRESSION: [&'static str; 5] = ["}", "\\endgroup", "\\end", "\\right", "&"];
@@ -77,9 +79,6 @@ impl Parser<'_> {
      */
     pub fn expect(&mut self, text: String, consume: bool) {
         if self.fetch().text != text {
-            // throw new ParseError(
-            //     `Expected '${text}', got '${self.fetch().text}'`, self.fetch()
-            // );
             panic!("Expected '{text}', got '{} ", self.fetch().text);
         }
         if consume {
@@ -118,7 +117,7 @@ impl Parser<'_> {
      * Main parsing function, which parses an entire input.
      */
     pub fn parse(&mut self) -> Vec<Box<dyn AnyParseNode>> {
-        if (!self.settings.get_global_group()) {
+        if !self.settings.get_global_group() {
             // Create a group namespace for the math expression.
             // (LaTeX creates a new group for every $...$, $$...$$, \[...\].)
             self.gullet.begin_group();
@@ -145,7 +144,7 @@ impl Parser<'_> {
         self.expect("EOF".to_string(), true);
 
         // End the group namespace for the expression
-        if (!self.settings.get_global_group()) {
+        if !self.settings.get_global_group() {
             self.gullet.end_group();
         }
 
@@ -232,7 +231,7 @@ impl Parser<'_> {
                 break;
             }
         }
-        if (self.mode == Mode::text) {
+        if self.mode == Mode::text {
             body = self.form_ligatures(body);
         }
         return self.handle_infix_nodes(body);
@@ -331,7 +330,7 @@ impl Parser<'_> {
     //  * Converts the textual input of an unsupported command into a text node
     //  * contained within a color node whose color is determined by errorColor
     //  */
-    pub fn format_unsupported_cmd(&self, text: &String) -> parse_node::types::color {
+    pub fn format_unsupported_cmd(&self, text: &str) -> parse_node::types::color {
         let textord_array = text
             .chars()
             .map(|c| {
@@ -407,7 +406,7 @@ impl Parser<'_> {
                                 .as_mut_any()
                                 .downcast_mut::<parse_node::types::operatorname>()
                             {
-                                if (op.alwaysHandleSupSub) {
+                                if (op.always_handle_sup_sub) {
                                     op.limits = lex.text == "\\limits";
                                 }
                                 Some(Box::new(op.clone()) as Box<dyn AnyParseNode>)
@@ -545,7 +544,7 @@ impl Parser<'_> {
      */
     pub fn parse_function(
         &mut self,
-        breakOnTokenText: Option<BreakToken>,
+        break_on_token_text: Option<BreakToken>,
         name: String, // For determining its context
     ) -> Option<Box<dyn AnyParseNode>> {
         let token = self.fetch();
@@ -554,8 +553,8 @@ impl Parser<'_> {
         if let Some(mut funcData) = functions.get(func) {
             self.consume(); // consume command token
 
-            if (name != "atom" && !funcData.0.get_allowed_in_argument()) {
-                panic!("Got function  + func +  with no arguments");
+            if (name != "" && name != "atom" && !funcData.0.get_allowed_in_argument()) {
+                panic!("Got function  + {func}+  with no arguments");
                 // throw new ParseError(
                 //     "Got function '" + func + "' with no arguments" +
                 //     (name ? " as " + name : ""), token);
@@ -569,7 +568,7 @@ impl Parser<'_> {
                 //     "Can't use function '" + func + "' in math mode", token);
             }
             let (args, optArgs) = self.parse_arguments(func, funcData);
-            return Some(self.call_function(func, args, optArgs, Some(token), breakOnTokenText));
+            return Some(self.call_function(func, args, optArgs, Some(token), break_on_token_text));
         } else {
             return None;
         }
@@ -587,12 +586,12 @@ impl Parser<'_> {
         token: Option<Token>,
         break_on_token_text: Option<BreakToken>,
     ) -> Box<dyn AnyParseNode> {
-        let context: FunctionContext = FunctionContext {
+        let context = RefCell::new(FunctionContext2 {
             func_name: name.clone(),
             parser:self,
             token,
             break_on_token_text,
-        };
+        });
         let functions = _functions.read().unwrap();
         let func = functions.get(name).unwrap();
         func.1(context, args, optArgs)
@@ -617,7 +616,6 @@ impl Parser<'_> {
         let mut args = vec![];
         let mut opt_args = vec![];
 
-        let mut i = 0usize;
         for i in 0..total_args{
             let mut arg_type = func_data.0.get_arg_types().get(i);
             let is_optional = i < func_data.0.get_num_optional_args() as usize;
@@ -845,7 +843,7 @@ impl Parser<'_> {
                     format!("{}{}", &m[1], &m[2]).parse().unwrap(), // sign + magnitude, cast to number
                     (&m[3]).to_string(),
                 );
-                if !data.validUnit() {
+                if !data.unit_is_valid() {
                     panic!("Invalid unit: '{}'", data.unit);
                     // throw new ParseError("Invalid unit: '" + data.unit + "'", res);
                 }

@@ -27,14 +27,15 @@ fn paddedNode(group: Option<Box<dyn MathDomNode>>) -> MathNode {
 }
 
 fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     return Box::new(parse_node::types::xArrow {
         mode: context.parser.mode,
         loc: None,
-        label: context.func_name,
+        label: context.func_name.clone(),
         body: args[0].clone(),
         below: opt_args[0].clone(),
     }) as Box<dyn AnyParseNode>;
@@ -133,8 +134,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     } else {
         vlist = make_vlist(
@@ -159,8 +159,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                     },
                 ],
                 position_data: None,
-            },
-            options.clone(),
+            }
         );
     }
 

@@ -8,7 +8,7 @@ use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::span::Span;
 use crate::mathML_tree::math_node::MathNode;
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
-use crate::parse_node::types::ParseNodeToAny;
+use crate::parse_node::types::{Atom, ParseNodeToAny};
 use crate::utils::is_character_box;
 use crate::Options::Options;
 use crate::{parse_node, AnyParseNode, HtmlDomNode};
@@ -88,10 +88,11 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
     return Box::new(node) as Box<dyn MathDomNode>;
 }
 pub fn mclass_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let body = &args[0];
     return Box::new(parse_node::types::mclass {
         mode: context.parser.mode,
@@ -103,38 +104,56 @@ pub fn mclass_handler_fn(
 }
 // Math class commands except \mathop
 lazy_static! {
-    pub static ref MCLASS : Mutex<FunctionDefSpec> = Mutex::new({
+    pub static ref MCLASS: Mutex<FunctionDefSpec> = Mutex::new({
         let mut props = FunctionPropSpec::new();
         props.set_num_args(1);
         props.set_primitive(true);
 
-        FunctionDefSpec{
+        FunctionDefSpec {
             def_type: "mclass".to_string(),
             names: vec![
-                "\\mathord".to_string(), "\\mathbin".to_string(), "\\mathrel".to_string(), "\\mathopen".to_string(),
-                "\\mathclose".to_string(), "\\mathpunct".to_string(), "\\mathinner".to_string(),
+                "\\mathord".to_string(),
+                "\\mathbin".to_string(),
+                "\\mathrel".to_string(),
+                "\\mathopen".to_string(),
+                "\\mathclose".to_string(),
+                "\\mathpunct".to_string(),
+                "\\mathinner".to_string(),
             ],
             props,
-            handler:mclass_handler_fn,
+            handler: mclass_handler_fn,
             html_builder: Some(html_builder),
             mathml_builder: Some(mathml_builder),
         }
     });
 }
 
-//
-// export const binrelClass = (arg: AnyParseNode): string => {
-// // \binrel@ spacing varies with (bin|rel|ord) of the atom in the argument.
-// // (by rendering separately and with {}s before and after, and measuring
-// // the change in spacing).  We'll do roughly the same by detecting the
-// // atom type directly.
-// const atom = (arg.type === "ordgroup" && arg.body.length ? arg.body[0] : arg);
-// if (atom.type === "atom" && (atom.family === "bin" || atom.family === "rel")) {
-// return "m" + atom.family;
-// } else {
-// return "mord";
-// }
-// };
+pub fn binrel_class(arg: &Box<dyn AnyParseNode>) -> String {
+    // \binrel@ spacing varies with (bin|rel|ord) of the atom in the argument.
+    // (by rendering separately and with {}s before and after, and measuring
+    // the change in spacing).  We'll do roughly the same by detecting the
+    // atom type directly.
+    let _atom = if let Some(ord_group) = arg.as_any().downcast_ref::<parse_node::types::ordgroup>()
+    {
+        if ord_group.body.len() > 0 {
+            &ord_group.body[0]
+        } else {
+            arg
+        }
+    } else {
+        arg
+    };
+
+    return if let Some(atom) = _atom.as_any().downcast_ref::<parse_node::types::atom>() {
+        if atom.family == Atom::bin  || atom.family == Atom::rel {
+            format!("m{}", atom.family.as_str())
+        } else {
+            "mord".to_string()
+        }
+    } else {
+        "mord".to_string()
+    };
+}
 //
 // // \@binrel{x}{y} renders like y but as mbin/mrel/mord if x is mbin/mrel/mord.
 // // This is equivalent to \binrel@{x}\binrel@@{y} in AMSTeX.
@@ -148,7 +167,7 @@ lazy_static! {
 // return {
 // type: "mclass",
 // mode: parser.mode,
-// mclass: binrelClass(args[0]),
+// mclass: binrel_class(args[0]),
 // body: ordargument(args[1]),
 // isCharacterBox: utils.isCharacterBox(args[1]),
 // };
@@ -169,7 +188,7 @@ lazy_static! {
 // let mclass;
 // if (funcName !== "\\stackrel") {
 // // LaTeX applies \binrel spacing to \overset and \underset.
-// mclass = binrelClass(baseArg);
+// mclass = binrel_class(baseArg);
 // } else {
 // mclass = "mrel";  // for \stackrel
 // }
@@ -178,8 +197,8 @@ lazy_static! {
 // type: "op",
 // mode: baseArg.mode,
 // limits: true,
-// alwaysHandleSupSub: true,
-// parentIsSupSub: false,
+// always_handle_sup_sub: true,
+// parent_is_sup_sub: false,
 // symbol: false,
 // suppressBaseShift: funcName !== "\\stackrel",
 // body: ordargument(baseArg),

@@ -16,10 +16,11 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 fn handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let args0 = args[0]
         .as_any()
         .downcast_ref::<parse_node::types::raw>()

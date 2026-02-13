@@ -15,10 +15,11 @@ use std::sync::Mutex;
 // @flow
 
 pub fn hbox_handler_fn(
-    context: FunctionContext,
+    ctx: FunctionContext,
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
     let res = parse_node::types::hbox {
         mode: context.parser.mode,
         loc: None,

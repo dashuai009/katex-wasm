@@ -27,6 +27,7 @@ pub struct CssStyle {
     pub min_width: Option<String>,
     pub padding_left: Option<String>,
     pub position: Option<String>,
+    pub text_shadow: Option<String>,
     pub top: Option<String>,
     pub width: Option<String>,
     pub vertical_align: Option<String>,

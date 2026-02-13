@@ -1,5 +1,5 @@
 use crate::{
-    dom_tree::{css_style::CssStyle, document_fragment::DocumentFragment, span::Span},
+    dom_tree::{css_style::CssStyle,  span::Span},
     parse_node,
     parse_node::types::AnyParseNode,
     tree::{HtmlDomNode, VirtualNode},
@@ -86,52 +86,53 @@ pub enum IsRealGroup {
 
 /// Take a list of nodes, build them in order, and return a list of the built
 /// nodes. documentFragments are flattened into their contents, so the
-/// returned list contains no fragments. `isRealGroup` is true if `expression`
+/// returned list contains no fragments. `is_real_group` is true if `expression`
 /// is a real group (no atoms will be added on either side), as opposed to
 /// a partial group (e.g. one created by \color). `surrounding` is an array
 /// consisting type of nodes that will be added to the left and right.
 pub fn build_expression(
     expression: Vec<Box<dyn AnyParseNode>>,
     options: Options,
-    isRealGroup: IsRealGroup,
+    is_real_group: IsRealGroup,
     surrounding: (Option<DomType>, Option<DomType>),
 ) -> Vec<Box<dyn HtmlDomNode>> {
     // return vec![];
     // Parse expressions into `groups`.
+    println!("build_expression groups = {:#?}", expression);
     let mut groups = vec![];
     for expr in expression.iter() {
         let mut output = build_group(Some(expr.clone()), options.clone(), None);
-        if let Some(k) = output.as_any().downcast_ref::<DocumentFragment>() {
+        if let Some(k) = output.as_any().downcast_ref::<crate::dom_tree::document_fragment::DocumentFragment>() {
             groups.append(&mut k.clone().get_mut_children().unwrap().clone());
         } else {
             groups.push(output);
         }
     }
-    println!("build_expression groups = {:#?}", groups);
+    //println!("build_expression groups = {:#?}", groups);
 
     // Combine consecutive domTree.symbolNodes into a single symbolNode.
     super::common::try_combine_chars(&mut groups);
 
     // If `expression` is a partial group, let the parent handle spacings
     // to avoid processing groups multiple times.
-    if (isRealGroup == IsRealGroup::F) {
+    if is_real_group == IsRealGroup::F {
         return groups.clone();
     }
 
-    let mut glueOptions = options.clone();
-    if (expression.len() == 1) {
+    let mut glue_options = options.clone();
+    if expression.len() == 1 {
         let node = &expression[0];
         if let Some(s) = node.as_any().downcast_ref::<parse_node::types::sizing>() {
-            glueOptions = options.having_size(s.size as f64);
+            glue_options = options.having_size(s.size as f64);
         } else if let Some(s) = node.as_any().downcast_ref::<parse_node::types::styling>() {
-            glueOptions = options.having_style(&s.style.as_style());
+            glue_options = options.having_style(&s.style.as_style());
         }
     }
 
     // Dummy spans for determining spacings between surrounding atoms.
     // If `expression` has no atoms on the left or right, class "leftmost"
     // or "rightmost", respectively, is used to indicate it.
-    let dummyPrev = make_span(
+    let dummy_prev = make_span(
         vec![if let Some(s) = surrounding.0 {
             s.as_str().to_string()
         } else {
@@ -141,7 +142,7 @@ pub fn build_expression(
         Some(&options),
         CssStyle::default(),
     );
-    let dummyNext = make_span(
+    let dummy_next = make_span(
         vec![if let Some(s) = surrounding.1 {
             s.as_str().to_string()
         } else {
@@ -161,25 +162,27 @@ pub fn build_expression(
     let xx = |node: &mut Box<dyn HtmlDomNode>,
               prev: &mut Box<dyn HtmlDomNode>|
      -> Option<Box<dyn HtmlDomNode>> {
-        let prevType = &prev.get_classes()[0];
-        let _type = &node.get_classes()[0];
-        if prevType == "mbin" && BIN_RIGHT_CANCELLER.contains(&_type.as_str()) {
-            prev.get_mut_classes()[0] = "mord".to_string();
-        } else if _type == "mbin" && BIN_LEFT_CANCELLER.contains(&prevType.as_str()) {
-            node.get_mut_classes()[0] = "mord".to_string();
+        if let Some(prev_type) = prev.get_classes().get(0){
+            if let Some(_type) = node.get_classes().get(0){
+                if prev_type == "mbin" && BIN_RIGHT_CANCELLER.contains(&_type.as_str()) {
+                    prev.get_mut_classes()[0] = "mord".to_string();
+                } else if _type == "mbin" && BIN_LEFT_CANCELLER.contains(&prev_type.as_str()) {
+                    node.get_mut_classes()[0] = "mord".to_string();
+                }
+            }
         }
         return None;
     };
-    let isRoot = (isRealGroup == IsRealGroup::Root);
+    let is_root = (is_real_group == IsRealGroup::Root);
     traverse_non_space_nodes(
         &mut groups,
         &xx,
         &mut TraversePrev {
-            node: Box::new(dummyPrev.clone()) as Box<dyn HtmlDomNode>,
+            node: Box::new(dummy_prev.clone()) as Box<dyn HtmlDomNode>,
             insert_after: None,
         },
-        Some(Box::new(dummyNext.clone()) as Box<dyn HtmlDomNode>),
-        isRoot,
+        Some(Box::new(dummy_next.clone()) as Box<dyn HtmlDomNode>),
+        is_root,
     );
 
     traverse_non_space_nodes(
@@ -188,44 +191,45 @@ pub fn build_expression(
             |node: &mut Box<dyn HtmlDomNode>,
              prev: &mut Box<dyn HtmlDomNode>|
              -> Option<Box<dyn HtmlDomNode>> {
-                let prevType = get_type_of_dom_tree(prev, None);
+                let prev_type = get_type_of_dom_tree(prev, None);
                 let _type = get_type_of_dom_tree(node, None);
 
                 // 'mtight' indicates that the node is script or scriptscript style.
-                //console.log(node,prevType,type);
-                let space = if prevType.is_some() && _type.is_some() {
+                //console.log(node,prev_type,type);
+                let space = if prev_type.is_some() && _type.is_some() {
                     if node.get_classes().contains(&"mtight".to_string()) {
                         crate::spacingData::get_tightSpacings(
-                            prevType.unwrap().as_str().to_string(),
+                            prev_type.unwrap().as_str().to_string(),
                             _type.unwrap().as_str().to_string(),
                         )
                     } else {
                         crate::spacingData::get_spacings(
-                            prevType.unwrap().as_str().to_string(),
+                            prev_type.unwrap().as_str().to_string(),
                             _type.unwrap().as_str().to_string(),
                         )
                     }
                 } else {
                     None
                 };
-                if space.is_some() {
+                if let Some(s) = space {
                     // Insert glue (spacing) after the `prev`.
                     return Some(Box::new(super::common::make_glue(
-                        space.unwrap(),
-                        &glueOptions.clone(),
+                        &s,
+                        &glue_options.clone(),
                     )) as Box<dyn HtmlDomNode>);
                 }
                 return None;
             },
         ),
         &mut TraversePrev {
-            node: Box::new(dummyPrev) as Box<dyn HtmlDomNode>,
+            node: Box::new(dummy_prev) as Box<dyn HtmlDomNode>,
             insert_after: None,
         },
-        Some(Box::new(dummyNext) as Box<dyn HtmlDomNode>),
-        isRoot,
+        Some(Box::new(dummy_next) as Box<dyn HtmlDomNode>),
+        is_root,
     );
 
+    // println!("build_expression groups = {:#?}", groups);
     return groups;
 }
 
@@ -277,7 +281,7 @@ fn traverse_non_space_nodes(
             if let Some(result) = callback(&mut nodes[i], &mut prev.node) {
                 //println!("result = {:#?}", result);
                 if insert_after_pos.is_some() {
-                    nodes.insert(insert_after_pos.unwrap(), result);
+                    nodes.insert(insert_after_pos.unwrap() + 1, result);
                     i+=1;
                 } else {
                     // insert at front
@@ -306,7 +310,7 @@ fn traverse_non_space_nodes(
 // Check if given node is a partial group, i.e., does not affect spacing around.
 fn check_partial_group(node: &Box<dyn HtmlDomNode>) -> bool {
     let t = node.as_any().type_id();
-    return t == TypeId::of::<DocumentFragment>()
+    return t == TypeId::of::<crate::dom_tree::document_fragment::DocumentFragment>()
         || t == TypeId::of::<Anchor>()
         || (t == TypeId::of::<Span>() && node.has_class(&"enclosing".to_string()));
 }
@@ -340,7 +344,7 @@ pub fn get_type_of_dom_tree(node: &Box<dyn HtmlDomNode>, side: Option<Side>) -> 
 
     // This makes a lot of assumptions as to where the type of atom
     // appears.  We should do a better job of enforcing this.
-    return DomType::from_str(&*_node.get_classes()[0]).ok();
+    return DomType::from_str(&*_node.get_classes().get(0).unwrap_or(&"".to_string())).ok();
 }
 
 pub fn make_null_delimiter(
