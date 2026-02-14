@@ -1,0 +1,71 @@
+# Basic arithmetic
+E=mc^2
+x+y=z
+a^2+b^2=c^2
+\frac{1}{2}
+\frac{a+b}{c+d}
+\sqrt{x}
+\sqrt{a^2+b^2}
+\sqrt[3]{x^2+y^2}
+
+# Trigonometric and logs
+\sin x
+\cos^2\theta+\sin^2\theta=1
+\tan\left(\frac\pi4\right)=1
+\log x
+\ln(1+x)
+\exp\left(-\frac{x^2}{2}\right)
+
+# Sums, products, limits
+\sum_{i=1}^{n} i
+\sum_{k=0}^{\infty} \frac{x^k}{k!}
+\prod_{i=1}^{n} i
+\lim_{x\to 0} \frac{\sin x}{x}
+\int_0^1 x^2\,dx
+\int_{-\infty}^{\infty} e^{-x^2}\,dx
+\oint_C f(z)\,dz
+
+# Matrices and arrays
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+\begin{bmatrix}1&0\\0&1\end{bmatrix}
+\begin{vmatrix}a&b\\c&d\end{vmatrix}
+\left[\begin{array}{cc}x&y\\z&w\end{array}\right]
+
+# Relations and symbols
+x\in A
+A\subseteq B
+f:A\to B
+\forall x\in\mathbb{R},\exists y\ge 0
+\alpha+\beta=\gamma
+\nabla\cdot\vec{F}=0
+\partial_x u + \partial_y u = 0
+
+# Styling/macros commonly supported by KaTeX
+\mathbf{F}=m\mathbf{a}
+\mathit{abc}
+\mathrm{d}x
+\text{speed}=\frac{\text{distance}}{\text{time}}
+\color{blue}{x+y}
+\underline{x+y}
+\overline{z}
+\hat{x}
+\vec{v}
+
+# Brackets and sizing
+\left(\frac{a}{b}\right)
+\left\{x\in\mathbb{R}\mid x>0\right\}
+\left\langle x,y\right\rangle
+\bigl( x \bigr)
+\Bigl[ y \Bigr]
+
+# Mixed hard-ish cases
+\frac{\sqrt{1+x}-1}{x}
+\sum_{i=1}^{n}\frac{1}{i^2}
+\int_0^{2\pi}\sin(nx)\,dx
+\left(\sum_{i=1}^{n} i\right)^2
+\frac{\partial^2 u}{\partial x^2}+\frac{\partial^2 u}{\partial y^2}=0
+\binom{n}{k}
+\left|\frac{a+b}{c+d}\right|
+\operatorname{Var}(X)=\mathbb{E}[X^2]-\mathbb{E}[X]^2
+\Pr(A\mid B)=\frac{\Pr(A\cap B)}{\Pr(B)}
+\left\lVert x \right\rVert_2
