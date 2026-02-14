@@ -1,5 +1,5 @@
 import * as katex_wasm from "katex-wasm";
-import * as katex from "katex";
+import katex from "katex";
 
 const math_str = [
     "a^2+b^2=1",

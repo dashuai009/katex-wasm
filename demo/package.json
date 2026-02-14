@@ -27,14 +27,16 @@
   },
   "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
-    "katex-wasm": "file:../pkg",
-    "katex": "^0.16.2"
+    "create-wasm-app": "^0.1.0",
+    "katex": "^0.16.2",
+    "katex-wasm": "file:../pkg"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^5.0.0",
+    "file-loader": "^6.2.0",
     "hello-wasm-pack": "^0.1.0",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.5",
-    "copy-webpack-plugin": "^5.0.0"
+    "webpack": "^5.105.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.2"
   }
 }

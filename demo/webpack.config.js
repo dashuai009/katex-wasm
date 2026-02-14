@@ -8,7 +8,13 @@ module.exports = {
     filename: "bootstrap.js",
   },
   mode: "development",
+  experiments: {
+    asyncWebAssembly: true,
+  },
   plugins: [
-    new CopyWebpackPlugin(['index.html'])
+    new CopyWebpackPlugin([
+      { from: 'index.html', to: '.' },
+      { from: '../pkg/katex_wasm_bg.wasm', to: '[name][ext]' }
+    ])
   ],
 };
