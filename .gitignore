@@ -11,5 +11,6 @@ test
 fonts/*
 dockers/*
 
+.DS_Store
 
 *.profraw
