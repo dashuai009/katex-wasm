@@ -586,7 +586,7 @@ pub fn lr_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     innerHeight *= options.sizeMultiplier;
     innerDepth *= options.sizeMultiplier;
 
-    let left_delim= 
+    let left_delim=
     if group.left == ".".to_string() {
         // Empty delimiters in \left and \right make null delimiter spaces.
          HTML::make_null_delimiter(&options, vec!["mopen".to_string()])

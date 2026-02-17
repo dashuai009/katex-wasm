@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::Write;
 use std::panic::{self, AssertUnwindSafe};
@@ -7,28 +7,12 @@ use std::process::{Command, Stdio};
 
 use katex_wasm::render_to_string;
 use katex_wasm::settings::Settings;
-
-#[derive(Debug, PartialEq, Eq)]
-struct RenderSignature {
-    tag_counts: BTreeMap<String, usize>,
-    class_counts: BTreeMap<String, usize>,
-    text_len: usize,
-    svg_path_count: usize,
-}
-
 #[derive(Debug)]
 struct ParityMismatch {
     expression: String,
     rust_html: String,
     js_html: String,
-    tag_similarity: f64,
-    class_similarity: f64,
-    rust_text_len: usize,
-    js_text_len: usize,
-    rust_svg_path_count: usize,
-    js_svg_path_count: usize,
 }
-
 
 #[derive(Debug)]
 struct RenderError {
@@ -36,52 +20,11 @@ struct RenderError {
     stage: String,
     message: String,
 }
-fn build_signature(input: &str) -> RenderSignature {
-    let mut tag_counts = BTreeMap::new();
-    let mut class_counts = BTreeMap::new();
 
-    let tag_re = regex::Regex::new(r"<([a-zA-Z][a-zA-Z0-9-]*)[\\s>]").unwrap();
-    for cap in tag_re.captures_iter(input) {
-        *tag_counts.entry(cap[1].to_string()).or_insert(0) += 1;
-    }
-
-    let class_re = regex::Regex::new(r#"class=\"([^\"]+)\""#).unwrap();
-    for cap in class_re.captures_iter(input) {
-        for class_name in cap[1].split_whitespace() {
-            *class_counts.entry(class_name.to_string()).or_insert(0) += 1;
-        }
-    }
-
-    let text_re = regex::Regex::new(r"<[^>]+>").unwrap();
-    let text = text_re.replace_all(input, "");
-
-    let svg_path_count = input.matches("<path").count();
-
-    RenderSignature {
-        tag_counts,
-        class_counts,
-        text_len: text.trim().chars().count(),
-        svg_path_count,
-    }
-}
-
-fn weighted_similarity(lhs: &BTreeMap<String, usize>, rhs: &BTreeMap<String, usize>) -> f64 {
-    let keys = lhs.keys().chain(rhs.keys()).collect::<BTreeSet<_>>();
-    let mut shared = 0usize;
-    let mut total = 0usize;
-
-    for key in keys {
-        let a = lhs.get(key.as_str()).copied().unwrap_or(0);
-        let b = rhs.get(key.as_str()).copied().unwrap_or(0);
-        shared += a.min(b);
-        total += a.max(b);
-    }
-
-    if total == 0 {
-        1.0
-    } else {
-        shared as f64 / total as f64
-    }
+fn normalize_html(html: &str) -> String {
+    // 规范化 HTML 以便进行严格比较
+    // 移除多余的空白字符，但保留标签之间的空格
+    html.trim().to_string()
 }
 
 fn render_with_js_katex(expression: &str) -> String {
@@ -238,7 +181,7 @@ fn parity_signature_matches_js_for_generated_formula_set() {
     let mut mismatches = Vec::new();
     let mut render_errors = Vec::new();
 
-    let print_all = std::env::var("PARITY_PRINT_ALL").ok().as_deref() == Some("1");
+    let print_all = true; // std::env::var("PARITY_PRINT_ALL").ok().as_deref() == Some("1");
     let total_cases = cases.len();
 
     for (idx, expression) in cases.into_iter().enumerate() {
@@ -269,28 +212,17 @@ fn parity_signature_matches_js_for_generated_formula_set() {
             }
         };
 
-        let rust_sig = build_signature(&rust_html);
-        let js_sig = build_signature(&js_html);
+        let normalized_rust = normalize_html(&rust_html);
+        let normalized_js = normalize_html(&js_html);
 
-        let tag_similarity = weighted_similarity(&rust_sig.tag_counts, &js_sig.tag_counts);
-        let class_similarity = weighted_similarity(&rust_sig.class_counts, &js_sig.class_counts);
-
-        let is_mismatch = rust_sig.text_len != js_sig.text_len
-            || rust_sig.svg_path_count != js_sig.svg_path_count
-            || tag_similarity < 0.88
-            || class_similarity < 0.80;
+        let is_mismatch = normalized_rust != normalized_js;
 
         if print_all {
             eprintln!("[render parity][rust html] {}", rust_html);
             eprintln!("[render parity][js html]   {}", js_html);
             eprintln!(
-                "[render parity][sig] tag_sim={:.3} class_sim={:.3} text_len={} vs {} svg_paths={} vs {}",
-                tag_similarity,
-                class_similarity,
-                rust_sig.text_len,
-                js_sig.text_len,
-                rust_sig.svg_path_count,
-                js_sig.svg_path_count
+                "[render parity][match] {}",
+                if is_mismatch { "MISMATCH" } else { "MATCH" }
             );
         }
 
@@ -299,12 +231,6 @@ fn parity_signature_matches_js_for_generated_formula_set() {
                 expression,
                 rust_html,
                 js_html,
-                tag_similarity,
-                class_similarity,
-                rust_text_len: rust_sig.text_len,
-                js_text_len: js_sig.text_len,
-                rust_svg_path_count: rust_sig.svg_path_count,
-                js_svg_path_count: js_sig.svg_path_count,
             });
         }
     }
@@ -330,18 +256,18 @@ fn parity_signature_matches_js_for_generated_formula_set() {
             mismatches.len()
         );
         for mismatch in &mismatches {
-            eprintln!(
-                "- {} | tag_sim={:.3} class_sim={:.3} text_len={} vs {} svg_paths={} vs {}",
-                mismatch.expression,
-                mismatch.tag_similarity,
-                mismatch.class_similarity,
-                mismatch.rust_text_len,
-                mismatch.js_text_len,
-                mismatch.rust_svg_path_count,
-                mismatch.js_svg_path_count
-            );
+            eprintln!("- {}", mismatch.expression);
             eprintln!("  rust_html: {}", mismatch.rust_html);
             eprintln!("  js_html:   {}", mismatch.js_html);
+
+            // 显示差异的详细信息
+            if mismatch.rust_html.len() != mismatch.js_html.len() {
+                eprintln!(
+                    "  length diff: rust={} vs js={}",
+                    mismatch.rust_html.len(),
+                    mismatch.js_html.len()
+                );
+            }
         }
     }
 
