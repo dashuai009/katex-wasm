@@ -454,7 +454,7 @@ lazy_static! {
 }
 
 fn assert_parsed(group: &parse_node::types::leftright) {
-    if group.body.len() > 0 {
+    if group.body.len() == 0 {
         panic!("Bug: The leftright ParseNode wasn't fully parsed.");
     }
 }
