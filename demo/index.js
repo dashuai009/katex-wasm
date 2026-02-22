@@ -77,13 +77,143 @@ const math_str = [
 
 let math_wasm = document.getElementById("math-wasm");
 let math_katex = document.getElementById("math-katex")
-for (let s of math_str) {
-    let t = katex_wasm.renderToString(s, {displayMode: true, throwOnError: false});
-    let d = document.createElement("span");
-    d.innerHTML = t;
-    math_wasm.append(d);
 
-    let d2 = document.createElement("div");
-    katex.render(s, d2, {displayMode: true, throwOnError: false});
-    math_katex.append(d2);
+// Arrays to store performance data
+const perfData = [];
+
+for (let s of math_str) {
+    // Measure katex-wasm rendering time
+    let startTime = performance.now();
+    try {
+        let t = katex_wasm.renderToString(s, {displayMode: true, throwOnError: false});
+        let endTime = performance.now();
+        let wasmTime = endTime - startTime;
+        
+        let d = document.createElement("span");
+        d.innerHTML = t;
+        math_wasm.append(d);
+        
+        // Store performance data
+        perfData.push({
+            formula: s,
+            length: s.length,
+            wasmTime: wasmTime,
+            katexTime: 0 // Will be updated later
+        });
+    } catch (error) {
+        console.error("Error rendering formula with katex-wasm:", s, error);
+        let errorMsg = document.createElement("div");
+        errorMsg.textContent = "Error rendering formula: " + s;
+        errorMsg.style.color = "red";
+        math_wasm.append(errorMsg);
+    }
+
+    // Measure katex-js rendering time
+    startTime = performance.now();
+    try {
+        let d2 = document.createElement("div");
+        katex.render(s, d2, {displayMode: true, throwOnError: false});
+        let endTime = performance.now();
+        let katexTime = endTime - startTime;
+        
+        math_katex.append(d2);
+        
+        // Update performance data
+        const lastEntry = perfData[perfData.length - 1];
+        if (lastEntry && lastEntry.formula === s) {
+            lastEntry.katexTime = katexTime;
+        }
+    } catch (error) {
+        console.error("Error rendering formula with katex:", s, error);
+        let errorMsg = document.createElement("div");
+        errorMsg.textContent = "Error rendering formula: " + s;
+        errorMsg.style.color = "red";
+        math_katex.append(errorMsg);
+    }
 }
+
+// Create scatter plot
+function createScatterPlot() {
+    // Create canvas for chart
+    const chartContainer = document.createElement("div");
+    chartContainer.id = "chart-container";
+    chartContainer.style.marginTop = "50px";
+    document.body.appendChild(chartContainer);
+    
+    // Create canvas element
+    const canvas = document.createElement("canvas");
+    canvas.id = "performance-chart";
+    chartContainer.appendChild(canvas);
+    
+    // Simple scatter plot implementation
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 600;
+    
+    // Find max values for scaling
+    const maxLength = Math.max(...perfData.map(d => d.length));
+    const maxTime = Math.max(
+        ...perfData.map(d => d.wasmTime),
+        ...perfData.map(d => d.katexTime)
+    );
+    
+    // Set margins and chart area
+    const margin = { top: 50, right: 50, bottom: 50, left: 50 };
+    const width = canvas.width - margin.left - margin.right;
+    const height = canvas.height - margin.top - margin.bottom;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw axes
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, canvas.height - margin.bottom);
+    ctx.lineTo(canvas.width - margin.right, canvas.height - margin.bottom);
+    ctx.stroke();
+    
+    // Draw axis labels
+    ctx.fillStyle = "black";
+    ctx.font = "16px Arial";
+    ctx.fillText("Formula Length", canvas.width / 2 - 50, canvas.height - 10);
+    ctx.save();
+    ctx.translate(15, canvas.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("Rendering Time (ms)", 0, 0);
+    ctx.restore();
+    
+    // Draw data points
+    perfData.forEach(point => {
+        // Scale coordinates
+        const x = margin.left + (point.length / maxLength) * width;
+        const yWasm = canvas.height - margin.bottom - (point.wasmTime / maxTime) * height;
+        const yKatex = canvas.height - margin.bottom - (point.katexTime / maxTime) * height;
+        
+        // Draw wasm points in green
+        ctx.beginPath();
+        ctx.arc(x, yWasm, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "green";
+        ctx.fill();
+        
+        // Draw katex points in red
+        ctx.beginPath();
+        ctx.arc(x, yKatex, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+    });
+    
+    // Draw legend
+    ctx.fillStyle = "green";
+    ctx.fillRect(canvas.width - 150, 20, 15, 15);
+    ctx.fillStyle = "black";
+    ctx.font = "14px Arial";
+    ctx.fillText("Rust/WASM", canvas.width - 130, 32);
+    
+    ctx.fillStyle = "red";
+    ctx.fillRect(canvas.width - 150, 45, 15, 15);
+    ctx.fillStyle = "black";
+    ctx.fillText("JavaScript", canvas.width - 130, 57);
+}
+
+// Create the scatter plot after a short delay to ensure DOM is ready
+setTimeout(createScatterPlot, 1000);
