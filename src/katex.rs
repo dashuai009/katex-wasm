@@ -11,7 +11,7 @@ use wasm_bindgen::JsValue;
  */
 pub fn render_to_dom_tree(expression: String, settings: Settings) -> Span {
     let tree = parseTree(expression.clone(), settings.clone());
-    // println!("tree parse nodes = {:#?}", tree);
+    println!("tree parse nodes = {:#?}", tree);
     return crate::build::build_tree(tree, expression, settings);
 }
 
@@ -76,19 +76,83 @@ const TEST_CASE: [&str; 1] = [
     // a & a \\
     // b & b
     // \end{array}",
-    r"\begin{align}
-      a&= b\\
-      b= & v\\
-      \end{align}"
+    // r"\begin{align}
+    //   a&= b\\
+    //   b= & v\\
+    //   \end{align}",
+   r"\tan\left(\frac{\pi}{4}\right)=1"
 ];
 
 #[cfg(test)]
 mod tests {
-    use crate::katex::{render_to_string, TEST_CASE};
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+    use crate::katex::{render, render_to_string, TEST_CASE};
     use crate::settings::Settings;
 
+    fn render_with_js_katex(expression: &str) -> String {
+        let script = r#"
+const fs = require('fs');
+const payload = JSON.parse(fs.readFileSync(0, 'utf8'));
+const katex = require('./KaTeX/dist/katex.mjs');
+let options = {
+  displayMode: true,
+  output: 'html',
+  throwOnError: false,
+  trust: true,
+  strict: 'ignore'
+};
+ var settings = new katex.Settings(options);
+ process.stdout.write(JSON.stringify(settings));
+  try {
+    var tree = katex.parseTree(payload.expression, settings);
+    process.stdout.write(JSON.stringify(tree, null, 2));
+    // return buildTree(tree, payload.expression, settings);
+  } catch (error) {
+     process.stdout.write(JSON.stringify(error));
+    // return renderError(error, payload.expression, settings);
+  }
+
+const html = katex.renderToString(payload.expression, options);
+process.stdout.write(html);
+"#;
+
+        let mut child = Command::new("node")
+            .arg("-e")
+            .arg(script)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("node must be available to run parity test");
+
+        let payload = format!(
+            r#"{{"expression":"{}"}}"#,
+            expression.replace('\\', "\\\\").replace('"', "\\\"")
+        );
+
+        let mut stdin = child.stdin.take().expect("stdin should be available");
+        stdin
+            .write_all(payload.as_bytes())
+            .expect("failed to pass formula payload to node");
+        drop(stdin);
+
+        let output = child
+            .wait_with_output()
+            .expect("failed to wait for node renderer");
+        assert!(
+            output.status.success(),
+            "node renderer failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+
+        String::from_utf8(output.stdout).expect("node output must be utf-8")
+    }
     #[test]
     fn test_parse_tree() {
+
+
+
+
         let mut settings = Settings::new();
         settings.set_display_mode(true);
         settings.set_error_color("#cc0000".to_string());
@@ -101,6 +165,10 @@ mod tests {
             println!("{test_str}");
         }
         for test_string in TEST_CASE {
+
+            let js_katex = render_with_js_katex(test_string);
+            println!("js_katex = {}", js_katex);
+
             println!(
                 "{}",
                 render_to_string(test_string.to_string(), settings.clone()).as_str()
