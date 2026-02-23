@@ -27,6 +27,7 @@
   },
   "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
+    "chart.js": "^4.4.0",
     "create-wasm-app": "^0.1.0",
     "katex": "^0.16.2",
     "katex-wasm": "file:../pkg"
