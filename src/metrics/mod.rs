@@ -6,9 +6,7 @@ pub(crate) mod sigmas_and_xis;
 use crate::{
     metrics::{extra_character_map::*, fontMetricsData::*, sigmas_and_xis::*},
     types::Mode,
-    unicodeScripts::supportedCodepoint,
-    utils::console_log,
-    utils::log,
+    unicodeScripts::supportedCodepoint
 };
 use public::*;
 use std::{collections::HashMap, str::FromStr};

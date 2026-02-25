@@ -54,22 +54,16 @@ const katex = (await import(katexPath)).default;
 
 // ── Load WASM KaTeX ───────────────────────────────────────────────────────────
 
-const wasmPkgPath = path.join(projectRoot, 'pkg/index.js');
+const wasmPkgPath = path.join(projectRoot, 'pkg/katex_wasm.js');
 const katexWasm = await import(wasmPkgPath);
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 
-const jsSettings = {
+const renderSettings = {
     displayMode: true,
     output: 'html',
     throwOnError: false,
-    trust: true,
     strict: 'ignore',
-};
-
-const wasmSettings = {
-    displayMode: true,
-    throwOnError: false,
     trust: true,
     maxSize: 200000,
     maxExpand: 1000,
@@ -133,12 +127,34 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
     console.log(`Formula: ${formula}`);
     console.log();
 
+    // ── Print settings (once per formula) ─────────────────────────────────
+    let rustSettings;
+    try {
+        // JS KaTeX processes options through SETTINGS_SCHEMA (defaults + processors)
+        const jsSettings = new katex.Settings(renderSettings);
+        const jsSettingsObj = {};
+        for (const key of Object.keys(katex.SETTINGS_SCHEMA)) {
+            jsSettingsObj[key] = jsSettings[key];
+        }
+
+        rustSettings = new katexWasm.Settings(renderSettings);
+        const rustSettingsObj = rustSettings.toJsValue();
+
+        console.log(`${DIM}--- JS  Settings (after processing) ---${RESET}`);
+        console.log(JSON.stringify(jsSettingsObj, null, 2));
+        console.log(`${DIM}--- Rust Settings (after processing) ---${RESET}`);
+        console.log(JSON.stringify(rustSettingsObj, null, 2));
+        console.log();
+    } catch (error) {
+        console.log(`${YELLOW}Warning: failed to print settings: ${error.message}${RESET}`);
+    }
+
     // ── JS KaTeX HTML ─────────────────────────────────────────────────────
     let jsHtml = '';
     let jsTime = 0;
     try {
         const jsStart = performance.now();
-        jsHtml = katex.renderToString(formula, jsSettings);
+        jsHtml = katex.renderToString(formula, renderSettings);
         jsTime = performance.now() - jsStart;
     } catch (error) {
         jsHtml = `JS_ERROR: ${error.message || error}`;
@@ -150,7 +166,7 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
     let rustTime = 0;
     try {
         const rustStart = performance.now();
-        rustHtml = katexWasm.renderToString(formula, wasmSettings);
+        rustHtml = katexWasm.renderToString(formula, renderSettings);
         rustTime = performance.now() - rustStart;
     } catch (error) {
         rustHtml = `RUST_ERROR: ${error.message || error}`;
