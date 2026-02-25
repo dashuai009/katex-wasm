@@ -172,9 +172,10 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     } else {
         // Otherwise, this is a text operator. Build the text from the
         // operator's name.
+        // Skip the leading backslash (JS: for (let i = 1; i < group.name.length; i++))
         let output = group_name
             .chars()
-            .into_iter()
+            .skip(1)
             .map(|c| {
                 Box::new(common::math_sym(
                     c.to_string(),
@@ -227,37 +228,79 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
 }
 
 fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn MathDomNode> {
-    panic!("undefined mathml builder")
-    // let group = _group
-    //     .as_any()
-    //     .downcast_ref::<parse_node::types::op>()
-    //     .unwrap();
-    // let mut node;
-    //
-    // if (group.symbol) {
-    //     // This is a symbol. Just add the symbol.
-    //     node = MathNode::new(MathNodeType::Mo , vec![mml.makeText(group.name, group.mode)]);
-    //     if NO_SUCCESSOR.contains(&&*group.name.unwrap()) {
-    //         node.set_attribute("largeop".to_string(), "false".to_string());
-    //     }
-    // } else if (group.body) {
-    //     // This is an operator with children. Add them.
-    //     node = MathNode::new(MathNodeType::Mo , mml.buildExpression(group.body, options));
-    // } else {
-    //     // This is a text operator. Add all of the characters from the
-    //     // operator's name.
-    //     node = MathNode::new(MathNodeType::Mi , vec![ TextNode(group.name.slice(1))]);
-    //     // Append an <mo>&ApplyFunction;</mo>.
-    //     // ref: https://www.w3.org/TR/REC-MathML/chap3_2.html#sec3.2.4
-    //     let operator = MathNode::new(MathNodeType::Mo, vec![make_text("\u{2061}".to_string(), Mode::text)], vec![]);
-    //     if (group.parent_is_sup_sub) {
-    //         node = MathNode::new(MathNodeType::Mrow, vec![node, operator], vec![]);
-    //     } else {
-    //         node = mathMLTree.newDocumentFragment([node, operator]);
-    //     }
-    // }
-    //
-    // return node;
+    let group = _group
+        .as_any()
+        .downcast_ref::<parse_node::types::op>()
+        .unwrap();
+
+    let mut node;
+    if group.symbol {
+        // This is a symbol. Just add the symbol.
+        let name = if let Some(ref name) = group.name { name.clone() } else { "".to_string() };
+        let text_node = make_text(name, group.mode, Some(&options));
+        node = MathNode::new(
+            MathNodeType::Mo,
+            vec![Box::new(text_node) as Box<dyn MathDomNode>],
+            vec![]
+        );
+        if let Some(ref group_name) = group.name {
+            if NO_SUCCESSOR.contains(&&**group_name) {
+                node.set_attribute("largeop".to_string(), "false".to_string());
+            }
+        }
+    } else if let Some(ref body) = group.body {
+        // This is an operator with children. Build the children.
+        let children = mathML::build_expression(body.clone(), options.clone(), false);
+        node = MathNode::new(
+            MathNodeType::Mo,
+            children.into_iter().map(|n| Box::new(n) as Box<dyn MathDomNode>).collect(),
+            vec![]
+        );
+    } else {
+        // This is a text operator. Add all of the characters from the
+        // operator's name.
+        // Get the name slice after the first backslash
+        let name_slice = if let Some(ref name) = group.name {
+            if name.starts_with('\\') {
+                name[1..].to_string()
+            } else {
+                name.clone()
+            }
+        } else {
+            "".to_string()
+        };
+        let text_node = make_text(name_slice, group.mode, Some(&options));
+        node = MathNode::new(
+            MathNodeType::Mi,
+            vec![Box::new(text_node) as Box<dyn MathDomNode>],
+            vec![]
+        );
+
+        // Append an <mo>&ApplyFunction;</mo>.
+        // ref: https://www.w3.org/TR/REC-MathML/chap3_2.html#sec3.2.4
+        let apply_operator = MathNode::new(
+            MathNodeType::Mo,
+            vec![Box::new(make_text("\u{2061}".to_string(), Mode::text, Some(&options))) as Box<dyn MathDomNode>],
+            vec![]
+        );
+
+        // For operators that are used with superscripts and subscripts
+        if group.parentIsSupSub {
+            return Box::new(MathNode::new(
+                MathNodeType::Mrow,
+                vec![Box::new(node), Box::new(apply_operator)],
+                vec![]
+            ));
+        } else {
+            return Box::new(MathNode::new(
+                MathNodeType::Mrow,
+                vec![Box::new(node), Box::new(apply_operator)],
+                vec![]
+            ));
+        }
+    }
+
+    Box::new(node)
 }
 
 lazy_static! {

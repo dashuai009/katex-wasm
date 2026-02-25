@@ -427,7 +427,7 @@ fn buildHTMLUnbreakable(children: Vec<Box<dyn HtmlDomNode>>, options: Option<&Op
     if body.get_depth() > 0.0 {
         strut.get_mut_style().vertical_align = Some(make_em(-body.get_depth()));
     }
-    // body.get_mut_children().unshift(strut);
+    body.get_mut_children().unwrap().insert(0, Box::new(strut) as Box<dyn HtmlDomNode>);
 
     return body;
 }

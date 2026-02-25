@@ -24,6 +24,13 @@ pub enum MathNodeType {
     Mtable,
     Mtr,
     Mtd,
+    Mfrac,
+    Mmultiscripts,
+    Mphantom,
+    Ms,
+    Msub,
+    Msubsup,
+    Msup,
 }
 
 impl FromStr for MathNodeType {
@@ -52,6 +59,13 @@ impl FromStr for MathNodeType {
             "mtable" => Ok(MathNodeType::Mtable),
             "mtr" => Ok(MathNodeType::Mtr),
             "mtd" => Ok(MathNodeType::Mtd),
+            "mfrac" => Ok(MathNodeType::Mfrac),
+            "mmultiscripts" => Ok(MathNodeType::Mmultiscripts),
+            "mphantom" => Ok(MathNodeType::Mphantom),
+            "ms" => Ok(MathNodeType::Ms),
+            "msub" => Ok(MathNodeType::Msub),
+            "msubsup" => Ok(MathNodeType::Msubsup),
+            "msup" => Ok(MathNodeType::Msup),
             _ => Err(()),
         }
     }
@@ -79,8 +93,15 @@ impl MathNodeType {
             MathNodeType::Msqrt => "msqrt",
             MathNodeType::Mglyph => "mglyph",
             MathNodeType::Mtable => "mtable",
-            MathNodeType::Mtd => "mtd",
             MathNodeType::Mtr => "mtr",
+            MathNodeType::Mtd => "mtd",
+            MathNodeType::Mfrac => "mfrac",
+            MathNodeType::Mmultiscripts => "mmultiscripts",
+            MathNodeType::Mphantom => "mphantom",
+            MathNodeType::Ms => "ms",
+            MathNodeType::Msub => "msub",
+            MathNodeType::Msubsup => "msubsup",
+            MathNodeType::Msup => "msup",
         }
     }
 }

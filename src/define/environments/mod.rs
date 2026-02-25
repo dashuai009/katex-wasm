@@ -9,9 +9,11 @@ lazy_static! {
     pub static ref ENVS: Mutex<Vec<FunctionDefSpec>> = Mutex::new({
         let a = array::ARRAY.lock().unwrap();
         let b = array::ARRAY_ALIGN.lock().unwrap();
+        let c = array::MATRIX_ENVS.lock().unwrap();
         vec![
             a.clone(),
-            b.clone()
+            b.clone(),
+            c.clone()
         ]
     });
     pub static ref _environments: std::sync::RwLock<HashMap<String, FunctionSpec>> =

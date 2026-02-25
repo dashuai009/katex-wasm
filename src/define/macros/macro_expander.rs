@@ -238,7 +238,8 @@ impl MacroExpander<'_> {
                     match_pos += 1;
                     if match_pos == delims.as_ref().unwrap().len() {
                         // don't include delims in tokens
-                        // tokens.splice(-match_pos, match_pos);
+                        let new_len = tokens.len() - match_pos;
+                        tokens.truncate(new_len);
                         break;
                     }
                 } else {

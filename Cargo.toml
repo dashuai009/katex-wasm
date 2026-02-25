@@ -51,10 +51,24 @@ wasm-bindgen-test = "0.3.13"
 [profile.dev]
 opt-level = 0
 
+# 性能分析专用 profile
+[profile.profiling]
+inherits = "release"
+debug = true          # 保留调试符号，用于分析工具
+strip = false         # 不剥离符号
+opt-level = 3         # 最高优化级别，获得真实性能数据
+lto = true            # 禁用 LTO 以加快编译（分析时可开启）
+
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
+debug = false
+lto = true
+codegen-units = 256
 
 #[target.x86_64-unknown-linux-gnu]
 ## 更改链接器，增快编译速度
 #linker = "lld"
+
+[workspace]
+members = [".", "struct_format", "diff_harness"]

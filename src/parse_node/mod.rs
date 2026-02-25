@@ -1,6 +1,6 @@
 use crate::parse_node::types::AnyParseNode;
 
-pub(crate) mod types;
+pub mod types;
 
 
 // Some of these have a "-token" suffix since these are also used as `ParseNode`

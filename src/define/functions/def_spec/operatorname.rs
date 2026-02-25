@@ -216,6 +216,7 @@ lazy_static! {
         FunctionDefSpec {
             def_type: "operatorname".to_string(),
             names: vec![
+                "\\operatorname".to_string(),
                 "\\operatorname@".to_string(),
                 "\\operatornamewithlimits".to_string(),
             ],

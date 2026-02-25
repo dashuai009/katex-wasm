@@ -32,20 +32,18 @@ pub struct TmpSymbol {
  */
 pub fn lookup_symbol(value: String, font_name: String, mode: Mode) -> TmpSymbol {
     // Replace the value with its replaced value from symbol.js
-    let tmp_metrics = get_character_metrics(&value, &font_name, mode);
-
-    // if tmp.is_some_and(|&t| t.replace.is_some()) {}
+    // Must replace BEFORE looking up metrics (JS: symbols[mode][value].replace)
+    let mut replaced_value = value.clone();
     if let Some(tmp) = get_symbol(mode, &value) {
         if let Some(tmp_replace) = tmp.replace {
-            return TmpSymbol {
-                value: tmp_replace,
-                metrics: tmp_metrics,
-            };
+            replaced_value = tmp_replace;
         }
     }
 
+    let tmp_metrics = get_character_metrics(&replaced_value, &font_name, mode);
+
     return TmpSymbol {
-        value: value,
+        value: replaced_value,
         metrics: tmp_metrics,
     };
 }
@@ -286,8 +284,8 @@ pub fn make_ord(
             vec![classes, vec!["mathnormal".to_string()]].concat(),
         );
     } else if _type == "textord" {
-        let font = get_symbol(mode, &text).unwrap().font;
-        if font == Font::ams {
+        let font = get_symbol(mode, &text).map(|s| s.font);
+        if font == Some(Font::ams) {
             let font_name = options.retrieve_text_font_name("amsrm".to_string());
             return make_symbol(
                 text.clone(),
@@ -304,7 +302,7 @@ pub fn make_ord(
                 ]
                 .concat(),
             );
-        } else if font == Font::main {
+        } else if font == Some(Font::main) || font.is_none() {
             let font_name = options.retrieve_text_font_name("textrm".to_string());
             return make_symbol(
                 text.clone(),
@@ -315,7 +313,7 @@ pub fn make_ord(
             );
         } else {
             // fonts added by plugins
-            let font_name = options.retrieve_text_font_name(font.as_str().to_string());
+            let font_name = options.retrieve_text_font_name(font.unwrap().as_str().to_string());
             // We add font name as a css class
             return make_symbol(
                 text.clone(),

@@ -18,7 +18,7 @@ mod Style;
 mod katex;
 mod mathML_tree;
 pub mod parse;
-mod parse_node;
+pub mod parse_node;
 pub mod settings;
 mod sourceLocation;
 mod spacingData;
@@ -38,6 +38,8 @@ mod wide_character;
 mod delimiter;
 
 pub use crate::katex::render_to_string;
+pub use crate::parse::parseTree;
+pub use crate::parse_node::types::AnyParseNode;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -46,7 +48,6 @@ pub use crate::katex::render_to_string;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 use metrics::*;
-use parse_node::types::AnyParseNode;
 use Namespace::*;
 //use ParseError::*;
 //use Setting::*;

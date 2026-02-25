@@ -290,10 +290,10 @@ fn make_stacked_delim(
 ) -> Span {
     // There are four parts, the top, an optional middle, a repeated part, and a
     // bottom.
-    let mut top = "";
+    let mut top = delim;
     let mut middle = "";
-    let mut repeat = "";
-    let mut bottom = "";
+    let mut repeat = delim;
+    let mut bottom = delim;
     let mut svg_label = "";
     let mut view_box_width = 0;
     // Also keep track of what font the delimiters are in
@@ -442,7 +442,7 @@ fn make_stacked_delim(
     // Compute the f64 of copies of the repeat symbol we will need
     let repeat_count = f64::max(
         0.0,
-        ((height_total - min_height) / (middle_factor * repeat_height_total).ceil()),
+        ((height_total - min_height) / (middle_factor * repeat_height_total)).ceil(),
     );
 
     // Compute the total height of the delimiter including all the symbols

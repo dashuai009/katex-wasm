@@ -119,6 +119,8 @@ lazy_static! {
 
         let ka = htmlmathml::HTML_MATHML.lock().unwrap();
 
+        let la = operatorname::ORDGROUP.lock().unwrap();
+
         let res = vec![
             x.clone(),
             y.clone(),
@@ -178,7 +180,8 @@ lazy_static! {
             ia.clone(),
             ja.clone(),
             jb.clone(),
-            ka.clone()
+            ka.clone(),
+            la.clone()
         ];
         res
     });

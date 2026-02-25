@@ -1223,6 +1223,98 @@ lazy_static! {
         }
 });
 
+    // The matrix environments of amsmath builds on the array environment
+    // of LaTeX, which is discussed above.
+    // The mathtools package adds starred versions of the same environments.
+    // These have an optional argument to choose left|center|right justification.
+    pub static ref MATRIX_ENVS: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec![
+                "matrix".to_string(),
+                "pmatrix".to_string(),
+                "bmatrix".to_string(),
+                "Bmatrix".to_string(),
+                "vmatrix".to_string(),
+                "Vmatrix".to_string(),
+            ],
+            props,
+            handler: matrix_handler_fn,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
+}
+
+// The matrix environments of amsmath builds on the array environment
+// of LaTeX, which is discussed above.
+// The mathtools package adds starred versions of the same environments.
+// These have an optional argument to choose left|center|right justification.
+pub fn matrix_handler_fn(
+    ctx: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    let func_name = context.func_name.clone();
+    
+    // Define delimiters for each matrix type
+    let delimiters = match func_name.as_str() {
+        "matrix" => None,
+        "pmatrix" => Some(("(".to_string(), ")".to_string())),
+        "bmatrix" => Some(("[".to_string(), "]".to_string())),
+        "Bmatrix" => Some(("\\{".to_string(), "\\}".to_string())),
+        "vmatrix" => Some(("|".to_string(), "|".to_string())),
+        "Vmatrix" => Some(("\\Vert".to_string(), "\\Vert".to_string())),
+        _ => None,
+    };
+    
+    // \hskip -\arraycolsep in amsmath
+    let col_align = "c";
+    let payload = ParseArrayArgs {
+        hskip_before_and_after: false,
+        cols: vec![AlignSpec::Align(Align {
+            align: col_align.to_string(),
+            pregap: None,
+            postgap: None,
+        })],
+        add_jot: false,
+        max_num_cols: None,
+        array_stretch: None,
+        col_separation_type: None,
+        auto_tag: false,
+        single_row: false,
+        empty_single_row: false,
+        leqno: false,
+    };
+    
+    let mut res = parse_array(context.parser, payload, dCellStyle(&func_name));
+    
+    // Populate cols with the correct number of column alignment specs
+    let num_cols = res.body.iter().map(|row| row.len()).max().unwrap_or(0);
+    res.cols = vec![AlignSpec::Align(Align {
+        align: col_align.to_string(),
+        pregap: None,
+        postgap: None,
+    }); num_cols];
+    
+    // Return leftright node if delimiters exist, otherwise return array directly
+    if let Some((left, right)) = delimiters {
+        let leftright_node = parse_node::types::leftright {
+            mode: context.parser.mode,
+            loc: None,
+            body: vec![Box::new(res) as Box<dyn AnyParseNode>],
+            left,
+            right,
+            right_color: None, // \right uninfluenced by \color in array
+        };
+        Box::new(leftright_node) as Box<dyn AnyParseNode>
+    } else {
+        Box::new(res) as Box<dyn AnyParseNode>
+    }
 }
 
 // // The matrix environments of amsmath builds on the array environment

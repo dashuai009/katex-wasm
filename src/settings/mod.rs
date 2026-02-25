@@ -308,7 +308,7 @@ impl Settings {
             strict: StrictType::Warn,
             trust: false,
             max_size: None,
-            max_expand: None,
+            max_expand: Some(1000),
             global_group: false,
         };
         res

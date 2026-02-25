@@ -53,19 +53,19 @@ lazy_static! {
 
 // const token_regex_string :&'static str = "([ \r\n\t]+)|\\\\(\n|[ \r\t]+\n?)[ \r\t]*|([!-\\[\\]-\u2027\u202A-\uD7FF\uF900-\uFFFF][\u0300-\u036f]*[\uD800-\uDBFF][\uDC00-\uDFFF][\u0300-\u036f]*|\\\\verb\\*([^]).*?\\4|\\\\verb([^*a-zA-Z]).*?\\5|(\\\\[a-zA-Z@]+)[ \r\n\t]*|\\\\[^\uD800-\uDFFF]";
 // static ref  combiningDiacriticalMarksEndRegex: RegExp =    new RegExp(`${combiningDiacriticalMarkString}+$`);
-static ref tokenRegexString:Mutex<String> = Mutex::new({
+static ref TOKEN_REGEX: Regex = {
         let mut res = format!("({spaceRegexString}+)|");  // whitespace
         res.push_str(format!("{controlSpaceRegexString}|").as_str()) ;                  // \whitespace
         res.push_str("([!-\\[\\]-\u{2027}\u{202A}-\u{D7FF}\u{F900}-\u{FFFF}]");  // single codepoint
         res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())    ;        // ...plus accents
-        // .push_str("|[\u{D800}-\u{DBFF}][\u{DC00}-\u{DFFF}]")               // surrogate pair
+        // .push_str("|[\u{D800}-\u{DBFF}][\u{DC00}-\uDFFF]")               // surrogate pair
         // res.push_str(format!("{combiningDiacriticalMarkString}*").as_str())  ;          // ...plus accents
         res.push_str("|\\\\verb\\*([^.]).*?\u{4}")        ;               // \verb*
         res.push_str("|\\\\verb([^*a-zA-Z]).*?\u{5}")    ;               // \verb unstarred
         res.push_str(format!("|{controlWordWhitespaceRegexString}").as_str())   ;      // \macroName + spaces
         res.push_str("|\\\\.)");// res.push_str(format!("|{controlSymbolRegexString})"));                  // \\, \', etc.
-        res
-        });
+        Regex::new(&res).expect("Failed to compile TOKEN_REGEX")
+        };
 }
 
 /** Main Lexer class */
@@ -98,11 +98,10 @@ impl Lexer {
     #[wasm_bindgen(constructor)]
     pub fn new(input: String, settings: &Settings) -> Lexer {
         // Separate accents from characters
-        // console_log!("tokenRegexString = {}", tokenRegexString.lock().unwrap());
         Lexer {
             lexer_i: LexerInterface::new(
                 input,
-                Regex::new(&tokenRegexString.lock().unwrap()).unwrap(),
+                Regex::new(&TOKEN_REGEX.to_string()).unwrap(),
             ),
             settings: settings.clone(),
             catcodes: HashMap::from([

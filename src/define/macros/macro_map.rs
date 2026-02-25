@@ -541,9 +541,12 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\tmspace".to_string(),
             MacroDefinition::Str("\\TextOrMath{\\kern#1#3}{\\mskip#1#2}\\relax".to_string()),
         ),
-        // // \renewcommand{\,}{\tmspace+\thinmuskip{.1667em}}
-        // // TODO: math mode should use \thinmuskip
-        //         defineMacro("\\,", "\\tmspace+{3mu}{.1667em}");
+        // \renewcommand{\,}{\tmspace+\thinmuskip{.1667em}}
+        // TODO: math mode should use \thinmuskip
+        (
+            "\\,".to_string(),
+            MacroDefinition::Str("\\tmspace+{3mu}{.1667em}".to_string()),
+        ),
         // // \let\thinspace\,
         //         defineMacro("\\thinspace", "\\,");
         // // \def\>{\mskip\medmuskip}

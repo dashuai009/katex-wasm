@@ -622,7 +622,7 @@ impl Parser<'_> {
 
             if (func_data.0.get_primitive() && arg_type.is_none()) ||
                 // \sqrt expands into primitive if optional argument doesn't exist
-                (/*func_data.type == "sqrt" &&*/ i == 1 && opt_args.get(0).is_none())
+                (func == "\\sqrt" && i == 1 && opt_args.get(0).is_none())
             {
                 arg_type = Some(&ArgType::primitive);
             }

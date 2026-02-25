@@ -25,7 +25,10 @@ pub fn get_character_metrics(
     font: &str,
     mode: Mode,
 ) -> Option<CharacterMetrics> {
-    let mut ch = character.chars().next().unwrap();
+    let mut ch = match character.chars().next() {
+        Some(c) => c,
+        None => return None,
+    };
     let mut metrics = get_char_metrics(font, (ch as u32).to_string());
     let _extra_char = extra_character_map.lock().unwrap();
     let tmp_ch = _extra_char.get(&ch);

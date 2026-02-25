@@ -455,6 +455,7 @@ lazy_static! {
 
 fn assert_parsed(group: &parse_node::types::leftright) {
     if group.body.len() == 0 {
+        
         panic!("Bug: The leftright ParseNode wasn't fully parsed.");
     }
 }
@@ -553,32 +554,41 @@ pub fn lr_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     let mut innerDepth = 0.0;
     let mut hadMiddle = false;
     // Build the inner expression
-    let mut inner : Vec<Box<dyn HtmlDomNode>> = HTML::build_expression(
+    let mut inner: Vec<Box<dyn HtmlDomNode>> = HTML::build_expression(
         group.body.clone(),
         options.clone(),
         IsRealGroup::T,
         (Some(DomType::mopen), Some(DomType::mclose)),
-    ).into_iter()
-        .map(|inner_item|{
-        if let Some(middle_span) = inner_item.as_any().downcast_ref::<IsMiddleSpan>(){
-            hadMiddle = true;
-            let res = crate::delimiter::make_left_right_delim(
-               &middle_span.is_middle.delim,
-                innerHeight,
-                innerDepth,
-                &middle_span.is_middle.options,
-                group.mode,
-                vec![],
-            );
-            Box::new(res ) as Box<dyn HtmlDomNode>
+    );
 
-        }else{
-            // Calculate its height and depth
+    // First pass: calculate innerHeight and innerDepth
+    for inner_item in inner.iter() {
+        if inner_item.as_any().downcast_ref::<IsMiddleSpan>().is_some() {
+            hadMiddle = true;
+        } else {
             innerHeight = f64::max(inner_item.get_height(), innerHeight);
             innerDepth = f64::max(inner_item.get_depth(), innerDepth);
-            inner_item
         }
-    }).collect();
+    }
+
+    // Second pass: replace middle spans with correctly sized delimiters
+    if hadMiddle {
+        inner = inner.into_iter().map(|inner_item| {
+            if let Some(middle_span) = inner_item.as_any().downcast_ref::<IsMiddleSpan>() {
+                let res = crate::delimiter::make_left_right_delim(
+                    &middle_span.is_middle.delim,
+                    innerHeight,
+                    innerDepth,
+                    &middle_span.is_middle.options,
+                    group.mode,
+                    vec![],
+                );
+                Box::new(res) as Box<dyn HtmlDomNode>
+            } else {
+                inner_item
+            }
+        }).collect();
+    }
 
     // The size of delimiters is the same, regardless of what style we are
     // in. Thus, to correctly calculate the size of delimiter we need around
