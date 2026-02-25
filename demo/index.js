@@ -137,10 +137,12 @@ async function main() {
         }
     }
 
-    // 临时排除第一个
+    // 临时排除第一个（冷启动）
     perfData.shift();
     // Create the scatter plot after rendering all formulas
     createScatterPlot(perfData);
+    // Display statistics summary
+    createStatsSummary(perfData);
 }
 
 function createScatterPlot(perfData) {
@@ -247,6 +249,93 @@ function createScatterPlot(perfData) {
             }
         }
     });
+}
+
+function computeStats(values) {
+    const count = values.length;
+    if (count === 0) return { count: 0, mean: 0, variance: 0, stddev: 0, min: 0, max: 0, median: 0, p95: 0, total: 0 };
+
+    const sorted = [...values].sort((a, b) => a - b);
+    const total = values.reduce((sum, v) => sum + v, 0);
+    const mean = total / count;
+    const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / count;
+    const stddev = Math.sqrt(variance);
+    const min = sorted[0];
+    const max = sorted[count - 1];
+    const median = count % 2 === 0
+        ? (sorted[count / 2 - 1] + sorted[count / 2]) / 2
+        : sorted[Math.floor(count / 2)];
+    const p95Index = Math.ceil(count * 0.95) - 1;
+    const p95 = sorted[Math.min(p95Index, count - 1)];
+
+    return { count, mean, variance, stddev, min, max, median, p95, total };
+}
+
+function formatMs(value) {
+    return value.toFixed(3) + ' ms';
+}
+
+function createStatsSummary(perfData) {
+    const wasmTimes = perfData.map(d => d.wasmTime);
+    const katexTimes = perfData.map(d => d.katexTime);
+
+    const wasmStats = computeStats(wasmTimes);
+    const katexStats = computeStats(katexTimes);
+
+    const container = document.createElement("div");
+    container.style.marginTop = "30px";
+    container.style.padding = "20px";
+    container.style.fontFamily = "monospace";
+    container.style.fontSize = "14px";
+    container.style.maxWidth = "800px";
+
+    const rows = [
+        { label: "Sample Count", wasm: wasmStats.count, katex: katexStats.count, isCount: true },
+        { label: "Total Time", wasm: wasmStats.total, katex: katexStats.total },
+        { label: "Mean (Average)", wasm: wasmStats.mean, katex: katexStats.mean },
+        { label: "Median", wasm: wasmStats.median, katex: katexStats.median },
+        { label: "Std Deviation", wasm: wasmStats.stddev, katex: katexStats.stddev },
+        { label: "Variance", wasm: wasmStats.variance, katex: katexStats.variance },
+        { label: "Min", wasm: wasmStats.min, katex: katexStats.min },
+        { label: "Max", wasm: wasmStats.max, katex: katexStats.max },
+        { label: "P95", wasm: wasmStats.p95, katex: katexStats.p95 },
+    ];
+
+    let html = `
+        <h3 style="margin-bottom: 12px; font-family: sans-serif;">📊 Performance Statistics</h3>
+        <table style="border-collapse: collapse; width: 100%;">
+            <thead>
+                <tr style="background: #f0f0f0;">
+                    <th style="text-align: left; padding: 8px; border: 1px solid #ddd;">Metric</th>
+                    <th style="text-align: right; padding: 8px; border: 1px solid #ddd; color: forestgreen;">Rust/WASM</th>
+                    <th style="text-align: right; padding: 8px; border: 1px solid #ddd; color: crimson;">JavaScript</th>
+                    <th style="text-align: right; padding: 8px; border: 1px solid #ddd;">Ratio (JS/WASM)</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (const row of rows) {
+        const wasmVal = row.isCount ? row.wasm : formatMs(row.wasm);
+        const katexVal = row.isCount ? row.katex : formatMs(row.katex);
+        const ratio = row.isCount ? '-' : (row.wasm > 0 ? (row.katex / row.wasm).toFixed(2) + 'x' : '-');
+        const ratioColor = !row.isCount && row.wasm > 0
+            ? (row.katex / row.wasm > 1 ? 'forestgreen' : 'crimson')
+            : 'inherit';
+
+        html += `
+            <tr>
+                <td style="padding: 6px 8px; border: 1px solid #ddd; font-weight: bold;">${row.label}</td>
+                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: right;">${wasmVal}</td>
+                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: right;">${katexVal}</td>
+                <td style="padding: 6px 8px; border: 1px solid #ddd; text-align: right; color: ${ratioColor};">${ratio}</td>
+            </tr>
+        `;
+    }
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+    document.body.appendChild(container);
 }
 
 // Ensure DOM is loaded before running main
