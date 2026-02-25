@@ -77,7 +77,7 @@ diff_harness 是用于对比 JS KaTeX 和 Rust WASM 实现差异的测试工具�
 ### 使用方法
 
 ```bash
-cargo run -p diff_harness --bin diff_harness_cli -- <formulas.txt> [start_line] [end_line]
+wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs <formulas.txt> [start_line] [end_line]
 ```
 
 ### 参数说明
@@ -90,10 +90,10 @@ cargo run -p diff_harness --bin diff_harness_cli -- <formulas.txt> [start_line] 
 
 ```bash
 # 测试整个文件
-cargo run -p diff_harness --bin diff_harness_cli -- tests/fixtures/formulas.txt
+wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt
 
 # 测试指定行范围
-cargo run -p diff_harness --bin diff_harness_cli -- tests/fixtures/formulas.txt 1 5
+wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5
 ```
 
 ### 输出内容

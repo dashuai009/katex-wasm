@@ -71,4 +71,4 @@ codegen-units = 256
 #linker = "lld"
 
 [workspace]
-members = [".", "struct_format", "diff_harness"]
+members = [".", "struct_format"]
