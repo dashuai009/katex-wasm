@@ -14,7 +14,8 @@ module.exports = {
   plugins: [
     new CopyWebpackPlugin([
       { from: 'index.html', to: '.' },
-      { from: '../pkg/katex_wasm_bg.wasm', to: '[name][ext]' }
+      { from: '../pkg/katex_wasm_bg.wasm', to: '[name][ext]' },
+      { from: 'formulas.txt', to: '.' }
     ])
   ],
 };
