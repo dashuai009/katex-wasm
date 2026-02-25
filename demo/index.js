@@ -89,7 +89,7 @@ for (let s of math_str) {
     // Measure katex-wasm rendering time
     let startTime = performance.now();
     try {
-        let t = katex_wasm.renderToString(s, {displayMode: true, throwOnError: false});
+        let t = katex_wasm.renderToString(s, {displayMode: true, throwOnError: false, trust: true, maxSize: 200000, maxExpand: 1000});
         let endTime = performance.now();
         let wasmTime = endTime - startTime;
         
@@ -116,7 +116,7 @@ for (let s of math_str) {
     startTime = performance.now();
     try {
         let d2 = document.createElement("div");
-        katex.render(s, d2, {displayMode: true, throwOnError: false});
+        katex.render(s, d2, {displayMode: true, throwOnError: false, trust: true, max_size: 20000});
         let endTime = performance.now();
         let katexTime = endTime - startTime;
         
