@@ -1,21 +1,30 @@
-const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
+const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  entry: "./bootstrap.js",
+  entry: './bootstrap.js',
   output: {
-    path: path.resolve(__dirname, "dist"),
-    filename: "bootstrap.js",
-  },
-  mode: "development",
-  experiments: {
-    asyncWebAssembly: true,
+    path: path.resolve(__dirname, 'dist'),
+    filename: 'index.js'
   },
   plugins: [
-    new CopyWebpackPlugin([
-      { from: 'index.html', to: '.' },
-      { from: '../pkg/katex_wasm_bg.wasm', to: '[name][ext]' },
-      { from: 'formulas.txt', to: '.' }
-    ])
+    new HtmlWebpackPlugin({
+      template: 'index.html'
+    }),
+    new WasmPackPlugin({
+      crateDirectory: path.resolve(__dirname, "..")
+    }),
+    new CopyPlugin({
+      patterns: [
+        { from: "public", to: "public" }
+      ],
+    }),
   ],
+  mode: 'development',
+  experiments: {
+    asyncWebAssembly: true
+  }
 };

@@ -52,7 +52,7 @@ async function loadFormulasFromFile(filePath, startLine = 1, endLine = null) {
 // 配置参数（可以通过 URL 参数覆盖）
 const urlParams = new URLSearchParams(window.location.search);
 const CONFIG = {
-    filePath: urlParams.get('file') || './formulas.txt',
+    filePath: urlParams.get('file') || './public/formulas.txt',
     startLine: parseInt(urlParams.get('start')) || 1,
     endLine: urlParams.get('end') ? parseInt(urlParams.get('end')) : null
 };
@@ -137,6 +137,8 @@ async function main() {
         }
     }
 
+    // 临时排除第一个
+    perfData.shift();
     // Create the scatter plot after rendering all formulas
     createScatterPlot(perfData);
 }
@@ -247,5 +249,9 @@ function createScatterPlot(perfData) {
     });
 }
 
-// 直接调用 main()，因为脚本在 body 末尾加载，DOM 已经准备好
-main();
+// Ensure DOM is loaded before running main
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', main);
+} else {
+    main();
+}

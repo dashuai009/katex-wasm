@@ -3,12 +3,9 @@
   "version": "0.1.0",
   "description": "create an app to consume rust-generated wasm packages",
   "main": "index.js",
-  "bin": {
-    "create-wasm-app": ".bin/create-wasm-app.js"
-  },
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack-dev-server"
+    "build": "webpack",
+    "serve": "webpack serve"
   },
   "repository": {
     "type": "git",
@@ -28,16 +25,16 @@
   "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
     "chart.js": "^4.4.0",
-    "create-wasm-app": "^0.1.0",
     "katex": "^0.16.2",
     "katex-wasm": "file:../pkg"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "^5.0.0",
+    "@wasm-tool/wasm-pack-plugin": "^1.5.0",
+    "copy-webpack-plugin": "^13.0.1",
     "file-loader": "^6.2.0",
-    "hello-wasm-pack": "^0.1.0",
+    "html-webpack-plugin": "^5.6.0",
     "webpack": "^5.105.2",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.2"
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.3"
   }
 }
