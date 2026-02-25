@@ -111,7 +111,7 @@ pub fn build_expression(
     //println!("build_expression groups = {:#?}", groups);
 
     // Combine consecutive domTree.symbolNodes into a single symbolNode.
-    super::common::try_combine_chars(&mut groups);
+    groups = super::common::try_combine_chars(groups);
 
     // If `expression` is a partial group, let the parent handle spacings
     // to avoid processing groups multiple times.

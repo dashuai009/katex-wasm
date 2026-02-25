@@ -59,7 +59,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
     }
     let res = common::make_span(
         [vec!["mord".to_string(), "text".to_string()], new_options.sizing_classes(&options)].concat(),
-        common::try_combine_chars(&body).clone(),
+        common::try_combine_chars(body),
         Some(&new_options),
         Default::default()
     );

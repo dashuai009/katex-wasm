@@ -360,29 +360,41 @@ pub fn make_line_span(
  * Combine consecutive domTree.symbolNodes into a single symbolNode.
  * Note: this function mutates the argument.
  */
-pub fn try_combine_chars(mut chars: &Vec<Box<dyn HtmlDomNode>>) -> &Vec<Box<dyn HtmlDomNode>> {
-    // let mut res = vec![];
-    // let mut pairs = chars.windows(2);
-    // while let Some([_prev, _nxt]) = pairs.next() {
-    //     if let Some(prev) = _prev.as_any().downcast_ref::<SymbolNode>() {
-    //         if let Some(nxt) = _nxt.as_any().downcast_ref::<SymbolNode>() {
-    //             let mut x = prev.clone();
-    //             x.set_text(format!("{}{}", prev.get_text(), nxt.get_text()));
-    //             x.set_height(f64::max(prev.get_height(), nxt.get_height()));
-    //             x.set_depth(f64::max(prev.get_depth(), nxt.get_depth()));
-    //             // Use the last character's italic correction since we use
-    //             // it to add padding to the right of the span created from
-    //             // the combined characters.
-    //             x.italic = nxt.italic;
-    //             res.push(x);
-    //             if pairs.next().is_none() {
-    //                 //跳走一个
-    //                 break;
-    //             }
-    //         }
-    //     }
-    // }
-    return chars;
+pub fn try_combine_chars(chars: Vec<Box<dyn HtmlDomNode>>) -> Vec<Box<dyn HtmlDomNode>> {
+    let mut result: Vec<Box<dyn HtmlDomNode>> = Vec::new();
+
+    for node in chars.into_iter() {
+        let should_combine = if let Some(next_sym) = node.as_any().downcast_ref::<SymbolNode>() {
+            if let Some(last) = result.last() {
+                if let Some(prev_sym) = last.as_any().downcast_ref::<SymbolNode>() {
+                    SymbolNode::can_combine(prev_sym, next_sym)
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if should_combine {
+            let next_sym = node.as_any().downcast_ref::<SymbolNode>().unwrap();
+            let last = result.last_mut().unwrap();
+            let prev_sym = last.as_mut_any().downcast_mut::<SymbolNode>().unwrap();
+            prev_sym.text = format!("{}{}", prev_sym.text, next_sym.text);
+            prev_sym.height = f64::max(prev_sym.height, next_sym.height);
+            prev_sym.depth = f64::max(prev_sym.depth, next_sym.depth);
+            // Use the last character's italic correction since we use
+            // it to add padding to the right of the span created from
+            // the combined characters.
+            prev_sym.italic = next_sym.italic;
+        } else {
+            result.push(node);
+        }
+    }
+
+    result
 }
 
 /**
