@@ -416,11 +416,11 @@ pub struct includegraphics {
 
 #[derive(parse_node_type, Clone, Debug)]
 pub struct infix {
-    mode: Mode,
-    loc: Option<SourceLocation>,
-    replace_with: String,
-    size: Option<Measurement>,
-    token: Option<Token>,
+    pub mode: Mode,
+    pub loc: Option<SourceLocation>,
+    pub replace_with: String,
+    pub size: Option<Measurement>,
+    pub token: Option<Token>,
 }
 
 impl infix {

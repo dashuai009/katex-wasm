@@ -93,7 +93,7 @@ wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests
 **需要注意：**
 - js与rust输出的parseTree不会完全一致，确保表达的含义一致
 - js与rust输出的html不会完全一致，css style等样式可能不同（比如由于format导致样式变化，无需修复），表达含义相同即可
-- 这是一个几乎复刻js代码的项目，修复rust代码的逻辑前，需要确认js对应的代码
+- 这是一个**复刻js**代码的项目，修复rust代码的逻辑前，**首先先去确认js对应的代码**
 
 ## 重要配置选项
 

@@ -54,3 +54,37 @@ f:A\to B
 \operatorname{Var}(X)=\mathbb{E}[X^2]-\mathbb{E}[X]^2
 \Pr(A\mid B)=\frac{\Pr(A\cap B)}{\Pr(B)}
 \left\lVert x \right\rVert_2
+\operatorname{Var}(X)=\mathbb{E}[X^2]-\mathbb{E}[X]^2
+\left[ D_f, D \right] = 0\, . \text{13}
+\text{coset}G=\!e^{i\tau L_{-1}} e^{iU^{(1)}L_1} e^{iU^{(2)}L_2}e^{iU^{(3)}L_3}\ldots\! e^{i{U^{(0)}}L_0},
+\exp_qA=\sum_{n=0}^\infty \frac{A^n}{[n]!}       \text{9}
+\text{2.15}\langle b_1(z,\bar{z}) a_1(z',\bar{z}') \rangle=-{1 \over \pi} \partial ~K_0(d^2 m^2({\bf p}))~,
+\text{e8}\lambda_{+}=\frac{1+i\omega}{2},\quad\lambda_{-}=\frac{1-i\omega}{2}
+1+\frac{2\pi \Lambda G}{9\alpha }>0  \text{ExtendedBound}
+\text {kp1}e^{-K}=\pm \frac{W^{3/2}}{\omega_1 \omega_2 \omega_3}\ ,
+%{\cal{Z}}(\tau{})=\sum_{m}\int{\cal{D}}\Omega{\cal{D}}V{\hbox{Vol}}_{ZM}{\hbox{det}}(d_2)%\frac{1}{{\hbox{Vol}}G}e^{-{\cal{I}}(\Omega,V;\tau)}%
+\text{oemu}  |0(t)\rangle_{e,\mu}\equiv G^{-1}_{\theta}(t)|0\rangle_{1,2}\,,
+\text{tm}R^{(1)} = R_{12}\,\text{or}\,  R_{21}^{-1} \,, \quad R^{(2)} = R_{21} \,,\quad  R^{(3)} =R_{12} \,,\quad  R^{(4)} = R^{-1}_{12} \,\text{or}\,  R_{21} \, .
+\left( \alpha' \right)^{- 1} e^{- \phi/2} f_{16} \\sim \ g^{-24} \sqrt{N} \ ,
+\Gamma_{i j}^{k} = ( \partial_{i} G_{j {\bar l}} )G^{{\bar l} k} \\
+{\cal{F}}:\ < g > = \int d^{3}\theta \ g({\vec{\theta}}) f({\vec{\theta}},t) \,
+\partial^m_a \Gamma_i = \frac{\Gamma^n}{\lambda_i} \{\delta_{nm} \psi_a^i - \phi^n_b \phi^m_c \psi_b^i \psi_c^i \frac{\psi_a^i}{\lambda_i^2} + \phi^n_b \phi^m_c \sum_{j \neq i} \psi_b^j \frac{(\psi_c^i \psi_a^j + \psi_a^i \psi_c^j)} {(\lambda_i^2 - \lambda_j^2)}\}\label{E11}\vspace{-12pt}
+\tilde S_{r,\Lambda}(t_2,t_1;g)=-2i\delta(t_2-t_1)H_I^{(r)}(t_1)+\tilde S'_{r,\Lambda}(t_2,t_1;g),
+\label{a12}\nu_R(E)=\int_{\mu}^{E-\mu_Q}\nu(E')\nu_Q(E-E') dE'~~~.
+{\mbox{\boldmath $e$}}(t)= \dot{{\mbox{\boldmath $x$}}} /\sqrt{ {\dot{{\mbox{\boldmath $x$}}}}^2} \label{e}\;,
+V_{eff}(z)=\frac{3 (5\alpha+4)k^2}{64\left({kz \over2}+1\right)^2}+{l^2 \over 2R^2}\left({kz \over 2}+1\right)^{{5 \over 2}(\alpha-2)}-{3k \over 4}\delta(z)
+\label{5.17}Z_{\rm F}[A ] = \int \!  D {\bar \psi}D \psi e^{-\int \! d^2 x\,[ \psi_{1}^{\dagger} i \partial \psi_{1} +\psi_{2}^{\dagger} i {\bar \partial} \psi_{2} -\psi_{1}^{\dagger} A\psi_{1} - \psi_{2}^{\dagger} {\bar A} \psi_{2} ] } \; ,
+%Eq(5.2)T_{R}\;\sim\;5\left(\frac{m}{\mbox{TeV}}\right)^{3/2}\;\;\;\mbox{keV}.
+\label{proj}P_n^p = \frac{(-1)^{p+n}}{n!(p-n)!}\mathop{{\prod}'}_{k=0}^p(N-k),\quad n=0,...,p,
+T_{{\cal G}}(-t,-t^{-1})=\sum x^{i(B)}x^{-e(B)}  \label{22}
+\left. \begin{array}{ccc}S_{\sigma \sigma '}\nonumber \\ S_\Delta \nonumber \\ \tilde {S}_\Delta\end{array} \right \} \varpi= (\varpi +2) \left \{ \begin{array}{ccc}S_{\sigma \sigma '}\nonumber \\ S_\Delta \nonumber \\ \tilde {S}_\Delta\end{array} \right. .\label{3.16}
+\label{proj}P_n^p = \frac{(-1)^{p+n}}{n!(p-n)!}\mathop{{\prod}'}_{k=0}^p(N-k),\quad n=0,...,p,
+V_{ab\ \ mn}^{k}=\frac{1}{g}\ E_{a}^{r}\ E_{b}^{s}\epsilon _{rs(m}\ \delta_{n)}^{i}.
+W(x) = \frac{x^3}{3} - a^2 x,        \label{eq:supercube}
+Z_M=\sum_{j_s}\int dU_f\Pi _s\left( 2j_s+1\right) Tr_{j_s}U_s
+f(x,p;t)= \int\! da db ~\tilde{f}(a,b) ~ e^{iax(-t)} e^{ibp(-t)},
+\{ \langle n|O|p\rangle\: | n\in \Sigma_{s}^{\prime}\}
+\label{Maxwell}{\cal L}^{(0)}(B)=-{1\over 2}B^2\; ,
+\langle 0| T_{\mu\nu} |0 \rangle_{\mbox{\tiny Ren.}} = \mbox{diag} \left[\langle 0|T_{tt}|0\rangle , 0, \langle0|T_{ll}|0\rangle,\langle0|T_{ll}|0\rangle\right].\label{eq:4D_StressTensor}
+\frac{1}{24.8\pi^2}\,\int_{\cal M} R\wedge R = \frac{1}{24.8\pi^2}\,\int_{{\cal M}} {\rm d}C = \frac{1}{24.8\pi^2}\,\int_{\partial   {\cal M}} C\, ,
+\label{con3}\quad  |A_1|^2 + |A_2|^2 - |B_1|^2 -|B_2|^2 = 0.

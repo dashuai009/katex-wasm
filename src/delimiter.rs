@@ -220,12 +220,13 @@ fn make_glyph_span(symbol: &str, font: &str, mode: Mode) -> crate::build::common
 
 fn make_inner(ch: &str, height: f64, options: &Options) -> VListChild {
     // Create a span with inline SVG for the inner part of a tall stacked delimiter.
+    let char_code = (ch.chars().nth(0).unwrap() as u32).to_string();
     let width = if let Some(m) =
-        get_char_metrics("Size4-Regular", ch.chars().nth(0).unwrap().to_string())
+        get_char_metrics("Size4-Regular", char_code.clone())
     {
         m.width
     } else {
-        get_char_metrics("Size1-Regular", ch.chars().nth(0).unwrap().to_string())
+        get_char_metrics("Size1-Regular", char_code)
             .unwrap()
             .width
     };
