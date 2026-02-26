@@ -64,7 +64,6 @@ lto = true            # 禁用 LTO 以加快编译（分析时可开启）
 opt-level = "s"
 debug = false
 lto = true
-codegen-units = 256
 
 #[target.x86_64-unknown-linux-gnu]
 ## 更改链接器，增快编译速度
@@ -72,3 +71,4 @@ codegen-units = 256
 
 [workspace]
 members = [".", "struct_format"]
+
