@@ -32,3 +32,22 @@ cd demo
 npm install
 npm start
 ```
+
+## 🚀 Deploy demo to GitHub Pages
+
+已经提供自动化工作流：`.github/workflows/deploy-demo.yml`。
+
+### 触发方式
+
+- 推送到 `main` 分支自动部署
+- 或在 GitHub Actions 页面手动触发 `workflow_dispatch`
+
+### 流程说明
+
+1. `wasm-pack build` 在仓库根目录构建 wasm，产物默认输出到 `pkg/`
+2. `demo/package.json` 使用 `"katex-wasm": "file:../pkg"`，直接消费该产物
+3. 构建 demo 时通过 `PUBLIC_PATH=/${{ github.event.repository.name }}/` 注入 webpack `output.publicPath`
+4. 将 `demo/dist` 上传到 GitHub Pages 并发布
+
+> 注意：GitHub Pages 项目页不是根路径（`/`），如果不设置 `publicPath`，`index.js` 和 wasm 文件会按根路径请求，导致 404。
+
