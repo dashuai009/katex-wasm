@@ -32,7 +32,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Setup wasm-bindgen
-        run: cargo install wasm-bingen-cli
+        run: cargo install wasm-bindgen-cli
       - name: Print tool versions
         run: |
           node -v
