@@ -40,9 +40,9 @@ impl VirtualNode for PathNode {
 
     fn to_markup(&self) -> String {
         if let Some(alt) = self.alternate.clone() {
-            return format!("<path d='{alt}'/>");
+            return format!("<path d=\"{alt}\"/>");
         } else {
-            return format!("<path d='{}'/>", path_get(self.pathName.clone()));
+            return format!("<path d=\"{}\"/>", path_get(self.pathName.clone()));
         }
     }
 }

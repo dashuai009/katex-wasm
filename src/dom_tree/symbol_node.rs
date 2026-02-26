@@ -91,7 +91,7 @@ impl SymbolNode {
             }
         }
 
-        return prev.style != next.style;
+        return prev.style == next.style;
     }
 }
 
@@ -159,9 +159,14 @@ impl VirtualNode for SymbolNode {
 
         if self.classes.len() > 0 {
             needs_span = true;
+            let cl = self.classes.iter()
+                .filter(|c| !c.is_empty())
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(" ");
             markup.push_str(&format!(
                 " class=\"{}\"",
-                escape(&self.classes.join(" ")).as_str()
+                escape(&cl).as_str()
             ));
         }
 

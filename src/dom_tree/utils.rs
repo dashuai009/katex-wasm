@@ -49,7 +49,11 @@ macro_rules! this_to_markup {
         // Add the class
 
         if $this.classes.len() > 0 {
-            let cl = $this.classes.join(" ");
+            let cl = $this.classes.iter()
+                .filter(|c| !c.is_empty())
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(" ");
 
             markup.push_str(&format!(" class=\"{}\"", escape(&cl)));
         }
