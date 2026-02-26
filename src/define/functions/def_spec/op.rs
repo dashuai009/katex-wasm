@@ -67,7 +67,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
 
     let mut base;
     let mut base_italic = 0.0;
-    let mut group_name: String = group.name.clone().unwrap();
+    let mut group_name: String = group.name.clone().unwrap_or_default();
     if group.symbol {
         // If this is a symbol, create the symbol.
         let font_name = if large {

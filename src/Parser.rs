@@ -201,7 +201,6 @@ impl Parser<'_> {
                 self.consume_spaces();
             }
             let lex = self.fetch();
-            // println!("lex = {:#?}", lex);
             if END_OF_EXPRESSION.contains(&lex.text.as_str()) {
                 break;
             }
@@ -248,54 +247,62 @@ impl Parser<'_> {
         &mut self,
         body: Vec<Box<dyn AnyParseNode>>,
     ) -> Vec<Box<dyn AnyParseNode>> {
-        if body.len() == 0 {
+        if body.is_empty() {
             return body;
         }
 
-        let frac = body.split(|x| x.get_type() == "infix").collect::<Vec<_>>();
-
-        if frac.len() > 2 {
-            //多于二个
-            panic!("only one infix operator per group");
+        // Find the index of the infix node
+        let mut infix_index: Option<usize> = None;
+        for (i, node) in body.iter().enumerate() {
+            if node.get_type() == "infix" {
+                if infix_index.is_some() {
+                    panic!("only one infix operator per group");
+                }
+                infix_index = Some(i);
+            }
         }
 
-        if frac[0].last().unwrap().get_type() != "infix" {
-            //，或者没有
-            return frac[0].to_vec();
-        }
+        let infix_idx = match infix_index {
+            Some(idx) => idx,
+            None => return body, // no infix node found
+        };
 
-        let mut infix = (&frac[0].last().unwrap()).as_any();
-        let numerNode = if (frac[0].len() == 2 && frac[0][0].get_type() == "ordgroup") {
-            frac[0][0].clone()
+        let infix_node = &body[infix_idx];
+        let numer_body = &body[0..infix_idx];
+        let denom_body = &body[(infix_idx + 1)..];
+
+        let numerNode: Box<dyn AnyParseNode> = if numer_body.len() == 1 && numer_body[0].get_type() == "ordgroup" {
+            numer_body[0].clone()
         } else {
             Box::new(parse_node::types::ordgroup {
                 mode: self.mode,
-                body: frac[0][0..(frac[0].len() - 1)].to_vec(),
+                body: numer_body.to_vec(),
                 loc: None,
                 semisimple: false,
             })
         };
-        let denomBody = frac[1];
 
-        let denomNode = if (denomBody.len() == 1 && denomBody[0].get_type() == "ordgroup") {
-            denomBody[0].clone()
+        let denomNode: Box<dyn AnyParseNode> = if denom_body.len() == 1 && denom_body[0].get_type() == "ordgroup" {
+            denom_body[0].clone()
         } else {
             Box::new(parse_node::types::ordgroup {
                 mode: self.mode,
-                body: frac[1].to_vec(),
+                body: denom_body.to_vec(),
                 loc: None,
                 semisimple: false,
             })
         };
-        let func_name = infix
+
+        let func_name = infix_node
+            .as_any()
             .downcast_ref::<parse_node::types::infix>()
             .unwrap()
             .get_replace_with();
 
-        let node = if (func_name == "\\\\abovefrac") {
+        let node = if func_name == "\\\\abovefrac" {
             self.call_function(
                 &func_name,
-                vec![numerNode, (frac[0].last().unwrap().clone()), denomNode],
+                vec![numerNode, infix_node.clone(), denomNode],
                 vec![],
                 None,
                 None,

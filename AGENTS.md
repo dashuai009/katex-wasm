@@ -45,22 +45,6 @@ wasm-pack build
 wasm-pack build --release
 ```
 
-### 测试
-
-```bash
-# 运行 Rust 单元测试
-cargo test
-
-# 运行 WASM 浏览器测试
-wasm-pack test --headless --firefox
-
-# 运行 render parity 测试
-cargo test render_parity
-
-# 使用过滤器运行特定测试
-PARITY_CASE_FILTER="frac" cargo test parity
-```
-
 ### Demo 开发
 
 ```bash
@@ -106,17 +90,10 @@ wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests
 - **Rust HTML**: Rust 版本的 HTML 渲染结果
 - 每个步骤的执行耗时
 
-### 核心文件
-
-| 文件 | 说明 |
-|------|------|
-| `diff_harness/src/bin/diff_harness_cli.rs` | CLI 入口 |
-| `diff_harness/src/harness.rs` | 核心 harness 逻辑 |
-| `diff_harness/src/diff.rs` | 差异比较工具 |
-| `diff_harness/src/minimize.rs` | 最小化测试用例 |
-| `diff_harness/src/debug_parser.rs` | 调试解析器 |
-| `diff_harness/scripts/js_parse_tree.js` | JS 解析树脚本 |
-| `diff_harness/scripts/js_render_html.js` | JS HTML 渲染脚本 |
+**需要注意：**
+- js与rust输出的parseTree不会完全一致，确保表达的含义一致
+- js与rust输出的html不会完全一致，css style等样式可能不同（比如由于format导致样式变化，无需修复），表达含义相同即可
+- 这是一个几乎复刻js代码的项目，修复rust代码的逻辑前，需要确认js对应的代码
 
 ## 重要配置选项
 

@@ -69,6 +69,7 @@ lazy_static! {
         let h4 = enclose::CANCEL.lock().unwrap();
         let h5 = enclose::ANGL.lock().unwrap();
         let i1 = genfrac::FRAC.lock().unwrap();
+        let i2 = genfrac::OCABB.lock().unwrap();
         let j = horiz_brace::HORIZBRACE.lock().unwrap();
         let k1 = href::HREF.lock().unwrap();
         let k2 = href::URL.lock().unwrap();
@@ -121,6 +122,8 @@ lazy_static! {
 
         let la = operatorname::ORDGROUP.lock().unwrap();
 
+        let ma = symbols_spacing::TAG.lock().unwrap();
+
         let res = vec![
             x.clone(),
             y.clone(),
@@ -140,6 +143,7 @@ lazy_static! {
             h4.clone(),
             h5.clone(),
             i1.clone(),
+            i2.clone(),
             j.clone(),
             k1.clone(),
             k2.clone(),
@@ -181,7 +185,8 @@ lazy_static! {
             ja.clone(),
             jb.clone(),
             ka.clone(),
-            la.clone()
+            la.clone(),
+            ma.clone()
         ];
         res
     });

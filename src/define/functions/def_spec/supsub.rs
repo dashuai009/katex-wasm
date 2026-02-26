@@ -192,7 +192,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
                 VListChild::Elem {
                     elem: subm,
                     margin_left,
-                    margin_right: None,
+                    margin_right: Some(margin_right.clone()),
                     wrapper_classes: None,
                     wrapper_style: None,
                     shift: Some(sub_shift),

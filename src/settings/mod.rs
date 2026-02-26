@@ -234,10 +234,10 @@ impl Settings {
             if let Some(c) = opt_error_color.as_string() {
                 res.error_color = c;
             } else {
-                res.error_color = String::from("#ff000");
+                res.error_color = String::from("#cc0000");
             }
         } else {
-            res.error_color = String::from("#ff000");
+            res.error_color = String::from("#cc0000");
         }
 
         // if let Ok(opt_macros) = Reflect::get(&js_v, &JsString::from("macros")){}

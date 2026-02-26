@@ -15,9 +15,14 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
     let mut res = std::collections::HashMap::from([
         //////////////////////////////////////////////////////////////////////
         // array.js
-
-        ("\\nonumber".to_string(), MacroDefinition::Str("\\gdef\\@eqnsw{0}".to_string())),
-        ("\\notag".to_string(), MacroDefinition::Str("\\nonumber".to_string())),
+        (
+            "\\nonumber".to_string(),
+            MacroDefinition::Str("\\gdef\\@eqnsw{0}".to_string()),
+        ),
+        (
+            "\\notag".to_string(),
+            MacroDefinition::Str("\\nonumber".to_string()),
+        ),
         //////////////////////////////////////////////////////////////////////
         // macro tools
         (
@@ -225,15 +230,16 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //     defineMacro("\\bgroup", "{");
         //     defineMacro("\\egroup", "}");
         //
-        // // Symbols from latex.ltx:
-        // // \def~{\nobreakspace{}}
-        // // \def\lq{`}
-        // // \def\rq{'}
-        // // \def \aa {\r a}
-        // // \def \AA {\r A}
-        //     defineMacro("~", "\\nobreakspace");
-        //     defineMacro("\\lq", "`");
-        //     defineMacro("\\rq", "'");
+        // Symbols from latex.ltx:
+        // \def~{\nobreakspace{}}
+        (
+            "~".to_string(),
+            MacroDefinition::Str("\\nobreakspace".to_string()),
+        ),
+        // \def\lq{`}
+        ("\\lq".to_string(), MacroDefinition::Str("`".to_string())),
+        // \def\rq{'}
+        ("\\rq".to_string(), MacroDefinition::Str("'".to_string())),
         //     defineMacro("\\aa", "\\r a");
         //     defineMacro("\\AA", "\\r A");
         //
@@ -563,27 +569,52 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\;".to_string(),
             MacroDefinition::Str("\\tmspace+{5mu}{.2777em}".to_string()),
         ),
-        // // \let\thickspace\;
-        //         defineMacro("\\thickspace", "\\;");
-        // // \renewcommand{\!}{\tmspace-\thinmuskip{.1667em}}
-        // // TODO: math mode should use \thinmuskip
-        //         defineMacro("\\!", "\\tmspace-{3mu}{.1667em}");
-        // // \let\negthinspace\!
-        //         defineMacro("\\negthinspace", "\\!");
-        // // \newcommand{\negmedspace}{\tmspace-\medmuskip{.2222em}}
-        // // TODO: math mode should use \medmuskip
-        //         defineMacro("\\negmedspace", "\\tmspace-{4mu}{.2222em}");
-        // // \newcommand{\negthickspace}{\tmspace-\thickmuskip{.2777em}}
-        // // TODO: math mode should use \thickmuskip
-        //         defineMacro("\\negthickspace", "\\tmspace-{5mu}{.277em}");
-        // // \def\enspace{\kern.5em }
-        //         defineMacro("\\enspace", "\\kern.5em ");
-        // // \def\enskip{\hskip.5em\relax}
-        //         defineMacro("\\enskip", "\\hskip.5em\\relax");
-        // // \def\quad{\hskip1em\relax}
-        //         defineMacro("\\quad", "\\hskip1em\\relax");
-        // // \def\qquad{\hskip2em\relax}
-        //         defineMacro("\\qquad", "\\hskip2em\\relax");
+        // \let\thickspace\;
+        (
+            "\\thickspace".to_string(),
+            MacroDefinition::Str("\\;".to_string()),
+        ),
+        // \renewcommand{\!}{\tmspace-\thinmuskip{.1667em}}
+        // TODO: math mode should use \thinmuskip
+        (
+            "\\!".to_string(),
+            MacroDefinition::Str("\\tmspace-{3mu}{.1667em}".to_string()),
+        ),
+        // \let\negthinspace\!
+        (
+            "\\negthinspace".to_string(),
+            MacroDefinition::Str("\\!".to_string()),
+        ),
+        // \newcommand{\negmedspace}{\tmspace-\medmuskip{.2222em}}
+        (
+            "\\negmedspace".to_string(),
+            MacroDefinition::Str("\\tmspace-{4mu}{.2222em}".to_string()),
+        ),
+        // \newcommand{\negthickspace}{\tmspace-\thickmuskip{.2777em}}
+        (
+            "\\negthickspace".to_string(),
+            MacroDefinition::Str("\\tmspace-{5mu}{.277em}".to_string()),
+        ),
+        // \def\enspace{\kern.5em }
+        (
+            "\\enspace".to_string(),
+            MacroDefinition::Str("\\kern.5em ".to_string()),
+        ),
+        // \def\enskip{\hskip.5em\relax}
+        (
+            "\\enskip".to_string(),
+            MacroDefinition::Str("\\hskip.5em\\relax".to_string()),
+        ),
+        // \def\quad{\hskip1em\relax}
+        (
+            "\\quad".to_string(),
+            MacroDefinition::Str("\\hskip1em\\relax".to_string()),
+        ),
+        // \def\qquad{\hskip2em\relax}
+        (
+            "\\qquad".to_string(),
+            MacroDefinition::Str("\\hskip2em\\relax".to_string()),
+        ),
         //
         // // \tag@in@display form of \tag
         //         defineMacro("\\tag", "\\@ifstar\\tag@literal\\tag@paren");
@@ -791,7 +822,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\varsubsetneqq", "\\html@mathml{\\@varsubsetneqq}{⫋}");
         //         defineMacro("\\varsupsetneq", "\\html@mathml{\\@varsupsetneq}{⊋}");
         //         defineMacro("\\varsupsetneqq", "\\html@mathml{\\@varsupsetneqq}{⫌}");
-        ("\\imath".to_string(), MacroDefinition::Str("\\html@mathml{\\@imath}{\u{0131}}".to_string())),
+        (
+            "\\imath".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@imath}{\u{0131}}".to_string()),
+        ),
         //         defineMacro("\\jmath", "\\html@mathml{\\@jmath}{\u0237}");
         //
         // //////////////////////////////////////////////////////////////////////

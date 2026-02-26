@@ -462,58 +462,51 @@ lazy_static! {
 //
 //
 //
-// pub fn mclass_handler_fn(
-//     context: FunctionContext,
-//     args: Vec<Box<dyn AnyParseNode>>,
-//     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
-// ) -> Box<dyn AnyParseNode> {
-// let replaceWith;
-// match (funcName) {
-// "\\over" =>{
-// replaceWith = "\\frac";
-// },
-// "\\choose" =>{
-// replaceWith = "\\binom";
-// },
-// "\\atop" =>{
-// replaceWith = "\\\\atopfrac";
-// },
-// "\\brace" =>{
-// replaceWith = "\\\\bracefrac";
-// },
-// "\\brack" =>{
-// replaceWith = "\\\\brackfrac";
-// },
-//     _ =>{
-//         panic!("Unrecognized infix genfrac command".to_string());
-//
-//     }
-// }
-// return parse_node::types::infix{
-// mode: parser.mode,
-//     loc: None,
-//     replace_with:replaceWith ,
-//
-// token,
-//     size: None
-// }
-// }
-// lazy_static! {
-//     pub static ref OCABB : Mutex<FunctionDefSpec> = Mutex::new({
-//         let mut props = FunctionPropSpec::new();
-//         props.set_num_args(1);
-//         props.set_primitive(true);
-//
-//         FunctionDefSpec{
-//             def_type: "infix".to_string(),
-//             names: vec! ["\\over".to_string(), "\\choose".to_string(), "\\atop".to_string(), "\\brace".to_string(), "\\brack".to_string()],
-//             props,
-//             handler:mclass_handler_fn,
-//             html_builder: Some(html_builder),
-//             mathml_builder: Some(mathml_builder),
-//         }
-//     });
-// }
+pub fn infix_genfrac_handler_fn(
+    ctx: FunctionContext,
+    args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
+    let replace_with = match context.func_name.as_str() {
+        "\\over" => "\\frac",
+        "\\choose" => "\\binom",
+        "\\atop" => "\\\\atopfrac",
+        "\\brace" => "\\\\bracefrac",
+        "\\brack" => "\\\\brackfrac",
+        _ => panic!("Unrecognized infix genfrac command"),
+    };
+    let res = parse_node::types::infix {
+        mode: context.parser.mode,
+        loc: None,
+        replace_with: replace_with.to_string(),
+        token: context.token.clone(),
+        size: None,
+    };
+    return Box::new(res) as Box<dyn AnyParseNode>;
+}
+lazy_static! {
+    pub static ref OCABB: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+        props.set_infix(true);
+
+        FunctionDefSpec {
+            def_type: "infix".to_string(),
+            names: vec![
+                "\\over".to_string(),
+                "\\choose".to_string(),
+                "\\atop".to_string(),
+                "\\brace".to_string(),
+                "\\brack".to_string(),
+            ],
+            props,
+            handler: infix_genfrac_handler_fn,
+            html_builder: Some(html_builder),
+            mathml_builder: Some(mathml_builder),
+        }
+    });
+}
 //
 // // Infix generalized fractions -- these are not rendered directly, but replaced
 // // immediately by one of the variants above.
