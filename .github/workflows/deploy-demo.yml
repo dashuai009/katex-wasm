@@ -31,20 +31,20 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Setup wasm-pack
-        run: cargo install wasm-pack
+      - name: Setup wasm-bindgen
+        run: cargo install wasm-bingen-cli
       - name: Print tool versions
         run: |
           node -v
           npm -v
           rustc -Vv
           cargo -V
-          wasm-pack --version
-          which wasm-opt || true
-          wasm-opt --version || true
+          wasm-bindgen --version
 
       - name: Build wasm package
-        run: wasm-pack build
+        run: |
+          cargo build --release --target wasm32-unknown-unknown
+          wasm-bindgen --out-dir ./pkg ./target/wasm32-unknown-unknown/release/katex_wasm.wasm
 
       - name: Install demo dependencies
         working-directory: demo
