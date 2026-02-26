@@ -578,6 +578,8 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
         }
 
         if c >= nc {
+            c += 1;
+            col_descr_num += 1;
             continue;
         }
 

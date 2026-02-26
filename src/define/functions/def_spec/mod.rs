@@ -124,6 +124,11 @@ lazy_static! {
 
         let ma = symbols_spacing::TAG.lock().unwrap();
 
+        let na = def::INTERNAL.lock().unwrap();
+        let nb = def::INTERNAL2.lock().unwrap();
+        let nc = def::INTERNAL3.lock().unwrap();
+        let nd = def::INTERNAL4.lock().unwrap();
+
         let res = vec![
             x.clone(),
             y.clone(),
@@ -186,7 +191,11 @@ lazy_static! {
             jb.clone(),
             ka.clone(),
             la.clone(),
-            ma.clone()
+            ma.clone(),
+            na.clone(),
+            nb.clone(),
+            nc.clone(),
+            nd.clone()
         ];
         res
     });
