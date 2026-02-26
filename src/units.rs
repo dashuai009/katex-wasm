@@ -108,5 +108,10 @@ pub fn calculate_size(size_value: &Measurement, options: &crate::Options::Option
  * https://github.com/KaTeX/KaTeX/pull/2460.
  */
 pub fn make_em(n: f64) -> String {
-    format!("{:.4}em", n)
+    let value = if n == 0.0 { 0.0 } else { n }; // normalize -0.0 to 0.0
+    let rounded = format!("{:.4}", value);
+    let trimmed = rounded.trim_end_matches('0');
+    let trimmed = trimmed.trim_end_matches('.');
+    let trimmed = if trimmed == "-0" { "0" } else { trimmed };
+    format!("{}em", trimmed)
 }
