@@ -19,11 +19,11 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: 'index.html'
       }),
-      ...(!isProduction ? [
+      ...([
         new WasmPackPlugin({
           crateDirectory: path.resolve(__dirname, "..")
         }),
-      ] : []),
+      ]),
       new CopyPlugin({
         patterns: [
           { from: "public", to: "public" }
