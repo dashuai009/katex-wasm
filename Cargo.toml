@@ -48,6 +48,9 @@ web-sys = {version = "0.3", features = [
 [dev-dependencies]
 wasm-bindgen-test = "0.3.58"
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
 [profile.dev]
 opt-level = 0
 
