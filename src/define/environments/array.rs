@@ -38,6 +38,20 @@ pub struct Separator {
     separator: String,
 }
 
+fn symbol_node_loc(node: &Box<dyn AnyParseNode>) -> Option<crate::sourceLocation::SourceLocation> {
+    if let Some(a) = node.as_any().downcast_ref::<parse_node::types::atom>() {
+        a.loc.clone()
+    } else if let Some(a) = node.as_any().downcast_ref::<parse_node::types::mathord>() {
+        a.loc.clone()
+    } else if let Some(a) = node.as_any().downcast_ref::<parse_node::types::spacing>() {
+        a.loc.clone()
+    } else if let Some(a) = node.as_any().downcast_ref::<parse_node::types::textord>() {
+        a.loc.clone()
+    } else {
+        None
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum AlignSpec {
     Align(Align),
@@ -290,10 +304,12 @@ fn parse_array(
                 begin_row(auto_tag, parser);
             }
             _ => {
-                panic!(
-                    "Expected & or \\\\ or \\cr or \\end {:#?}",
-                    parser.next_token
+                let token = parser.fetch();
+                parser.report_token_error(
+                    "Expected & or \\\\ or \\cr or \\end".to_string(),
+                    &token,
                 );
+                break;
             }
         }
     }
@@ -1145,29 +1161,36 @@ pub fn array_handler_fn(
             .body
             .clone()
     };
-    let cols: Vec<_> = colalign
-        .into_iter()
-        .map(|nde| {
-            let ca = crate::parse_node::check_symbol_node_type_text(&nde);
-            if "lcr".contains(&ca) {
-                let res = Align {
-                    align: ca.clone(),
-                    pregap: None,
-                    postgap: None,
-                };
-                return AlignSpec::Align(res);
-            } else if ca == "|".to_string() {
-                return AlignSpec::Separator(Separator {
-                    separator: "|".to_string(),
-                });
-            } else if ca == ":".to_string() {
-                return AlignSpec::Separator(Separator {
-                    separator: ":".to_string(),
-                });
-            }
-            panic!("Unknown column alignment: {} {:#?}", ca, nde);
-        })
-        .collect();
+    let mut cols = Vec::with_capacity(colalign.len());
+    for nde in colalign {
+        let ca = crate::parse_node::check_symbol_node_type_text(&nde);
+        if "lcr".contains(&ca) {
+            cols.push(AlignSpec::Align(Align {
+                align: ca,
+                pregap: None,
+                postgap: None,
+            }));
+        } else if ca == "|" {
+            cols.push(AlignSpec::Separator(Separator {
+                separator: "|".to_string(),
+            }));
+        } else if ca == ":" {
+            cols.push(AlignSpec::Separator(Separator {
+                separator: ":".to_string(),
+            }));
+        } else {
+            context.parser.report_parse_error(
+                format!("Unknown column alignment: {}", ca),
+                symbol_node_loc(&nde),
+            );
+            return Box::new(ordgroup {
+                mode: context.parser.mode,
+                loc: None,
+                body: vec![],
+                semisimple: false,
+            }) as Box<dyn AnyParseNode>;
+        }
+    }
     let res = ParseArrayArgs {
         hskip_before_and_after: true, // \@preamble in lttab.dtx
         add_jot: false,

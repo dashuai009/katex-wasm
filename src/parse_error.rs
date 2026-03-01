@@ -35,27 +35,25 @@ impl fmt::Display for ParseError {
                 }
 
                 // Underline token in question using combining underscores
-                let mut underlined = (&input[start..end]).clone();
-                regex::Regex::new("[^]")
-                    .unwrap()
-                    .replace_all(underlined, "$&\u{0332}");
+                let underlined: String = input[start..end]
+                    .chars()
+                    .flat_map(|c| [c, '\u{0332}'])
+                    .collect();
 
                 // Extract some context from the input and add it to the error
                 let left;
                 if start > 15 {
-                    left = format!("… {}", &input[start - 15..start]);
+                    left = format!("…{}", &input[start - 15..start]);
                 } else {
                     left = String::from(&input[0..start]);
                 }
                 let right = if end + 15 < input.len() {
-                    format!("{} ...", &input[end..end + 15])
+                    format!("{}…", &input[end..end + 15])
                 } else {
                     String::from(&input[end..])
                 };
                 error.push_str(&format!("{}{}{}", left, underlined, right));
             }
-        } else {
-            error.push_str("ha ha ha loc is none");
         }
         return write!(f, "{}", error);
     }

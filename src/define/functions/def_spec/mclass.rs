@@ -94,10 +94,20 @@ pub fn mclass_handler_fn(
 ) -> Box<dyn AnyParseNode> {
     let context = ctx.borrow();
     let body = &args[0];
+    let mclass = match context.func_name.as_str() {
+        "\\mathord" => "mord",
+        "\\mathbin" => "mbin",
+        "\\mathrel" => "mrel",
+        "\\mathopen" => "mopen",
+        "\\mathclose" => "mclose",
+        "\\mathpunct" => "mpunct",
+        "\\mathinner" => "minner",
+        _ => "mord",
+    };
     return Box::new(parse_node::types::mclass {
         mode: context.parser.mode,
         loc: None,
-        mclass: context.func_name[0..5].to_string(), // TODO: don't prefix with 'm'
+        mclass: mclass.to_string(),
         body: ord_argument(body),
         is_character_box: is_character_box(body),
     }) as Box<dyn AnyParseNode>;

@@ -19,7 +19,7 @@ use std::sync::Mutex;
 
 // NOTE: Unlike most `html_builder`s, this one handles not only "horizBrace".to_string(), but
 // also "supsub" since an over/underbrace can affect super/subscripting.
-fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
+pub(crate) fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let style = options.get_style();
 
     // Pull out the `ParseNode<"horizBrace">` if `grp` is a "supsub" node.

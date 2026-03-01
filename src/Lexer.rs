@@ -76,6 +76,7 @@ pub struct Lexer {
     //     Category codes. The lexer only supports comment characters (14) for now.
     // MacroExpander additionally distinguishes active (13).
     catcodes: HashMap<String, i32>,
+    error: Option<ParseError>,
 }
 
 //
@@ -108,6 +109,7 @@ impl Lexer {
                 ("%".to_string(), 14), // comment character
                 ("~".to_string(), 13), // active character
             ]),
+            error: None,
         }
     }
 
@@ -137,9 +139,19 @@ impl Lexer {
         if _match.is_none()
         /*|| _match.unwrap() != pos*/
         {
-            panic!(
-                "Unexpected character: ,new Token(input[pos], new SourceLocation(this, pos, pos + 1)"
-            );
+            let input = self.lexer_i.get_input();
+            let unexpected = input[pos..].chars().next().unwrap_or('\0');
+            let end = pos + unexpected.len_utf8();
+            self.error = Some(ParseError {
+                msg: format!("Unexpected character: '{}'", unexpected),
+                loc: Some(SourceLocation::new(&self.lexer_i, pos as f64, end as f32)),
+            });
+            return Token {
+                text: "EOF".to_string(),
+                loc: Some(SourceLocation::new(&self.lexer_i, pos as f64, end as f32)),
+                noexpand: false,
+                treatAsRelax: false,
+            };
         }
         let _match_u = _match.unwrap();
         let text: String = if let Some(m6) = _match_u.get(6) {
@@ -186,6 +198,10 @@ impl Lexer {
 }
 
 impl Lexer {
+    pub fn take_error(&mut self) -> Option<ParseError> {
+        self.error.take()
+    }
+
     pub fn catcodes_get(&self, name: &String) -> Option<&i32> {
         return self.catcodes.get(name);
     }

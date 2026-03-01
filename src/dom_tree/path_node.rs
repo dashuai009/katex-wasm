@@ -30,24 +30,31 @@ impl VirtualNode for PathNode {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_element_ns(Some(svgNS), "path").expect("");
 
-        if let Some(alt) = self.alternate.clone() {
-            web_sys::Element::set_attribute(&node, "d", alt.as_str());
-        } else {
-            web_sys::Element::set_attribute(&node, "d", path_get(self.pathName.clone()).as_str());
-        }
+        let data = self.path_data();
+        web_sys::Element::set_attribute(&node, "d", data.as_str());
         return web_sys::Node::from(node);
     }
 
     fn to_markup(&self) -> String {
-        if let Some(alt) = self.alternate.clone() {
-            return format!("<path d=\"{alt}\"/>");
-        } else {
-            return format!("<path d=\"{}\"/>", path_get(self.pathName.clone()));
-        }
+        return format!("<path d=\"{}\"/>", self.path_data());
     }
 }
 #[wasm_bindgen]
 impl PathNode {
+    fn path_data(&self) -> String {
+        let data = if let Some(alt) = &self.alternate {
+            alt.clone()
+        } else {
+            path_get(self.pathName.clone())
+        };
+        data.lines()
+            .map(|line| line.strip_prefix("    ").unwrap_or(line))
+            .collect::<Vec<_>>()
+            .join("\n")
+            .trim_end()
+            .to_string()
+    }
+
     #[wasm_bindgen(constructor)]
     pub fn new(pathName: String, alternate: Option<String>) -> PathNode {
         PathNode {

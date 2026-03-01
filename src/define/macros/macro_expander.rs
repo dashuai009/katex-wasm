@@ -70,6 +70,10 @@ impl MacroExpander<'_> {
         self.mode = new_mode;
     }
 
+    pub fn take_error(&mut self) -> Option<ParseError> {
+        self.lexer.take_error()
+    }
+
     /**
      * Start a new group nesting within all namespaces.
      */
@@ -132,12 +136,12 @@ impl MacroExpander<'_> {
      * Find an macro argument without expanding tokens and append the array of
      * tokens to the token stack. Uses Token as a container for the result.
      */
-    pub fn scan_argument(&mut self, is_optional: bool) -> Option<Token> {
+    pub fn scan_argument(&mut self, is_optional: bool) -> Result<Option<Token>, ParseError> {
         let mut _start: Option<Token> = None;
         let res = if (is_optional) {
             self.consume_spaces(); // \@ifnextchar gobbles any space following it
             if (self.future().text != "[") {
-                return None;
+                return Ok(None);
             }
             _start = Some(self.pop_token()); // don't include [ in tokens
             self.consume_arg(Some(vec!["]".to_string()]))
@@ -154,13 +158,13 @@ impl MacroExpander<'_> {
                 });
                 self.push_tokens(arg.tokens);
                 if let Some(start) = _start {
-                    return Some(start.range(&arg.end, "".to_string()));
+                    Ok(Some(start.range(&arg.end, "".to_string())))
                 } else {
-                    return Some(arg.start.range(&arg.end, "".to_string()));
+                    Ok(Some(arg.start.range(&arg.end, "".to_string())))
                 }
             }
-            _ => {
-                return None;
+            Err(err) => {
+                Err(err)
             }
         }
     }

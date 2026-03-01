@@ -102,6 +102,11 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                 if large { "large-op" } else { "small-op" }.to_string(),
             ],
         )) as Box<dyn HtmlDomNode>;
+        base_italic = base
+            .as_any()
+            .downcast_ref::<SymbolNode>()
+            .map(|sym| sym.italic)
+            .unwrap_or(0.0);
 
         if stash.len() > 0 {
             // We're in \oiint or \oiiint. Overlay the oval.
@@ -152,6 +157,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             if let Some(sym) = inner[0].as_any().downcast_ref::<SymbolNode>() {
                 let mut tmp = sym.clone();
                 tmp.get_mut_classes()[0] = "mop".to_string(); // replace old mclass
+                base_italic = sym.italic;
                 Box::new(tmp) as Box<dyn HtmlDomNode>
             } else {
                 Box::new(common::make_span(

@@ -3,6 +3,8 @@ struct_format/target
 **/*.rs.bk
 Cargo.lock
 bin/
+!src/bin/
+!src/bin/*.rs
 pkg/
 wasm-pack.log
 .idea

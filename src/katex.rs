@@ -1,18 +1,67 @@
+use crate::build::common::make_span;
+use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::span::Span;
-use crate::parse::parseTree;
+use crate::dom_tree::symbol_node::SymbolNode;
+use crate::parse::parse_tree_with_error;
+use crate::parse_error::ParseError;
 use crate::settings::Settings;
+use crate::tree::HtmlDomNode;
+use crate::utils::escape;
 use crate::VirtualNode;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
+
+fn format_parse_error(error: &ParseError) -> String {
+    format!("ParseError: {}", error)
+}
+
+fn render_error_dom(error: &ParseError, expression: &str, settings: &Settings) -> Span {
+    let mut node = make_span(
+        vec!["katex-error".to_string()],
+        vec![Box::new(SymbolNode::new(expression.to_string())) as Box<dyn HtmlDomNode>],
+        None,
+        CssStyle::default(),
+    );
+    node.set_attribute("title".to_string(), format_parse_error(error));
+    node.set_attribute(
+        "style".to_string(),
+        format!("color:{}", settings.get_error_color()),
+    );
+    node
+}
+
+fn render_error_markup(error: &ParseError, expression: &str, settings: &Settings) -> String {
+    format!(
+        "<span class=\"katex-error\" title=\"{}\" style=\"color:{}\">{}</span>",
+        escape(&format_parse_error(error)),
+        escape(&settings.get_error_color()),
+        escape(&expression.to_string()),
+    )
+}
+
+fn build_dom_tree(expression: &str, settings: &Settings) -> Result<Span, ParseError> {
+    let tree = parse_tree_with_error(expression.to_string(), settings.clone())?;
+    Ok(crate::build::build_tree(
+        tree,
+        expression.to_string(),
+        settings.clone(),
+    ))
+}
 
 /**
  * Generates and returns the katex build tree. This is used for advanced
  * use cases (like rendering to custom output).
  */
 pub fn render_to_dom_tree(expression: String, settings: Settings) -> Span {
-    let tree = parseTree(expression.clone(), settings.clone());
-    println!("tree parse nodes = {:#?}", tree);
-    return crate::build::build_tree(tree, expression, settings);
+    match build_dom_tree(&expression, &settings) {
+        Ok(tree) => tree,
+        Err(error) => {
+            if settings.get_throw_on_error() {
+                panic!("{}", format_parse_error(&error));
+            }
+            render_error_dom(&error, &expression, &settings)
+        }
+    }
 }
 
 #[wasm_bindgen]
@@ -26,7 +75,15 @@ pub fn render(expression: String, base_node: &web_sys::Node, options: &JsValue) 
  * Parse and build an expression, and return the markup for that.
  */
 pub fn render_to_string(expression: String, settings: Settings) -> String {
-    return render_to_dom_tree(expression, settings).to_markup();
+    match build_dom_tree(&expression, &settings) {
+        Ok(tree) => tree.to_markup(),
+        Err(error) => {
+            if settings.get_throw_on_error() {
+                panic!("{}", format_parse_error(&error));
+            }
+            render_error_markup(&error, &expression, &settings)
+        }
+    }
 }
 
 #[wasm_bindgen(js_name = renderToString)]

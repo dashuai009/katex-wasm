@@ -1,6 +1,8 @@
 use super::public::MacroDefinition;
+use crate::symbols::{get_symbol, public::Group};
 use crate::token::Token;
 use crate::types::Mode;
+use super::macro_expander::MacroExpander;
 
 fn new_me(tokens: Vec<Token>, num_args: i32) -> MacroDefinition {
     MacroDefinition::MacroExpansion(super::public::MacroExpansion {
@@ -9,6 +11,93 @@ fn new_me(tokens: Vec<Token>, num_args: i32) -> MacroDefinition {
         delimiters: None,
         unexpandable: false,
     })
+}
+
+fn space_after_dots(next: &str) -> bool {
+    matches!(
+        next,
+        ")" | "]"
+            | "\\rbrack"
+            | "\\}"
+            | "\\rbrace"
+            | "\\rangle"
+            | "\\rceil"
+            | "\\rfloor"
+            | "\\rgroup"
+            | "\\rmoustache"
+            | "\\right"
+            | "\\bigr"
+            | "\\biggr"
+            | "\\Bigr"
+            | "\\Biggr"
+            | "$"
+            | ";"
+            | "."
+            | ","
+    )
+}
+
+fn cdots_macro(context: &mut MacroExpander) -> MacroDefinition {
+    let next = context.future().text;
+    if space_after_dots(&next) {
+        MacroDefinition::Str("\\@cdots\\,".to_string())
+    } else {
+        MacroDefinition::Str("\\@cdots".to_string())
+    }
+}
+
+fn dotso_macro(context: &mut MacroExpander) -> MacroDefinition {
+    let next = context.future().text;
+    if space_after_dots(&next) {
+        MacroDefinition::Str("\\ldots\\,".to_string())
+    } else {
+        MacroDefinition::Str("\\ldots".to_string())
+    }
+}
+
+fn dotsc_macro(context: &mut MacroExpander) -> MacroDefinition {
+    let next = context.future().text;
+    if space_after_dots(&next) && next != "," {
+        MacroDefinition::Str("\\ldots\\,".to_string())
+    } else {
+        MacroDefinition::Str("\\ldots".to_string())
+    }
+}
+
+fn dots_macro(context: &mut MacroExpander) -> MacroDefinition {
+    let next = context.expand_after_future().text;
+    let dots = match next.as_str() {
+        "," => "\\dotsc",
+        "\\not" => "\\dotsb",
+        "+" | "=" | "<" | ">" | "-" | "*" | ":" => "\\dotsb",
+        "\\DOTSB" | "\\coprod" | "\\bigvee" | "\\bigwedge" | "\\biguplus" | "\\bigcap"
+        | "\\bigcup" | "\\prod" | "\\sum" | "\\bigotimes" | "\\bigoplus"
+        | "\\bigodot" | "\\bigsqcup" | "\\And" | "\\longrightarrow"
+        | "\\Longrightarrow" | "\\longleftarrow" | "\\Longleftarrow"
+        | "\\longleftrightarrow" | "\\Longleftrightarrow" | "\\mapsto"
+        | "\\longmapsto" | "\\hookrightarrow" | "\\doteq" | "\\mathbin"
+        | "\\mathrel" | "\\relbar" | "\\Relbar" | "\\xrightarrow"
+        | "\\xleftarrow" => "\\dotsb",
+        "\\DOTSI" | "\\int" | "\\oint" | "\\iint" | "\\iiint" | "\\iiiint"
+        | "\\idotsint" => "\\dotsi",
+        "\\DOTSX" => "\\dotsx",
+        _ if next.starts_with("\\not") => "\\dotsb",
+        _ if matches!(
+            get_symbol(Mode::math, &next).map(|symbol| symbol.group),
+            Some(Group::bin | Group::rel)
+        ) => "\\dotsb",
+        _ => "\\dotso",
+    };
+    MacroDefinition::Str(dots.to_string())
+}
+
+fn hspace_macro(context: &mut MacroExpander) -> MacroDefinition {
+    if context.future().text == "*" {
+        context.pop_token();
+        MacroDefinition::Str("\\@hspacer{#1}".to_string())
+    } else {
+        MacroDefinition::Str("\\@hspace{#1}".to_string())
+    }
 }
 
 pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
@@ -95,6 +184,50 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
                     0,
                 );
             }),
+        ),
+        (
+            "\\cdots".to_string(),
+            MacroDefinition::MacroContext(cdots_macro),
+        ),
+        (
+            "\\dotsb".to_string(),
+            MacroDefinition::Str("\\cdots".to_string()),
+        ),
+        (
+            "\\dotsm".to_string(),
+            MacroDefinition::Str("\\cdots".to_string()),
+        ),
+        (
+            "\\dotsi".to_string(),
+            MacroDefinition::Str("\\!\\cdots".to_string()),
+        ),
+        (
+            "\\dots".to_string(),
+            MacroDefinition::MacroContext(dots_macro),
+        ),
+        (
+            "\\dotso".to_string(),
+            MacroDefinition::MacroContext(dotso_macro),
+        ),
+        (
+            "\\dotsc".to_string(),
+            MacroDefinition::MacroContext(dotsc_macro),
+        ),
+        (
+            "\\dotsx".to_string(),
+            MacroDefinition::Str("\\ldots\\,".to_string()),
+        ),
+        (
+            "\\DOTSI".to_string(),
+            MacroDefinition::Str("\\relax".to_string()),
+        ),
+        (
+            "\\DOTSB".to_string(),
+            MacroDefinition::Str("\\relax".to_string()),
+        ),
+        (
+            "\\DOTSX".to_string(),
+            MacroDefinition::Str("\\relax".to_string()),
         ),
         //
         //
@@ -296,6 +429,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // // width but extends to the right.  We use \rlap to get that spacing.
         // // For MathML we write U+0338 here. buildMathML.js will then do the overlay.
         //     defineMacro("\\not", '\\html@mathml{\\mathrel{\\mathrlap\\@not}}{\\char"338}');
+        (
+            "\\not".to_string(),
+            MacroDefinition::Str("\\mathrel{\\mathrlap\\@not}".to_string()),
+        ),
         //
         // // Negated symbols from base/fontmath.ltx:
         // // \def\neq{\not=} \let\ne=\neq
@@ -305,6 +442,18 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // defineMacro("\\neq", "\\html@mathml{\\mathrel{\\not=}}{\\mathrel{\\char`≠}}");
         // defineMacro("\\ne", "\\neq");
         // defineMacro("\u2260", "\\neq");
+        (
+            "\\neq".to_string(),
+            MacroDefinition::Str("\\mathrel{\\not=}".to_string()),
+        ),
+        (
+            "\\ne".to_string(),
+            MacroDefinition::Str("\\neq".to_string()),
+        ),
+        (
+            "≠".to_string(),
+            MacroDefinition::Str("\\neq".to_string()),
+        ),
         // defineMacro("\\notin", "\\html@mathml{\\mathrel{{\\in}\\mathllap{/\\mskip1mu}}}"
         //                        + "{\\mathrel{\\char`∉}}");
         // defineMacro("\u2209", "\\notin");
@@ -383,6 +532,12 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // // \mkern-\thinmuskip{:}\mskip6muplus1mu\relax}
         //         defineMacro("\\colon", "\\nobreak\\mskip2mu\\mathpunct{}" +
         //         "\\mathchoice{\\mkern-3mu}{\\mkern-3mu}{}{}{:}\\mskip6mu\\relax");
+        (
+            "\\colon".to_string(),
+            MacroDefinition::Str(
+                "\\nobreak\\mskip2mu\\mathpunct{}\\mathchoice{\\mkern-3mu}{\\mkern-3mu}{}{}{:}\\mskip6mu\\relax".to_string(),
+            ),
+        ),
         //
         // // \newcommand{\boxed}[1]{\fbox{\m@th$\displaystyle#1$}}
         //         defineMacro("\\boxed", "\\fbox{$\\displaystyle{#1}$}");
@@ -698,13 +853,22 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //                     `K\\kern-.17em\\raisebox{${latexRaiseA}}{\\scriptstyle A}` +
         //                     "\\kern-.15em\\TeX}{KaTeX}}");
         //
-        // // \DeclareRobustCommand\hspace{\@ifstar\@hspacer\@hspace}
-        // // \def\@hspace#1{\hskip  #1\relax}
-        // // \def\@hspacer#1{\vrule \@width\z@\nobreak
-        // //                 \hskip #1\hskip \z@skip}
-        //         defineMacro("\\hspace", "\\@ifstar\\@hspacer\\@hspace");
-        //         defineMacro("\\@hspace", "\\hskip #1\\relax");
-        //         defineMacro("\\@hspacer", "\\rule{0pt}{0pt}\\hskip #1\\relax");
+        // \DeclareRobustCommand\hspace{\@ifstar\@hspacer\@hspace}
+        // \def\@hspace#1{\hskip  #1\relax}
+        // \def\@hspacer#1{\vrule \@width\z@\nobreak
+        //                 \hskip #1\hskip \z@skip}
+        (
+            "\\hspace".to_string(),
+            MacroDefinition::MacroContext(hspace_macro),
+        ),
+        (
+            "\\@hspace".to_string(),
+            MacroDefinition::Str("\\hskip #1\\relax".to_string()),
+        ),
+        (
+            "\\@hspacer".to_string(),
+            MacroDefinition::Str("\\rule{0pt}{0pt}\\hskip #1\\relax".to_string()),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // mathtools.sty
@@ -805,6 +969,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //
         // // Present in newtxmath, pxfonts and txfonts
         //         defineMacro("\\notni", "\\html@mathml{\\not\\ni}{\\mathrel{\\char`\u220C}}");
+        (
+            "\\stackrel".to_string(),
+            MacroDefinition::Str("\\mathrel{\\mathop{#2}\\limits^{#1}}".to_string()),
+        ),
         //         defineMacro("\\limsup", "\\DOTSB\\operatorname*{lim\\,sup}");
         //         defineMacro("\\liminf", "\\DOTSB\\operatorname*{lim\\,inf}");
         //
@@ -837,7 +1005,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\imath".to_string(),
             MacroDefinition::Str("\\html@mathml{\\@imath}{\u{0131}}".to_string()),
         ),
-        //         defineMacro("\\jmath", "\\html@mathml{\\@jmath}{\u0237}");
+        (
+            "\\jmath".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@jmath}{\u{0237}}".to_string()),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // stmaryrd and semantic

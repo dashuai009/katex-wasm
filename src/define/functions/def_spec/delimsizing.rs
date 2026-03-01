@@ -36,7 +36,7 @@ lazy_static! {
             (
                 "\\Bigl",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mopen".to_string(),
                     size: 2,
                 },
             ),
@@ -57,14 +57,14 @@ lazy_static! {
             (
                 "\\bigr",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mclose".to_string(),
                     size: 1,
                 },
             ),
             (
                 "\\Bigr",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mclose".to_string(),
                     size: 2,
                 },
             ),
@@ -85,14 +85,14 @@ lazy_static! {
             (
                 "\\bigm",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mrel".to_string(),
                     size: 1,
                 },
             ),
             (
                 "\\Bigm",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mrel".to_string(),
                     size: 2,
                 },
             ),
@@ -113,28 +113,28 @@ lazy_static! {
             (
                 "\\big",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mord".to_string(),
                     size: 1,
                 },
             ),
             (
                 "\\Big",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mord".to_string(),
                     size: 2,
                 },
             ),
             (
                 "\\bigg",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mord".to_string(),
                     size: 3,
                 },
             ),
             (
                 "\\Bigg",
                 DelimSize {
-                    mclass: "(.*)".to_string(),
+                    mclass: "mord".to_string(),
                     size: 4,
                 },
             ),
@@ -524,9 +524,48 @@ pub fn lr_handler_fn(
     // parseExpression stops before '\\right'
     let body = context.parser.parse_expression(false, None);
     context.parser.left_right_depth -= 1;
+    if context.parser.error.is_some() {
+        return Box::new(parse_node::types::leftright {
+            mode: context.parser.mode,
+            loc: None,
+            body,
+            left: delim_text.clone(),
+            right: ".".to_string(),
+            right_color: None,
+        }) as Box<dyn AnyParseNode>;
+    }
     // Check the next token
     context.parser.expect("\\right".to_string(), false);
-    let r_tmp = context.parser.parse_function(None, "".to_string()).unwrap();
+    if context.parser.error.is_some() {
+        return Box::new(parse_node::types::leftright {
+            mode: context.parser.mode,
+            loc: None,
+            body,
+            left: delim_text.clone(),
+            right: ".".to_string(),
+            right_color: None,
+        }) as Box<dyn AnyParseNode>;
+    }
+    let Some(r_tmp) = context.parser.parse_function(None, "".to_string()) else {
+        return Box::new(parse_node::types::leftright {
+            mode: context.parser.mode,
+            loc: None,
+            body,
+            left: delim_text.clone(),
+            right: ".".to_string(),
+            right_color: None,
+        }) as Box<dyn AnyParseNode>;
+    };
+    if context.parser.error.is_some() {
+        return Box::new(parse_node::types::leftright {
+            mode: context.parser.mode,
+            loc: None,
+            body,
+            left: delim_text.clone(),
+            right: ".".to_string(),
+            right_color: None,
+        }) as Box<dyn AnyParseNode>;
+    }
     let right = r_tmp
         .as_any()
         .downcast_ref::<parse_node::types::leftright_right>()

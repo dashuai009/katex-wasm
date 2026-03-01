@@ -31,7 +31,7 @@ pub fn handler_fn(
     let body = context
         .parser
         .parse_expression(false, BreakToken::from_str(close.as_str()).ok());
-    context.parser.expect(close, false);
+    context.parser.expect(close, true);
     context.parser.switch_mode(outer_mode);
     let res = parse_node::types::styling {
         mode: context.parser.mode,

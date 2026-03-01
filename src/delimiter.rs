@@ -471,8 +471,8 @@ fn make_stacked_delim(
         let view_box_height = (real_height_total * 1000.0).round();
         let path_str = crate::svgGeometry::tall_delim(svg_label, (mid_height * 1000.0).round());
         let path = PathNode::new(svg_label.to_string(), Some(path_str));
-        let width = make_em(view_box_width as f64 / 1000.0);
-        let height = make_em(view_box_height / 1000.0);
+        let width = format!("{:.3}em", view_box_width as f64 / 1000.0);
+        let height = format!("{:.3}em", view_box_height / 1000.0);
         let svg = SvgNode::new(
             vec![Box::new(path) as Box<dyn VirtualNode>],
             std::collections::HashMap::from([
@@ -480,7 +480,7 @@ fn make_stacked_delim(
                 ("height".to_string(), height.clone()),
                 (
                     "viewBox".to_string(),
-                    format!("0  0 {view_box_width} {view_box_height}"),
+                    format!("0 0 {view_box_width} {view_box_height}"),
                 ),
             ]),
         );

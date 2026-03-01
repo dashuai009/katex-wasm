@@ -68,7 +68,7 @@ impl VirtualNode for SvgNode {
         let mut markup = "<svg xmlns=\"http://www.w3.org/2000/svg\"".to_string();
 
         // Output attributes in a fixed order to match JS KaTeX
-        let ordered_keys = ["width", "height", "viewBox", "preserveAspectRatio", "style"];
+        let ordered_keys = ["width", "height", "style", "viewBox", "preserveAspectRatio"];
         for key in &ordered_keys {
             if let Some(v) = self.attributes.get(*key) {
                 markup.push_str(format!(" {}=\"{}\"", key, v).as_str());

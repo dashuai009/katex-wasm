@@ -205,7 +205,7 @@ pub fn make_ord(
     };
     let mut classes = vec!["mord".to_string()];
     // Math mode or Old font (i.e. \rm)
-    let is_font = mode == Mode::math || (mode == Mode::text); //TODO && options.font);
+    let is_font = mode == Mode::math || (mode == Mode::text && options.font != "");
     let font_or_family = if is_font {
         options.font.clone()
     } else {
@@ -845,7 +845,7 @@ pub fn static_svg(value: String, options: Options) -> Span {
     let (pathName, width, height) = svg_data.get(value.as_str()).unwrap();
     let path = PathNode::new(pathName.to_string(), None);
     let svg_node_attr = HashMap::from([
-        ("widdth".to_string(), make_em(*width)),
+        ("width".to_string(), make_em(*width)),
         ("height".to_string(), make_em(*height)),
         // Override CSS rule `.katex svg { width: 100% }`
         ("style".to_string(), format!("width:{}", make_em(*width))),

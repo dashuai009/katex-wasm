@@ -21,7 +21,7 @@ fn handler_fn(
 ) -> Box<dyn AnyParseNode> {
     let shift = opt_args[0].as_ref().map(|x| { let s = x.as_any().downcast_ref::<parse_node::types::size>().unwrap(); s.value.clone() });
     let width = args[0].as_any().downcast_ref::<parse_node::types::size>().unwrap();// assertNodeType(args[0], "size".to_string());
-    let height = args[0].as_any().downcast_ref::<parse_node::types::size>().unwrap();
+    let height = args[1].as_any().downcast_ref::<parse_node::types::size>().unwrap();
     let context = ctx.borrow();
     let res = parse_node::types::rule {
         mode: context.parser.mode,
@@ -97,6 +97,8 @@ lazy_static! {
         props.set_num_args(2);
         props.set_num_optional_args(1);
         props.set_arg_types(vec![ArgType::size,ArgType::size,ArgType::size]);
+        props.set_allowed_in_text(true);
+        props.set_allowed_in_math(true);
 
         FunctionDefSpec {
             def_type: "rule".to_string(),

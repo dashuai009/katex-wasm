@@ -112,8 +112,11 @@ lazy_static! {
 
         let ga = tag::TAG.lock().unwrap();
         let ha = styling::STYLING.lock().unwrap();
+        let hb = math::STYLING.lock().unwrap();
+        let hc = math::TEXT.lock().unwrap();
 
-        let ia = relax::RULE.lock().unwrap();
+        let ia = rule::RULE.lock().unwrap();
+        let ib = relax::RULE.lock().unwrap();
 
         let ja = color::COLOR.lock().unwrap();
         let jb = color::COLOR2.lock().unwrap();
@@ -186,7 +189,10 @@ lazy_static! {
             fa.clone(),
             ga.clone(),
             ha.clone(),
+            hb.clone(),
+            hc.clone(),
             ia.clone(),
+            ib.clone(),
             ja.clone(),
             jb.clone(),
             ka.clone(),

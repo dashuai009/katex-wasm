@@ -35,6 +35,7 @@ use crate::{
         functions::public::{FunctionSpec, _functions},
         macros::{macro_expander::MacroExpander, public::MacroDefinition},
     },
+    parse_error::ParseError,
     parse_node::{
         self,
         types::{ordgroup, AnyParseNode, Atom},
@@ -54,6 +55,7 @@ pub struct Parser<'a> {
     pub settings: &'a Settings,
     pub left_right_depth: i32,
     pub next_token: Option<Token>,
+    pub error: Option<ParseError>,
 }
 
 const END_OF_EXPRESSION: [&'static str; 5] = ["}", "\\endgroup", "\\end", "\\right", "&"];
@@ -70,7 +72,22 @@ impl Parser<'_> {
             // Count leftright depth (for \middle errors)
             left_right_depth: 0,
             next_token: None,
+            error: None,
         }
+    }
+
+    pub(crate) fn report_parse_error(&mut self, msg: String, loc: Option<SourceLocation>) {
+        if self.error.is_none() {
+            self.error = Some(ParseError { msg, loc });
+        }
+    }
+
+    pub(crate) fn report_token_error(&mut self, msg: String, token: &Token) {
+        self.report_parse_error(msg, token.loc.clone());
+    }
+
+    pub fn take_error(&mut self) -> Option<ParseError> {
+        self.error.take()
     }
 
     /**
@@ -78,8 +95,13 @@ impl Parser<'_> {
      * appropriate error otherwise.
      */
     pub fn expect(&mut self, text: String, consume: bool) {
-        if self.fetch().text != text {
-            panic!("Expected '{text}', got '{} ", self.fetch().text);
+        let token = self.fetch();
+        if token.text != text {
+            self.report_token_error(
+                format!("Expected '{}', got '{}'", text, token.text),
+                &token,
+            );
+            return;
         }
         if consume {
             self.consume();
@@ -100,7 +122,13 @@ impl Parser<'_> {
      */
     pub fn fetch(&mut self) -> Token {
         if self.next_token.is_none() {
-            self.next_token = Some(self.gullet.expand_next_token());
+            let token = self.gullet.expand_next_token();
+            if self.error.is_none() {
+                if let Some(err) = self.gullet.take_error() {
+                    self.error = Some(err);
+                }
+            }
+            self.next_token = Some(token);
         }
         return self.next_token.clone().unwrap();
     }
@@ -136,12 +164,20 @@ impl Parser<'_> {
 
         // Try to parse the input
         let parse = self.parse_expression(false, None);
+        if self.error.is_some() {
+            self.gullet.end_groups();
+            return parse;
+        }
         // for t in parse.iter() {
         //     print!("{},", t.get_type());
         // }
 
         // If we succeeded, make sure there's an EOF at the end
         self.expect("EOF".to_string(), true);
+        if self.error.is_some() {
+            self.gullet.end_groups();
+            return parse;
+        }
 
         // End the group namespace for the expression
         if !self.settings.get_global_group() {
@@ -196,6 +232,9 @@ impl Parser<'_> {
         // Keep adding atoms to the body until we can't parse any more atoms (either
         // we reached the end, a }, or a \right)
         loop {
+            if self.error.is_some() {
+                break;
+            }
             // Ignore spaces in math mode
             if self.mode == Mode::math {
                 self.consume_spaces();
@@ -218,6 +257,9 @@ impl Parser<'_> {
                 }
             }
             let atom = self.parse_atom(break_on_token_text.clone());
+            if self.error.is_some() {
+                break;
+            }
             // println!("atom = {:#?}",atom);
             if let Some(_atom) = atom {
                 //println!("atom = {}", _atom.get_type());
@@ -324,10 +366,24 @@ impl Parser<'_> {
         let symbol = &symbol_token.text;
         self.consume();
         self.consume_spaces(); // ignore spaces before sup/subscript argument
-        let group = self.parse_group(name, None);
+        let mut group = self.parse_group(name.clone(), None);
+        if self.error.is_some() {
+            return None;
+        }
+
+        // Skip over allowed internal nodes such as \relax
+        while let Some(node) = &group {
+            if node.get_type() != "internal" {
+                break;
+            }
+            group = self.parse_group(name.clone(), None);
+            if self.error.is_some() {
+                return None;
+            }
+        }
 
         if group.is_none() {
-            panic!("Expected group after '{}' {:#?}", symbol, symbol_token);
+            self.report_token_error(format!("Expected group after '{}'", symbol), &symbol_token);
         }
 
         return group;
@@ -374,7 +430,18 @@ impl Parser<'_> {
         // The body of an atom is an implicit group, so that things like
         // \left(x\right)^2 work correctly.
         let mut _base = self.parse_group("atom".to_string(), breakOnTokenText);
+        if self.error.is_some() {
+            return None;
+        }
         // println!("base {:#?}", _base);
+
+        // Internal nodes (e.g. \relax) cannot support super/subscripts.
+        // Instead we will pick up super/subscripts with blank base next round.
+        if let Some(base) = &_base {
+            if base.get_type() == "internal" {
+                return _base;
+            }
+        }
 
         // In text mode, we don't have superscripts or subscripts
         if self.mode == Mode::text {
@@ -422,32 +489,46 @@ impl Parser<'_> {
                             }
                         }
                         _ => {
-                            panic!("Limit controls must follow a math operator");
+                            self.report_token_error(
+                                "Limit controls must follow a math operator".to_string(),
+                                &lex,
+                            );
+                            return None;
                         }
                     };
                     self.consume();
                 } else {
-                    panic!("Limit controls must follow a math operator");
+                    self.report_token_error(
+                        "Limit controls must follow a math operator".to_string(),
+                        &lex,
+                    );
+                    return None;
                 }
             } else if (lex.text == "^") {
                 // We got a superscript start
                 if (superscript.is_some()) {
-                    panic!("Double superscript");
-                    // throw new ParseError("Double superscript", lex);
+                    self.report_token_error("Double superscript".to_string(), &lex);
+                    return None;
                 }
                 superscript = self.handle_sup_sub_script("superscript".to_string());
+                if self.error.is_some() {
+                    return None;
+                }
             } else if (lex.text == "_") {
                 // We got a subscript start
                 if (subscript.is_some()) {
-                    panic!("Double subscript");
-                    // throw new ParseError("Double subscript", lex);
+                    self.report_token_error("Double subscript".to_string(), &lex);
+                    return None;
                 }
                 subscript = self.handle_sup_sub_script("subscript".to_string());
+                if self.error.is_some() {
+                    return None;
+                }
             } else if (lex.text == "'") {
                 // We got a prime
                 if (superscript.is_some()) {
-                    panic!("double superscript");
-                    // throw new ParseError("Double superscript", lex);
+                    self.report_token_error("Double superscript".to_string(), &lex);
+                    return None;
                 }
                 let prime = parse_node::types::textord {
                     mode: self.mode,
@@ -467,10 +548,13 @@ impl Parser<'_> {
                 // If there's a superscript following the primes, combine that
                 // superscript in with the primes.
                 if (self.fetch().text == "^") {
-                    primes.push(
+                    if let Some(prime_sup) =
                         self.handle_sup_sub_script("superscript".to_string())
-                            .unwrap(),
-                    );
+                    {
+                        primes.push(prime_sup);
+                    } else {
+                        return None;
+                    }
                 }
                 // Put everything into an ordgroup as the superscript
                 superscript = Some(Box::new(parse_node::types::ordgroup {
@@ -562,20 +646,33 @@ impl Parser<'_> {
             self.consume(); // consume command token
 
             if (name != "" && name != "atom" && !funcData.0.get_allowed_in_argument()) {
-                panic!("Got function  + {func}+  with no arguments");
-                // throw new ParseError(
-                //     "Got function '" + func + "' with no arguments" +
-                //     (name ? " as " + name : ""), token);
+                let suffix = if name != "" {
+                    format!(" as {}", name)
+                } else {
+                    String::new()
+                };
+                self.report_token_error(
+                    format!("Got function '{}' with no arguments{}", func, suffix),
+                    &token,
+                );
+                return None;
             } else if (self.mode == Mode::text && !funcData.0.get_allowed_in_text()) {
-                panic!("Can't use function ");
-                // throw new ParseError(
-                // "Can't use function '" + func + "' in text mode", token);
+                self.report_token_error(
+                    format!("Can't use function '{}' in text mode", func),
+                    &token,
+                );
+                return None;
             } else if (self.mode == Mode::math && funcData.0.get_allowed_in_math() == false) {
-                panic!("canlsss");
-                // throw new ParseError(
-                //     "Can't use function '" + func + "' in math mode", token);
+                self.report_token_error(
+                    format!("Can't use function '{}' in math mode", func),
+                    &token,
+                );
+                return None;
             }
             let (args, optArgs) = self.parse_arguments(func, funcData);
+            if self.error.is_some() {
+                return None;
+            }
             return Some(self.call_function(func, args, optArgs, Some(token), break_on_token_text));
         } else {
             return None;
@@ -625,12 +722,21 @@ impl Parser<'_> {
         let mut opt_args = vec![];
 
         for i in 0..total_args{
+            if self.error.is_some() {
+                break;
+            }
             let mut arg_type = func_data.0.get_arg_types().get(i);
             let is_optional = i < func_data.0.get_num_optional_args() as usize;
 
             if (func_data.0.get_primitive() && arg_type.is_none()) ||
                 // \sqrt expands into primitive if optional argument doesn't exist
-                (func == "\\sqrt" && i == 1 && opt_args.get(0).is_none())
+                (
+                    func == "\\sqrt"
+                        && i == 1
+                        && opt_args
+                            .get(0)
+                            .map_or(true, |arg: &Option<Box<dyn AnyParseNode>>| arg.is_none())
+                )
             {
                 arg_type = Some(&ArgType::primitive);
             }
@@ -640,14 +746,20 @@ impl Parser<'_> {
                 arg_type.clone(),
                 is_optional,
             );
+            if self.error.is_some() {
+                break;
+            }
             if is_optional {
                 opt_args.push(arg);
             } else if let Some(s) = arg {
                 args.push(s);
             } else {
-                // should be unreachable
-                panic!("Null argument, please report this as a bug");
-                // throw new ParseError("Null argument, please report this as a bug");
+                let loc = self.fetch().loc.clone();
+                self.report_parse_error(
+                    "Null argument, please report this as a bug".to_string(),
+                    loc,
+                );
+                break;
             }
         }
 
@@ -735,21 +847,26 @@ impl Parser<'_> {
         modeName: ArgType, // Used to describe the mode in error messages.
         optional: bool,
     ) -> Option<Token> {
-        if let Some(mut argToken) = self.gullet.scan_argument(optional) {
-            let mut _str = String::new();
-            while let next_token = self.fetch() {
-                if next_token.text != "EOF" {
-                    _str.push_str(next_token.text.as_str());
-                    self.consume();
-                } else {
-                    break;
+        match self.gullet.scan_argument(optional) {
+            Ok(Some(mut argToken)) => {
+                let mut _str = String::new();
+                while let next_token = self.fetch() {
+                    if next_token.text != "EOF" {
+                        _str.push_str(next_token.text.as_str());
+                        self.consume();
+                    } else {
+                        break;
+                    }
                 }
+                self.consume(); // consume the end of the argument
+                argToken.text = _str;
+                Some(argToken)
             }
-            self.consume(); // consume the end of the argument
-            argToken.text = _str;
-            return Some(argToken);
-        } else {
-            return None;
+            Ok(None) => None,
+            Err(err) => {
+                self.report_parse_error(err.msg, err.loc);
+                None
+            }
         }
     }
 
@@ -852,8 +969,11 @@ impl Parser<'_> {
                     (&m[3]).to_string(),
                 );
                 if !data.unit_is_valid() {
-                    panic!("Invalid unit: '{}'", data.unit);
-                    // throw new ParseError("Invalid unit: '" + data.unit + "'", res);
+                    self.report_parse_error(
+                        format!("Invalid unit: '{}'", data.unit),
+                        res.loc.clone(),
+                    );
+                    return None;
                 }
                 return Some(Box::new(parse_node::types::size {
                     mode: self.mode,
@@ -862,7 +982,8 @@ impl Parser<'_> {
                     loc: None,
                 }) as Box<dyn AnyParseNode>);
             } else {
-                panic!("Invalid size: '{}'", res.text);
+                self.report_parse_error(format!("Invalid size: '{}'", res.text), res.loc.clone());
+                return None;
             }
         } else {
             return None;
@@ -908,32 +1029,51 @@ impl Parser<'_> {
         mode: Option<Mode>,
     ) -> Option<Box<dyn AnyParseNode>> {
         //parse_node::types::ordgroup
-        if let Some(argToken) = self.gullet.scan_argument(optional) {
-            let outerMode = self.mode;
-            if let Some(_mode) = mode {
-                // Switch to specified mode
-                self.switch_mode(_mode);
-            }
+        match self.gullet.scan_argument(optional) {
+            Ok(Some(argToken)) => {
+                let outerMode = self.mode;
+                if let Some(_mode) = mode {
+                    // Switch to specified mode
+                    self.switch_mode(_mode);
+                }
 
-            self.gullet.begin_group();
-            let expression = self.parse_expression(false, Some(BreakToken::Eof));
-            // TODO: find an alternative way to denote the end
-            self.expect("EOF".to_string(), true); // expect the end of the argument
-            self.gullet.end_group();
-            let result = parse_node::types::ordgroup {
-                mode: self.mode,
-                loc: argToken.loc,
-                body: expression,
-                semisimple: false,
-            };
+                self.gullet.begin_group();
+                let expression = self.parse_expression(false, Some(BreakToken::Eof));
+                if self.error.is_some() {
+                    self.gullet.end_group();
+                    if mode.is_some() {
+                        self.switch_mode(outerMode);
+                    }
+                    return None;
+                }
+                // TODO: find an alternative way to denote the end
+                self.expect("EOF".to_string(), true); // expect the end of the argument
+                if self.error.is_some() {
+                    self.gullet.end_group();
+                    if mode.is_some() {
+                        self.switch_mode(outerMode);
+                    }
+                    return None;
+                }
+                self.gullet.end_group();
+                let result = parse_node::types::ordgroup {
+                    mode: self.mode,
+                    loc: argToken.loc,
+                    body: expression,
+                    semisimple: false,
+                };
 
-            if mode.is_some() {
-                // Switch mode back
-                self.switch_mode(outerMode);
+                if mode.is_some() {
+                    // Switch mode back
+                    self.switch_mode(outerMode);
+                }
+                Some(Box::new(result) as Box<dyn AnyParseNode>)
             }
-            return Some(Box::new(result) as Box<dyn AnyParseNode>);
-        } else {
-            return None;
+            Ok(None) => None,
+            Err(err) => {
+                self.report_parse_error(err.msg, err.loc);
+                None
+            }
         }
     }
 
@@ -964,8 +1104,16 @@ impl Parser<'_> {
             self.gullet.begin_group();
             // If we get a brace, parse an expression
             let expression = self.parse_expression(false, Some(group_end.clone()));
+            if self.error.is_some() {
+                self.gullet.end_group();
+                return None;
+            }
             let lastToken = self.fetch();
             self.expect(group_end.as_str().to_string(), true); // Check that we got a matching closing brace
+            if self.error.is_some() {
+                self.gullet.end_group();
+                return None;
+            }
             self.gullet.end_group();
             result = Some(Box::new(parse_node::types::ordgroup {
                 mode: self.mode,
@@ -1089,10 +1237,16 @@ impl Parser<'_> {
         }
         // At this point, we should have a symbol, possibly with accents.
         // First expand any accented base symbol according to unicodeSymbols.
+        let first_text = text
+            .chars()
+            .next()
+            .map(|ch| ch.to_string())
+            .unwrap_or_default();
+        let first_text_len = first_text.len();
         if let Some(tmp) =
-            crate::unicodeSysmbols::unicode_sysmbols_result_get(text[0..1].to_string())
+            crate::unicodeSysmbols::unicode_sysmbols_result_get(first_text.clone())
         {
-            if crate::symbols::get_symbol(self.mode, &text[0..1].to_string()).is_none() {
+            if crate::symbols::get_symbol(self.mode, &first_text).is_none() {
                 // This behavior is not strict (XeTeX-compatible) in math mode.
                 if (/*self.settings.get_strict() && */self.mode == Mode::math) {
                     self.settings.report_nonstrict(
@@ -1104,7 +1258,7 @@ impl Parser<'_> {
                         Some(nucleus.clone()),
                     );
                 }
-                text = format!("{}{}", tmp, &text[1..]);
+                text = format!("{}{}", tmp, &text[first_text_len..]);
             }
         }
 

@@ -54,9 +54,12 @@ fn html_builder_delegate(
             .as_any()
             .downcast_ref::<parse_node::types::horizBrace>()
         {
-            panic!("h B")
-            // let isSup = !group.sub;
-            // return if isSup === base.isOver ? horizBrace::htmlBuilder : null;
+            let is_sup = group.sub.is_none();
+            return if is_sup == hb.isOver {
+                Some(super::horiz_brace::html_builder)
+            } else {
+                None
+            };
         } else {
             return None;
         }

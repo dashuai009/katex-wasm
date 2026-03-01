@@ -700,10 +700,11 @@ pub fn path_get(key: String) -> String {
 
 
 pub fn tall_delim(label: &str, mid_height: f64) -> String {
+    let neg_mid_height = if mid_height == 0.0 { 0.0 } else { -mid_height };
     match label {
         "lbrack" => {
             format!("M403 1759 V84 H666 V0 H319 V1759 v{mid_height} v1759 h347 v-84
-     H403z M403 1759 V0 H319 V1759 v{mid_height} v1759 h84z")
+H403z M403 1759 V0 H319 V1759 v{mid_height} v1759 h84z")
         }
         "rbrack" => {
             format!("M347 1759 V0 H0 V84 H263 V1759 v{mid_height} v1759 H0 v84 H347z
@@ -712,7 +713,7 @@ M347 1759 V0 H263 V1759 v{mid_height} v1759 h84z")
         "vert" => {
             format!("M145 15 v585 v{mid_height} v585 c2.667,10,9.667,15,21,15
 c10,0,16.667,-5,20,-15 v-585 v{} v-585 c-2.667,-10,-9.667,-15,-21,-15
-c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v{mid_height} v585 h43z", -mid_height)
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v{mid_height} v585 h43z", neg_mid_height)
         }
         "doublevert" => {
             format!("M145 15 v585 v{mid_height} v585 c2.667,10,9.667,15,21,15
@@ -720,7 +721,7 @@ c10,0,16.667,-5,20,-15 v-585 v{} v-585 c-2.667,-10,-9.667,-15,-21,-15
 c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v{mid_height} v585 h43z
 M367 15 v585 v{mid_height} v585 c2.667,10,9.667,15,21,15
 c10,0,16.667,-5,20,-15 v-585 v{} v-585 c-2.667,-10,-9.667,-15,-21,-15
-c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v{mid_height} v585 h43z", -mid_height, -mid_height)
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v{mid_height} v585 h43z", neg_mid_height, neg_mid_height)
         }
         "lfloor" => {
             format!("M319 602 V0 H403 V602 v{mid_height} v1715 h263 v84 H319z

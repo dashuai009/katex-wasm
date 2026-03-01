@@ -1,4 +1,9 @@
-use crate::{Parser::Parser, settings::Settings, parse_node::types::AnyParseNode};
+use crate::{
+    parse_error::ParseError,
+    parse_node::types::AnyParseNode,
+    settings::Settings,
+    Parser::Parser,
+};
 
 // @flow
 /**
@@ -9,13 +14,19 @@ use crate::{Parser::Parser, settings::Settings, parse_node::types::AnyParseNode}
 /**
  * Parses an expression using a Parser, then returns the parsed result.
  */
-pub fn  parseTree(toParse: String, settings: Settings)-> Vec<Box::<dyn AnyParseNode>> { 
-    let mut parser = Parser::new(toParse, &settings);
+pub fn parse_tree_with_error(
+    to_parse: String,
+    settings: Settings,
+) -> Result<Vec<Box<dyn AnyParseNode>>, ParseError> {
+    let mut parser = Parser::new(to_parse, &settings);
 
     // Blank out any \df@tag to avoid spurious "Duplicate \tag" errors
     // delete parser.gullet.macros.current["\\df@tag"];
 
     let tree = parser.parse();
+    if let Some(error) = parser.take_error() {
+        return Err(error);
+    }
 
     // Prevent a color definition from persisting between calls to katex.render().
     // delete parser.gullet.macros.current["\\current@color"];
@@ -35,5 +46,10 @@ pub fn  parseTree(toParse: String, settings: Settings)-> Vec<Box::<dyn AnyParseN
     //     }];
     // }
 
-    return tree;
+    Ok(tree)
+}
+
+pub fn  parseTree(toParse: String, settings: Settings)-> Vec<Box::<dyn AnyParseNode>> { 
+    parse_tree_with_error(toParse, settings)
+        .unwrap_or_else(|error| panic!("ParseError: {}", error))
 }

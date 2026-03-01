@@ -120,25 +120,22 @@ impl VirtualNode for SymbolNode {
     fn to_node(&self) -> web_sys::Node {
         let document = web_sys::window().expect("").document().expect("");
         let node = document.create_text_node(&self.text);
-        let st = self.style.to_css_str();
-        if self.italic > 0.0 || self.classes.len() > 0 || st != "" {
+        let mut styles = String::new();
+        if self.italic > 0.0 {
+            styles.push_str(&format!("margin-right:{}em;", self.italic));
+        }
+        styles.push_str(&self.style.to_css_str());
+        if self.italic > 0.0 || self.classes.len() > 0 || !styles.is_empty() {
             let mut span_node = document.create_element("span").expect("");
-            if self.italic > 0.0 {
-                web_sys::Element::set_attribute(
-                    &span_node,
-                    "style",
-                    format!("marginRight:{};", make_em(self.italic)).as_str(),
-                );
-            }
             if self.classes.len() > 0 {
                 web_sys::Element::set_attribute(
                     &span_node,
-                    "className",
+                    "class",
                     self.classes.join(" ").as_str(),
                 );
             }
-            if st != "" {
-                web_sys::Element::set_attribute(&span_node, "style", st.as_str());
+            if !styles.is_empty() {
+                web_sys::Element::set_attribute(&span_node, "style", styles.as_str());
             }
             span_node.append_child(&node);
             return web_sys::Node::from(span_node);
@@ -153,12 +150,9 @@ impl VirtualNode for SymbolNode {
     fn to_markup(&self) -> String {
         // TODO(alpert): More duplication than I'd like from
         // span.prototype.toMarkup and symbolNode.prototype.toNode...
-        let mut needs_span = false;
-
         let mut markup = "<span".to_string();
 
         if self.classes.len() > 0 {
-            needs_span = true;
             let cl = self.classes.iter()
                 .filter(|c| !c.is_empty())
                 .cloned()
@@ -180,6 +174,7 @@ impl VirtualNode for SymbolNode {
         if styles != "" {
             markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
         }
+        let needs_span = !self.classes.is_empty() || !styles.is_empty();
         let escaped_text = escape(&self.text);
         return if needs_span{
             markup.push_str(&format!(">{escaped_text}</span>").as_str());
