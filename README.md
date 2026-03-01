@@ -33,6 +33,27 @@ npm install
 npm start
 ```
 
+## CLI
+
+`katex-rs-cli` now uses `clap` for argument parsing, so it has standard `--help` and `--version` output.
+
+```bash
+# Show help
+cargo run --bin katex-rs-cli -- --help
+
+# Render every formula in a file
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt
+
+# Render a specific inclusive line range
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
+```
+
+Arguments:
+
+- `formulas.txt`: input file containing one LaTeX formula per line
+- `start_line`: optional 1-based inclusive start line, defaults to `1`
+- `end_line`: optional 1-based inclusive end line, defaults to the last line in the file
+
 ## 🚀 Deploy demo to GitHub Pages
 
 已经提供自动化工作流：`.github/workflows/deploy-demo.yml`。

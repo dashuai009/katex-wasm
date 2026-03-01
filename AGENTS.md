@@ -54,6 +54,27 @@ npm install
 npm start
 ```
 
+### CLI 调试工具
+
+`katex-rs-cli` 现在使用 `clap` 解析参数，支持标准的 `--help` 和 `--version`。
+
+```bash
+# 查看帮助
+cargo run --bin katex-rs-cli -- --help
+
+# 渲染整个文件
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt
+
+# 渲染指定行范围
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
+```
+
+参数说明：
+
+- `formulas.txt`: 包含 LaTeX 公式的文件路径（每行一个公式）
+- `start_line`: 起始行号（从 1 开始，可选，默认为 1）
+- `end_line`: 结束行号（可选，默认为文件最后一行）
+
 ## Diff Harness 测试工具
 
 diff_harness 是用于对比 JS KaTeX 和 Rust WASM 实现差异的测试工具。

@@ -9,12 +9,17 @@ target = "x86_64-pc-windows-gnu"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
+[[bin]]
+name = "katex-rs-cli"
+path = "src/bin/katex_rs_cli.rs"
+
 [features]
 default = ["console_error_panic_hook"]
 
 [dependencies]
 struct_format = {path = "struct_format"}
  # serde = { version = "1.0.137", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }
 wasm-bindgen = { version = "0.2.108", features = ["serde-serialize"] }
 js-sys = "0.3.85"
 regex = "1.12.3"
