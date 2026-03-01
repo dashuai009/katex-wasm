@@ -553,17 +553,28 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\,".to_string(),
             MacroDefinition::Str("\\tmspace+{3mu}{.1667em}".to_string()),
         ),
-        // // \let\thinspace\,
-        //         defineMacro("\\thinspace", "\\,");
-        // // \def\>{\mskip\medmuskip}
-        // // \renewcommand{\:}{\tmspace+\medmuskip{.2222em}}
-        // // TODO: \> and math mode of \: should use \medmuskip = 4mu plus 2mu minus 4mu
-        //         defineMacro("\\>", "\\mskip{4mu}");
-        //         defineMacro("\\:", "\\tmspace+{4mu}{.2222em}");
-        // // \let\medspace\:
-        //         defineMacro("\\medspace", "\\:");
-        // // \renewcommand{\;}{\tmspace+\thickmuskip{.2777em}}
-
+        // \let\thinspace\,
+        (
+            "\\thinspace".to_string(),
+            MacroDefinition::Str("\\,".to_string()),
+        ),
+        // \def\>{\mskip\medmuskip}
+        // \renewcommand{\:}{\tmspace+\medmuskip{.2222em}}
+        // TODO: \> and math mode of \: should use \medmuskip = 4mu plus 2mu minus 4mu
+        (
+            "\\>".to_string(),
+            MacroDefinition::Str("\\mskip{4mu}".to_string()),
+        ),
+        (
+            "\\:".to_string(),
+            MacroDefinition::Str("\\tmspace+{4mu}{.2222em}".to_string()),
+        ),
+        // \let\medspace\:
+        (
+            "\\medspace".to_string(),
+            MacroDefinition::Str("\\:".to_string()),
+        ),
+        // \renewcommand{\;}{\tmspace+\thickmuskip{.2777em}}
         // TODO: math mode should use \thickmuskip = 5mu plus 5mu
         (
             "\\;".to_string(),

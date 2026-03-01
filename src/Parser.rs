@@ -424,9 +424,10 @@ impl Parser<'_> {
                         _ => {
                             panic!("Limit controls must follow a math operator");
                         }
-                    }
-                } else {
+                    };
                     self.consume();
+                } else {
+                    panic!("Limit controls must follow a math operator");
                 }
             } else if (lex.text == "^") {
                 // We got a superscript start

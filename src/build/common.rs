@@ -563,7 +563,7 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
             let mut bottom = params.position_data.unwrap();
             for child in params.children.iter() {
                 bottom -= match child {
-                    VListChild::Elem { elem, .. } => (elem.get_height() - elem.get_depth()),
+                    VListChild::Elem { elem, .. } => elem.get_height() + elem.get_depth(),
                     VListChild::Kern { size } => *size,
                 };
             }
@@ -576,7 +576,7 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
             VListChild::Elem { elem, .. } => {
                 depth = match params.position_type {
                     PositionType::Shift => -elem.get_depth() - params.position_data.unwrap(),
-                    PositionType::FirstBaseline => elem.get_depth(),
+                    PositionType::FirstBaseline => -elem.get_depth(),
                     _ => {
                         panic!("Invalid positionType")
                     }
@@ -650,9 +650,13 @@ pub fn make_vlist(params: VListParam) -> Span {
                 child_wrap.get_mut_style().top =
                     Some(make_em(-pstrut_size - curr_pos - elem.get_depth()));
 
-                child_wrap.get_mut_style().margin_left = margin_left.clone();
+                if margin_left.is_some() {
+                    child_wrap.get_mut_style().margin_left = margin_left.clone();
+                }
 
-                child_wrap.get_mut_style().margin_right = margin_right.clone();
+                if margin_right.is_some() {
+                    child_wrap.get_mut_style().margin_right = margin_right.clone();
+                }
 
                 real_children.push(Box::new(child_wrap) as Box<dyn HtmlDomNode>);
                 curr_pos += elem.get_height() + elem.get_depth();
