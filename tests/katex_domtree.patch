@@ -1,0 +1,85 @@
+Index: src/domTree.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/domTree.js b/src/domTree.js
+--- a/src/domTree.js	(revision 已暂存)
++++ b/src/domTree.js	(date 1772276340153)
+@@ -21,6 +21,31 @@
+ 
+ import type {VirtualNode} from "./tree";
+ 
++const styleKeys = [
++    "backgroundColor",
++    "borderBottomWidth",
++    "borderColor",
++    "borderRightStyle",
++    "borderRightWidth",
++    "borderTopWidth",
++    "borderStyle",
++    "borderWidth",
++    "bottom",
++    "color",
++    "height",
++    "left",
++    "margin",
++    "marginLeft",
++    "marginRight",
++    "marginTop",
++    "minWidth",
++    "paddingLeft",
++    "position",
++    "textShadow",
++    "top",
++    "width",
++    "verticalAlign",
++];
+
+ /**
+  * Create an HTML className based on a list of classes. In addition to joining
+ @@ -108,9 +133,9 @@
+     let styles = "";
+ 
+     // Add the styles, after hyphenation
+-    for (const style in this.style) {
+-        if (this.style.hasOwnProperty(style)) {
+-            styles += `${hyphenate(style)}:${this.style[style]};`;
++    for (const key of styleKeys) {
++        if (Object.prototype.hasOwnProperty.call(this.style, key)) {
++            styles += `${hyphenate(key)}:${this.style[key]};`;
+         }
+     }
+ 
+ @@ -140,6 +165,7 @@
+     return markup;
+ };
+ 
++
+ // Making the type below exact with all optional fields doesn't work due to
+ // - https://github.com/facebook/flow/issues/4582
+ // - https://github.com/facebook/flow/issues/5688
+ @@ -334,9 +360,9 @@
+ 
+         // Add the styles, after hyphenation
+         let styles = "";
+-        for (const style in this.style) {
+-            if (this.style.hasOwnProperty(style)) {
+-                styles += `${hyphenate(style)}:${this.style[style]};`;
++        for (const key of styleKeys) {
++            if (Object.prototype.hasOwnProperty.call(this.style, key)) {
++                styles += `${hyphenate(key)}:${this.style[key]};`;
+             }
+         }
+         if (styles) {
+ @@ -469,8 +495,8 @@
+         if (this.italic > 0) {
+             styles += "margin-right:" + this.italic + "em;";
+         }
+-        for (const style in this.style) {
+-            if (this.style.hasOwnProperty(style)) {
++        for (const style of styleKeys) {
++            if (Object.prototype.hasOwnProperty.call(this.style, style)) {
+                 styles += hyphenate(style) + ":" + this.style[style] + ";";
+             }
+         }
