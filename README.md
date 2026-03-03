@@ -46,6 +46,12 @@ cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt
 
 # Render a specific inclusive line range
 cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
+
+# Only print the final summary
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --summary-only
+
+# Disable multi-threaded rendering
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --multi-threaded false
 ```
 
 Arguments:
@@ -53,6 +59,10 @@ Arguments:
 - `formulas.txt`: input file containing one LaTeX formula per line
 - `start_line`: optional 1-based inclusive start line, defaults to `1`
 - `end_line`: optional 1-based inclusive end line, defaults to the last line in the file
+- `--summary-only`: optional flag that suppresses per-formula output and only prints the final summary
+- `--multi-threaded <BOOL>`: optional boolean switch for parallel rendering, defaults to `true`
+
+Coverage testing for the CLI is documented in [docs/katex-rs-cli-coverage.md](/home/dashuai/katex-wasm/docs/katex-rs-cli-coverage.md).
 
 ## 🚀 Deploy demo to GitHub Pages
 

@@ -67,6 +67,12 @@ cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt
 
 # 渲染指定行范围
 cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
+
+# 仅输出最终汇总
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --summary-only
+
+# 关闭多线程渲染
+cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --multi-threaded false
 ```
 
 参数说明：
@@ -74,6 +80,8 @@ cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
 - `formulas.txt`: 包含 LaTeX 公式的文件路径（每行一个公式）
 - `start_line`: 起始行号（从 1 开始，可选，默认为 1）
 - `end_line`: 结束行号（可选，默认为文件最后一行）
+- `--summary-only`: 可选，只输出最终汇总，不打印逐条公式结果
+- `--multi-threaded <BOOL>`: 可选，是否启用并行渲染，默认为 `true`
 
 ## Diff Harness 测试工具
 
