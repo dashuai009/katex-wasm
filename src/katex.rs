@@ -34,6 +34,52 @@ pub fn render_to_string_for_js(expression: String, settings: &JsValue) -> String
     return render_to_string(expression, Settings::new_from_js(settings));
 }
 
+#[wasm_bindgen]
+pub fn bench_noop() {}
+
+#[wasm_bindgen]
+pub fn bench_alloc(len: usize) -> *mut u8 {
+    let mut buffer = vec![0u8; len];
+    let ptr = buffer.as_mut_ptr();
+    std::mem::forget(buffer);
+    ptr
+}
+
+#[wasm_bindgen]
+pub fn bench_dealloc(ptr: *mut u8, len: usize) {
+    if ptr.is_null() || len == 0 {
+        return;
+    }
+    unsafe {
+        drop(Vec::from_raw_parts(ptr, len, len));
+    }
+}
+
+#[wasm_bindgen]
+pub fn bench_sum_bytes(ptr: *const u8, len: usize) -> u64 {
+    if ptr.is_null() || len == 0 {
+        return 0;
+    }
+    let bytes = unsafe { std::slice::from_raw_parts(ptr, len) };
+    bytes.iter().map(|v| *v as u64).sum()
+}
+
+#[wasm_bindgen]
+pub fn bench_fill_bytes(ptr: *mut u8, len: usize, seed: u8) {
+    if ptr.is_null() || len == 0 {
+        return;
+    }
+    let bytes = unsafe { std::slice::from_raw_parts_mut(ptr, len) };
+    for (idx, value) in bytes.iter_mut().enumerate() {
+        *value = seed.wrapping_add(idx as u8);
+    }
+}
+
+#[wasm_bindgen]
+pub fn bench_echo_string(input: String) -> String {
+    input
+}
+
 const TEST_CASE: [&str; 1] = [
     // "E=mc^2",
     // "a^2+b^2=c^2",
