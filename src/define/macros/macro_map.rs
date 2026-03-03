@@ -100,6 +100,120 @@ fn hspace_macro(context: &mut MacroExpander) -> MacroDefinition {
     }
 }
 
+fn report_macro_error(
+    context: &mut MacroExpander,
+    msg: String,
+    loc: Option<crate::sourceLocation::SourceLocation>,
+) -> MacroDefinition {
+    context.report_parse_error(msg, loc);
+    MacroDefinition::Str(String::new())
+}
+
+fn read_macro_definition_arg(context: &mut MacroExpander) -> Option<super::public::MacroArg> {
+    match context.consume_arg(None) {
+        Ok(arg) => Some(arg),
+        Err(err) => {
+            context.report_parse_error(err.msg, err.loc);
+            None
+        }
+    }
+}
+
+fn newcommand_impl(
+    context: &mut MacroExpander,
+    exists_ok: bool,
+    nonexists_ok: bool,
+    skip_if_exists: bool,
+) -> MacroDefinition {
+    let Some(name_arg) = read_macro_definition_arg(context) else {
+        return MacroDefinition::Str(String::new());
+    };
+    if name_arg.tokens.len() != 1 {
+        return report_macro_error(
+            context,
+            "\\newcommand's first argument must be a macro name".to_string(),
+            None,
+        );
+    }
+    let name = name_arg.tokens[0].text.clone();
+    let exists = context.is_defined(&name);
+    if exists && !exists_ok {
+        return report_macro_error(
+            context,
+            format!(
+                "\\newcommand{{{}}} attempting to redefine {}; use \\renewcommand",
+                name, name
+            ),
+            None,
+        );
+    }
+    if !exists && !nonexists_ok {
+        return report_macro_error(
+            context,
+            format!(
+                "\\renewcommand{{{}}} when command {} does not yet exist; use \\newcommand",
+                name, name
+            ),
+            None,
+        );
+    }
+
+    let mut num_args = 0;
+    let Some(mut body_arg) = read_macro_definition_arg(context) else {
+        return MacroDefinition::Str(String::new());
+    };
+    if body_arg.tokens.len() == 1 && body_arg.tokens[0].text == "[" {
+        let mut arg_text = String::new();
+        loop {
+            let token = context.expand_next_token();
+            if token.text == "]" {
+                break;
+            }
+            if token.text == "EOF" {
+                return report_macro_error(
+                    context,
+                    "Unexpected end of input in a macro argument, expected ']'".to_string(),
+                    token.loc.clone(),
+                );
+            }
+            arg_text.push_str(token.text.as_str());
+        }
+        if !arg_text.chars().all(|ch| ch.is_ascii_whitespace() || ch.is_ascii_digit())
+            || arg_text.trim().is_empty()
+        {
+            return report_macro_error(
+                context,
+                format!("Invalid number of arguments: {}", arg_text),
+                None,
+            );
+        }
+        num_args = arg_text.trim().parse::<i32>().unwrap_or(0);
+        let Some(next_body_arg) = read_macro_definition_arg(context) else {
+            return MacroDefinition::Str(String::new());
+        };
+        body_arg = next_body_arg;
+    }
+
+    if !(exists && skip_if_exists) {
+        context
+            .macros
+            .set(&name, Some(new_me(body_arg.tokens, num_args)), false);
+    }
+    MacroDefinition::Str(String::new())
+}
+
+fn newcommand_macro(context: &mut MacroExpander) -> MacroDefinition {
+    newcommand_impl(context, false, true, false)
+}
+
+fn renewcommand_macro(context: &mut MacroExpander) -> MacroDefinition {
+    newcommand_impl(context, true, false, false)
+}
+
+fn providecommand_macro(context: &mut MacroExpander) -> MacroDefinition {
+    newcommand_impl(context, true, true, true)
+}
+
 pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
     let mut res = std::collections::HashMap::from([
         //////////////////////////////////////////////////////////////////////
@@ -331,9 +445,18 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         });
         //         return '';
         //     };
-        //     defineMacro("\\newcommand", (context) => newcommand(context, false, true));
-        //     defineMacro("\\renewcommand", (context) => newcommand(context, true, false));
-        //     defineMacro("\\providecommand", (context) => newcommand(context, true, true));
+        (
+            "\\newcommand".to_string(),
+            MacroDefinition::MacroContext(newcommand_macro),
+        ),
+        (
+            "\\renewcommand".to_string(),
+            MacroDefinition::MacroContext(renewcommand_macro),
+        ),
+        (
+            "\\providecommand".to_string(),
+            MacroDefinition::MacroContext(providecommand_macro),
+        ),
         //
         // // terminal (console) tools
         //     defineMacro("\\message", (context) => {
@@ -410,7 +533,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //     defineMacro("\u00b7", "\\cdotp");
         //
         // // \llap and \rlap render their contents in text mode
-        //     defineMacro("\\llap", "\\mathllap{\\textrm{#1}}");
+        (
+            "\\llap".to_string(),
+            MacroDefinition::Str("\\mathllap{\\textrm{#1}}".to_string()),
+        ),
         //     defineMacro("\\rlap", "\\mathrlap{\\textrm{#1}}");
         //     defineMacro("\\clap", "\\mathclap{\\textrm{#1}}");
         //
@@ -504,8 +630,14 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // // \kern6\p@\hbox{.}\hbox{.}\hbox{.}}}
         // // We'll call \varvdots, which gets a glyph from symbols.js.
         // // The zero-width rule gets us an equivalent to the vertical 6pt kern.
-        //         defineMacro("\\vdots", "\\mathord{\\varvdots\\rule{0pt}{15pt}}");
-        //         defineMacro("\u22ee", "\\vdots");
+        (
+            "\\vdots".to_string(),
+            MacroDefinition::Str("{\\varvdots\\rule{0pt}{15pt}}".to_string()),
+        ),
+        (
+            "\u{22ee}".to_string(),
+            MacroDefinition::Str("\\vdots".to_string()),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // amsmath.sty
@@ -801,16 +933,36 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // // \newcommand{\mod}[1]{\allowbreak\if@display\mkern18mu
         // //   \else\mkern12mu\fi{\operator@font mod}\,\,#1}
         // // TODO: math mode should use \medmuskip = 4mu plus 2mu minus 4mu
-        //         defineMacro("\\bmod",
-        //                     "\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}" +
-        //                         "\\mathbin{\\rm mod}" +
-        //                         "\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}");
-        //         defineMacro("\\pod", "\\allowbreak" +
-        //             "\\mathchoice{\\mkern18mu}{\\mkern8mu}{\\mkern8mu}{\\mkern8mu}(#1)");
-        //         defineMacro("\\pmod", "\\pod{{\\rm mod}\\mkern6mu#1}");
-        //         defineMacro("\\mod", "\\allowbreak" +
-        //             "\\mathchoice{\\mkern18mu}{\\mkern12mu}{\\mkern12mu}{\\mkern12mu}" +
-        //             "{\\rm mod}\\,\\,#1");
+        (
+            "\\bmod".to_string(),
+            MacroDefinition::Str(
+                "\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}\
+\\mathbin{\\rm mod}\
+\\mathchoice{\\mskip1mu}{\\mskip1mu}{\\mskip5mu}{\\mskip5mu}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\pod".to_string(),
+            MacroDefinition::Str(
+                "\\allowbreak\
+\\mathchoice{\\mkern18mu}{\\mkern8mu}{\\mkern8mu}{\\mkern8mu}(#1)"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\pmod".to_string(),
+            MacroDefinition::Str("\\pod{{\\rm mod}\\mkern6mu#1}".to_string()),
+        ),
+        (
+            "\\mod".to_string(),
+            MacroDefinition::Str(
+                "\\allowbreak\
+\\mathchoice{\\mkern18mu}{\\mkern12mu}{\\mkern12mu}{\\mkern12mu}\
+{\\rm mod}\\,\\,#1"
+                    .to_string(),
+            ),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // LaTeX source2e

@@ -202,6 +202,16 @@ impl Lexer {
         self.error.take()
     }
 
+    pub fn report_parse_error(
+        &mut self,
+        msg: String,
+        loc: Option<crate::sourceLocation::SourceLocation>,
+    ) {
+        if self.error.is_none() {
+            self.error = Some(ParseError { msg, loc });
+        }
+    }
+
     pub fn catcodes_get(&self, name: &String) -> Option<&i32> {
         return self.catcodes.get(name);
     }

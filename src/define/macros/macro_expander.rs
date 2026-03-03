@@ -74,6 +74,14 @@ impl MacroExpander<'_> {
         self.lexer.take_error()
     }
 
+    pub fn report_parse_error(
+        &mut self,
+        msg: String,
+        loc: Option<crate::sourceLocation::SourceLocation>,
+    ) {
+        self.lexer.report_parse_error(msg, loc);
+    }
+
     /**
      * Start a new group nesting within all namespaces.
      */

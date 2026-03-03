@@ -8,7 +8,7 @@ use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::span::Span;
 use crate::mathML_tree::math_node::MathNode;
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
-use crate::parse_node::check_symbol_node_type;
+use crate::parse_node::{check_symbol_node_type, check_symbol_node_type_text};
 use crate::parse_node::types::ParseNodeToAny;
 use crate::utils::is_character_box;
 use crate::Options::Options;
@@ -317,31 +317,53 @@ impl HtmlDomNode for IsMiddleSpan{
 
 
 // Delimiter functions
-fn check_delimiter(delim: &Box<dyn AnyParseNode>, func_name: &String) -> String {
-    // let symDelim = check_symbol_node_type(delim);
-    //["accent-token", "mathord", "op-token", "spacing", "textord"]; || "atom"
-    let t = if let Some(at) = delim
-        .as_any()
-        .downcast_ref::<parse_node::types::accent_token>()
-    {
-        &at.text
-    } else if let Some(mo) = delim.as_any().downcast_ref::<parse_node::types::mathord>() {
-        &mo.text
-    } else if let Some(ot) = delim.as_any().downcast_ref::<parse_node::types::op_token>() {
-        &ot.text
-    } else if let Some(s) = delim.as_any().downcast_ref::<parse_node::types::spacing>() {
-        &s.text
-    } else if let Some(t) = delim.as_any().downcast_ref::<parse_node::types::textord>() {
-        &t.text
-    } else if let Some(a) = delim.as_any().downcast_ref::<parse_node::types::atom>() {
-        &a.text
+fn delimiter_error_loc(delim: &Box<dyn AnyParseNode>) -> Option<crate::sourceLocation::SourceLocation> {
+    if let Some(node) = delim.as_any().downcast_ref::<parse_node::types::ordgroup>() {
+        node.loc.clone()
+    } else if let Some(node) = delim.as_any().downcast_ref::<parse_node::types::atom>() {
+        node.loc.clone()
+    } else if let Some(node) = delim.as_any().downcast_ref::<parse_node::types::mathord>() {
+        node.loc.clone()
+    } else if let Some(node) = delim.as_any().downcast_ref::<parse_node::types::spacing>() {
+        node.loc.clone()
+    } else if let Some(node) = delim.as_any().downcast_ref::<parse_node::types::textord>() {
+        node.loc.clone()
     } else {
-        panic!("Invalid delimiter type '{}' {:#?}", delim.get_type(), delim);
-    };
-    if DELIMITERS.contains(t) {
-        return t.clone();
+        None
+    }
+}
+
+fn invalid_delimiter_node(mode: crate::types::Mode) -> Box<dyn AnyParseNode> {
+    Box::new(parse_node::types::ordgroup {
+        mode,
+        loc: None,
+        body: vec![],
+        semisimple: false,
+    }) as Box<dyn AnyParseNode>
+}
+
+fn check_delimiter(
+    delim: &Box<dyn AnyParseNode>,
+    parser: &mut crate::Parser::Parser<'_>,
+    func_name: &str,
+) -> Option<String> {
+    if !check_symbol_node_type(delim) {
+        parser.report_parse_error(
+            format!("Invalid delimiter type '{}'", delim.get_type()),
+            delimiter_error_loc(delim),
+        );
+        return None;
+    }
+
+    let text = check_symbol_node_type_text(delim);
+    if DELIMITERS.contains(&text) {
+        Some(text)
     } else {
-        panic!("Invalid delimiter '{}' after '{}', {:#?}", t, func_name, delim);
+        parser.report_parse_error(
+            format!("Invalid delimiter '{}' after '{}'", text, func_name),
+            delimiter_error_loc(delim),
+        );
+        None
     }
 }
 
@@ -350,14 +372,17 @@ pub fn big_handler_fn(
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
-    let context = ctx.borrow();
-    let delim_text = check_delimiter(&args[0], &context.func_name);
+    let mut context = ctx.borrow_mut();
+    let func_name = context.func_name.clone();
+    let Some(delim_text) = check_delimiter(&args[0], context.parser, &func_name) else {
+        return invalid_delimiter_node(context.parser.mode);
+    };
 
     let res = parse_node::types::delimsizing {
         mode: context.parser.mode,
         loc: None,
-        size: DELIMITER_SIZES.get(&context.func_name.as_str()).unwrap().size as usize,
-        mclass: DELIMITER_SIZES.get(&context.func_name.as_str()).unwrap().mclass.clone(),
+        size: DELIMITER_SIZES.get(&func_name.as_str()).unwrap().size as usize,
+        mclass: DELIMITER_SIZES.get(&func_name.as_str()).unwrap().mclass.clone(),
         delim: delim_text,
     };
     return Box::new(res) as Box<dyn AnyParseNode>;
@@ -453,11 +478,7 @@ lazy_static! {
     });
 }
 
-fn assert_parsed(group: &parse_node::types::leftright) {
-    if group.body.len() == 0 {
-        
-        panic!("Bug: The leftright ParseNode wasn't fully parsed.");
-    }
+fn assert_parsed(_group: &parse_node::types::leftright) {
 }
 
 pub fn lrr_handler_fn(
@@ -466,6 +487,7 @@ pub fn lrr_handler_fn(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let mut context = ctx.borrow_mut();
+    let func_name = context.func_name.clone();
     // \left case below triggers parsing of \right in
     //   `let right = parser.parseFunction();`
     // uses this return value.
@@ -489,7 +511,10 @@ pub fn lrr_handler_fn(
     let res = parse_node::types::leftright_right {
         mode: context.parser.mode,
         loc: None,
-        delim: check_delimiter(&args[0], &context.func_name),
+        delim: match check_delimiter(&args[0], context.parser, &func_name) {
+            Some(delim) => delim,
+            None => return invalid_delimiter_node(context.parser.mode),
+        },
         color, // undefined if not set via \color
     };
     return Box::new(res) as Box<dyn AnyParseNode>;
@@ -518,7 +543,10 @@ pub fn lr_handler_fn(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let mut context = ctx.borrow_mut();
-    let delim_text = check_delimiter(&args[0], &context.func_name);
+    let func_name = context.func_name.clone();
+    let Some(delim_text) = check_delimiter(&args[0], context.parser, &func_name) else {
+        return invalid_delimiter_node(context.parser.mode);
+    };
     // Parse out the implicit body
     context.parser.left_right_depth += 1;
     // parseExpression stops before '\\right'
@@ -739,8 +767,11 @@ pub fn middle_handler_fn(
     args: Vec<Box<dyn AnyParseNode>>,
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
-    let delim_text = check_delimiter(&args[0], &ctx.borrow().func_name);
-    let context = ctx.borrow_mut();
+    let mut context = ctx.borrow_mut();
+    let func_name = context.func_name.clone();
+    let Some(delim_text) = check_delimiter(&args[0], context.parser, &func_name) else {
+        return invalid_delimiter_node(context.parser.mode);
+    };
     if context.parser.left_right_depth == 0 {
         panic!("\\middle without preceding \\left {}", delim_text);
     }

@@ -109,6 +109,8 @@ pub fn calculate_size(size_value: &Measurement, options: &crate::Options::Option
  */
 pub fn make_em(n: f64) -> String {
     let value = if n == 0.0 { 0.0 } else { n }; // normalize -0.0 to 0.0
+    let value = (value * 10_000.0).round() / 10_000.0;
+    let value = if value == 0.0 { 0.0 } else { value }; // normalize -0.0 after rounding
     let rounded = format!("{:.4}", value);
     let trimmed = rounded.trim_end_matches('0');
     let trimmed = trimmed.trim_end_matches('.');

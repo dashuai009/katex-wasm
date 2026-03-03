@@ -742,7 +742,7 @@ impl Parser<'_> {
             }
 
             let arg = self.parse_group_of_type(
-                format!("argument to {}", func),
+                format!("argument to '{}'", func),
                 arg_type.clone(),
                 is_optional,
             );
@@ -818,7 +818,14 @@ impl Parser<'_> {
                     if (optional) {
                         panic!("A primitive argument cannot be optional");
                     }
-                    let group = self.parse_group(name, None);
+                    let group = self.parse_group(name.clone(), None);
+                    if group.is_none() {
+                        let loc = self.fetch().loc.clone();
+                        self.report_parse_error(
+                            format!("Expected group as {}", name),
+                            loc,
+                        );
+                    }
                     return group;
                 }
                 ArgType::math => self.parse_argument_group(optional, Some(Mode::math)),
