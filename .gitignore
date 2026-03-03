@@ -1,4 +1,5 @@
 /target
+/target-local
 struct_format/target
 **/*.rs.bk
 Cargo.lock
@@ -12,6 +13,8 @@ test.rs
 test
 fonts/*
 dockers/*
+
+coverage/
 
 .DS_Store
 
