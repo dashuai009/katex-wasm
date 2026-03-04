@@ -502,8 +502,8 @@ lazy_static! {
             ],
             props,
             handler: infix_genfrac_handler_fn,
-            html_builder: Some(html_builder),
-            mathml_builder: Some(mathml_builder),
+            html_builder: None,
+            mathml_builder: None,
         }
     });
 }

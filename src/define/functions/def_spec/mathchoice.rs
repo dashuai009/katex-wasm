@@ -21,13 +21,18 @@ fn chooseMathStyle<'a>(group: &'a parse_node::types::mathchoice, options: &Optio
     let _script = crate::Style::SCRIPT.read().unwrap().size;
     let _script_script = crate::Style::SCRIPTSCRIPT.read().unwrap().size;
 
-    return match options.get_style().size {
-        _display  => &group.display,
-        _text  =>& group.text,
-        _script  => &group.script,
-        _script_script  => &group.scriptscript,
-        _ => &group.text
-    };
+    let style_size = options.get_style().size;
+    if style_size == _display {
+        &group.display
+    } else if style_size == _text {
+        &group.text
+    } else if style_size == _script {
+        &group.script
+    } else if style_size == _script_script {
+        &group.scriptscript
+    } else {
+        &group.text
+    }
 }
 
 fn handler_fn(

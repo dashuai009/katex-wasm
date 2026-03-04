@@ -100,6 +100,35 @@ fn hspace_macro(context: &mut MacroExpander) -> MacroDefinition {
     }
 }
 
+fn firstoftwo_macro(context: &mut MacroExpander) -> MacroDefinition {
+    match context.consume_args(2, None) {
+        Ok(args) => new_me(args[0].clone(), 0),
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
+fn secondoftwo_macro(context: &mut MacroExpander) -> MacroDefinition {
+    match context.consume_args(2, None) {
+        Ok(args) => new_me(args[1].clone(), 0),
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
+fn ifnextchar_macro(context: &mut MacroExpander) -> MacroDefinition {
+    match context.consume_args(3, None) {
+        Ok(args) => {
+            context.consume_spaces();
+            let next_token = context.future();
+            if args[0].len() == 1 && args[0][0].text == next_token.text {
+                new_me(args[1].clone(), 0)
+            } else {
+                new_me(args[2].clone(), 0)
+            }
+        }
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
 fn report_macro_error(
     context: &mut MacroExpander,
     msg: String,
@@ -253,40 +282,22 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //                                                           return {tokens: [t], numArgs: 0};
         //                                                       });
         //
-        // // LaTeX's \@firstoftwo{#1}{#2} expands to #1, skipping #2
-        // // TeX source: \long\def\@firstoftwo#1#2{#1}
-        //     defineMacro("\\@firstoftwo", function(context) {
-        //         const args = context.consumeArgs(2);
-        //         return {tokens: args[0], numArgs: 0};
-        //     });
-        //
-        // // LaTeX's \@secondoftwo{#1}{#2} expands to #2, skipping #1
-        // // TeX source: \long\def\@secondoftwo#1#2{#2}
-        //     defineMacro("\\@secondoftwo", function(context) {
-        //         const args = context.consumeArgs(2);
-        //         return {tokens: args[1], numArgs: 0};
-        //     });
-        //
-        // // LaTeX's \@ifnextchar{#1}{#2}{#3} looks ahead to the next (unexpanded)
-        // // symbol that isn't a space, consuming any spaces but not consuming the
-        // // first nonspace character.  If that nonspace character matches #1, then
-        // // the macro expands to #2; otherwise, it expands to #3.
-        //     defineMacro("\\@ifnextchar", function(context) {
-        //         const args = context.consumeArgs(3);  // symbol, if, else
-        //         context.consumeSpaces();
-        //         const nextToken = context.future();
-        //         if (args[0].length === 1 && args[0][0].text === nextToken.text) {
-        //             return {tokens: args[1], numArgs: 0};
-        //         } else {
-        //             return {tokens: args[2], numArgs: 0};
-        //         }
-        //     });
-        //
-        // // LaTeX's \@ifstar{#1}{#2} looks ahead to the next (unexpanded) symbol.
-        // // If it is `*`, then it consumes the symbol, and the macro expands to #1;
-        // // otherwise, the macro expands to #2 (without consuming the symbol).
-        // // TeX source: \def\@ifstar#1{\@ifnextchar *{\@firstoftwo{#1}}}
-        //     defineMacro("\\@ifstar", "\\@ifnextchar *{\\@firstoftwo{#1}}");
+        (
+            "\\@firstoftwo".to_string(),
+            MacroDefinition::MacroContext(firstoftwo_macro),
+        ),
+        (
+            "\\@secondoftwo".to_string(),
+            MacroDefinition::MacroContext(secondoftwo_macro),
+        ),
+        (
+            "\\@ifnextchar".to_string(),
+            MacroDefinition::MacroContext(ifnextchar_macro),
+        ),
+        (
+            "\\@ifstar".to_string(),
+            MacroDefinition::Str("\\@ifnextchar *{\\@firstoftwo{#1}}".to_string()),
+        ),
         //
         // LaTeX's \TextOrMath{#1}{#2} expands to #1 in text mode, #2 in math mode
         (
@@ -496,8 +507,8 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         ("\\lq".to_string(), MacroDefinition::Str("`".to_string())),
         // \def\rq{'}
         ("\\rq".to_string(), MacroDefinition::Str("'".to_string())),
-        //     defineMacro("\\aa", "\\r a");
-        //     defineMacro("\\AA", "\\r A");
+        ("\\aa".to_string(), MacroDefinition::Str("\\r a".to_string())),
+        ("\\AA".to_string(), MacroDefinition::Str("\\r A".to_string())),
         //
         // // Copyright (C) and registered (R) symbols. Use raw symbol in MathML.
         // // \DeclareTextCommandDefault{\textcopyright}{\textcircled{c}}
@@ -1014,6 +1025,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             MacroDefinition::MacroContext(hspace_macro),
         ),
         (
+            "\\operatorname".to_string(),
+            MacroDefinition::Str("\\@ifstar\\operatornamewithlimits\\operatorname@".to_string()),
+        ),
+        (
             "\\@hspace".to_string(),
             MacroDefinition::Str("\\hskip #1\\relax".to_string()),
         ),
@@ -1125,8 +1140,14 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\stackrel".to_string(),
             MacroDefinition::Str("\\mathrel{\\mathop{#2}\\limits^{#1}}".to_string()),
         ),
-        //         defineMacro("\\limsup", "\\DOTSB\\operatorname*{lim\\,sup}");
-        //         defineMacro("\\liminf", "\\DOTSB\\operatorname*{lim\\,inf}");
+        (
+            "\\limsup".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{lim\\,sup}".to_string()),
+        ),
+        (
+            "\\liminf".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{lim\\,inf}".to_string()),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // From amsopn.sty

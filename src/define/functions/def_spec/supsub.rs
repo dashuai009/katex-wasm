@@ -40,7 +40,7 @@ fn html_builder_delegate(
             let delegate = op_name.always_handle_sup_sub
                 && (options.get_style().size == style.size || op_name.limits);
             return if delegate {
-                panic!("operatorname::htmlBuilder")
+                Some(super::operatorname::html_builder)
             } else {
                 None
             };

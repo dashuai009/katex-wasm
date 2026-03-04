@@ -19,7 +19,7 @@ use std::sync::Mutex;
 // NOTE: Unlike most `html_builder`s, this one handles not only
 // "operatorname".to_string(), but also  "supsub" since \operatorname* can
 // affect super/subscripting.
-fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
+pub(crate) fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     // Operators are handled in the TeXbook pg. 443-444, rule 13(a).
     let mut supGroup = None;
     let mut subGroup = None;

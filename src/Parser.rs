@@ -1169,44 +1169,55 @@ impl Parser<'_> {
      */
     pub fn form_ligatures(
         &mut self,
-        group: Vec<Box<dyn AnyParseNode>>,
+        mut group: Vec<Box<dyn AnyParseNode>>,
     ) -> Vec<Box<dyn AnyParseNode>> {
+        let mut i = 0usize;
+        while i + 1 < group.len() {
+            if !parse_node::check_symbol_node_type(&group[i])
+                || !parse_node::check_symbol_node_type(&group[i + 1])
+            {
+                i += 1;
+                continue;
+            }
+
+            let value = parse_node::check_symbol_node_type_text(&group[i]);
+            let next_value = parse_node::check_symbol_node_type_text(&group[i + 1]);
+
+            if value == "-" && next_value == "-" {
+                let is_triple_dash = i + 2 < group.len()
+                    && parse_node::check_symbol_node_type(&group[i + 2])
+                    && parse_node::check_symbol_node_type_text(&group[i + 2]) == "-";
+
+                let end = if is_triple_dash { i + 3 } else { i + 2 };
+                let text = if is_triple_dash { "---" } else { "--" };
+
+                group.splice(
+                    i..end,
+                    [Box::new(parse_node::types::textord {
+                        mode: Mode::text,
+                        loc: None,
+                        text: text.to_string(),
+                    }) as Box<dyn AnyParseNode>],
+                );
+                i += 1;
+                continue;
+            }
+
+            if (value == "'" || value == "`") && next_value == value {
+                group.splice(
+                    i..(i + 2),
+                    [Box::new(parse_node::types::textord {
+                        mode: Mode::text,
+                        loc: None,
+                        text: format!("{value}{value}"),
+                    }) as Box<dyn AnyParseNode>],
+                );
+            }
+
+            i += 1;
+        }
+
         group
-        // let mut n = group.len() - 1;
-        // let mut i = 0usize;
-        // while i<n {
-        //     let a = group[i];
-        //     // $FlowFixMe: Not every node type has a `text` property.
-        //     let v = a.text;
-        //     if (v == "-" && group[i + 1].text == "-") {
-        //         if (i + 1 < n && group[i + 2].text == "-") {
-        //             group.splice(i..i+3,  [parse_node::types::textord{
-        //                 mode: Mode::text,
-        //                 loc: Some(SourceLocation::range(a.loc, group[i + 2].loc)),
-        //                 text: "---".to_string(),
-        //             }]);
-        //             n -= 2;
-        //         } else {
-        //             group.splice(i..i+2, [parse_node::types::text {
-        //                 loc: SourceLocation.range(a.loc, group[i + 1].loc),
-        //                 text: "--",
-        //                 mode: todo!(),
-        //                 body: todo!(),
-        //                 font: todo!(),
-        //             }]);
-        //             n -= 1;
-        //         }
-        //     }
-        //     if ((v == "'" || v == "`") && group[i + 1].text == v) {
-        //         group.splice(i..i+2,   [parse_node::types::text{
-        //             mode: Mode::text,
-        //             loc: Some(SourceLocation::range(a.loc, group[i + 1].loc)),
-        //             text: v + v,
-        //         }]);
-        //         n -= 1;
-        //     }
-        //     i+=1;
-        // }
     }
 
     /**

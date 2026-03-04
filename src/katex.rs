@@ -2,12 +2,14 @@ use crate::build::common::make_span;
 use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::span::Span;
 use crate::dom_tree::symbol_node::SymbolNode;
+use crate::parse_node::types::AnyParseNode;
 use crate::parse::parse_tree_with_error;
 use crate::parse_error::ParseError;
 use crate::settings::Settings;
 use crate::tree::HtmlDomNode;
 use crate::utils::escape;
 use crate::VirtualNode;
+use std::panic::{catch_unwind, AssertUnwindSafe};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
@@ -39,13 +41,165 @@ fn render_error_markup(error: &ParseError, expression: &str, settings: &Settings
     )
 }
 
+fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+    if let Some(message) = payload.downcast_ref::<String>() {
+        message.clone()
+    } else if let Some(message) = payload.downcast_ref::<&str>() {
+        message.to_string()
+    } else {
+        "internal render error".to_string()
+    }
+}
+
+fn contains_infix_nodes(nodes: &[Box<dyn AnyParseNode>]) -> bool {
+    nodes.iter().any(contains_infix_node)
+}
+
+fn contains_infix_node(node: &Box<dyn AnyParseNode>) -> bool {
+    if node.get_type() == "infix" {
+        return true;
+    }
+
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::array>() {
+        return group.body.iter().any(|row| contains_infix_nodes(row));
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::color>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::op>() {
+        return group
+            .body
+            .as_ref()
+            .is_some_and(|body| contains_infix_nodes(body));
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::ordgroup>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::styling>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::supsub>() {
+        return group.base.as_ref().is_some_and(contains_infix_node)
+            || group.sup.as_ref().is_some_and(contains_infix_node)
+            || group.sub.as_ref().is_some_and(contains_infix_node);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::tag>() {
+        return contains_infix_nodes(&group.body) || contains_infix_nodes(&group.tag);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::text>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::accent>() {
+        return group.base.as_ref().is_some_and(contains_infix_node);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::accentUnder>() {
+        return contains_infix_node(&group.base);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::enclose>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::font>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::genfrac>() {
+        return contains_infix_node(&group.numer) || contains_infix_node(&group.denom);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::hbox>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::horizBrace>() {
+        return contains_infix_node(&group.base);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::href>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::html>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::htmlmathml>() {
+        return contains_infix_nodes(&group.html) || contains_infix_nodes(&group.mathml);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::lap>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::leftright>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::mathchoice>() {
+        return contains_infix_nodes(&group.display)
+            || contains_infix_nodes(&group.text)
+            || contains_infix_nodes(&group.script)
+            || contains_infix_nodes(&group.scriptscript);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::mclass>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::operatorname>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::overline>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::phantom>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::hphantom>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::vphantom>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::pmb>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::raisebox>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::sizing>() {
+        return contains_infix_nodes(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::smash>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::sqrt>() {
+        return contains_infix_node(&group.body)
+            || group.index.as_ref().is_some_and(contains_infix_node);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::underline>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::vcenter>() {
+        return contains_infix_node(&group.body);
+    }
+    if let Some(group) = node.as_any().downcast_ref::<crate::parse_node::types::xArrow>() {
+        return contains_infix_node(&group.body)
+            || group.below.as_ref().is_some_and(contains_infix_node);
+    }
+
+    false
+}
+
 fn build_dom_tree(expression: &str, settings: &Settings) -> Result<Span, ParseError> {
-    let tree = parse_tree_with_error(expression.to_string(), settings.clone())?;
-    Ok(crate::build::build_tree(
-        tree,
-        expression.to_string(),
-        settings.clone(),
-    ))
+    match catch_unwind(AssertUnwindSafe(|| {
+        let tree = parse_tree_with_error(expression.to_string(), settings.clone())?;
+        if contains_infix_nodes(&tree) {
+            return Err(ParseError {
+                msg: "Got group of unknown type: 'infix'".to_string(),
+                loc: None,
+            });
+        }
+        Ok(crate::build::build_tree(
+            tree,
+            expression.to_string(),
+            settings.clone(),
+        ))
+    })) {
+        Ok(result) => result,
+        Err(payload) => Err(ParseError {
+            msg: panic_message(payload),
+            loc: None,
+        }),
+    }
 }
 
 /**
