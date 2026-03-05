@@ -548,11 +548,20 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\llap".to_string(),
             MacroDefinition::Str("\\mathllap{\\textrm{#1}}".to_string()),
         ),
-        //     defineMacro("\\rlap", "\\mathrlap{\\textrm{#1}}");
-        //     defineMacro("\\clap", "\\mathclap{\\textrm{#1}}");
+        (
+            "\\rlap".to_string(),
+            MacroDefinition::Str("\\mathrlap{\\textrm{#1}}".to_string()),
+        ),
+        (
+            "\\clap".to_string(),
+            MacroDefinition::Str("\\mathclap{\\textrm{#1}}".to_string()),
+        ),
         //
         // // \mathstrut from the TeXbook, p 360
-        //     defineMacro("\\mathstrut", "\\vphantom{(}");
+        (
+            "\\mathstrut".to_string(),
+            MacroDefinition::Str("\\vphantom{(}".to_string()),
+        ),
         //
         // \underbar from TeXbook p 353
         (
@@ -591,9 +600,11 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "≠".to_string(),
             MacroDefinition::Str("\\neq".to_string()),
         ),
-        // defineMacro("\\notin", "\\html@mathml{\\mathrel{{\\in}\\mathllap{/\\mskip1mu}}}"
-        //                        + "{\\mathrel{\\char`∉}}");
-        // defineMacro("\u2209", "\\notin");
+        (
+            "\\notin".to_string(),
+            MacroDefinition::Str("\\mathrel{{\\in}\\mathllap{/\\mskip1mu}}".to_string()),
+        ),
+        ("∉".to_string(), MacroDefinition::Str("\\notin".to_string())),
         //
         // // Unicode stacked relations
         // defineMacro("\u2258", "\\html@mathml{" +

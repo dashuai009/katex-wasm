@@ -10,10 +10,12 @@ lazy_static! {
         let a = array::ARRAY.lock().unwrap();
         let b = array::ARRAY_ALIGN.lock().unwrap();
         let c = array::MATRIX_ENVS.lock().unwrap();
+        let d = array::CASES.lock().unwrap();
         vec![
             a.clone(),
             b.clone(),
-            c.clone()
+            c.clone(),
+            d.clone()
         ]
     });
     pub static ref _environments: std::sync::RwLock<HashMap<String, FunctionSpec>> =

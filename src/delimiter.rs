@@ -783,10 +783,10 @@ pub fn make_sized_delim(
 
     // Sized delimiters are never centered.
     if STACK_LARGE_DELIMITERS.contains(&angle) || STACK_NEVER_DELIMITERS.contains(&angle) {
-        return make_large_delim(delim, size, false, options, mode, classes);
+        return make_large_delim(angle, size, false, options, mode, classes);
     } else if STACK_ALWAYS_DELIMITERS.contains(&angle) {
         return make_stacked_delim(
-            &delim,
+            angle,
             SIZE_TO_MAX_HEIGHT[size as usize],
             false,
             &options,

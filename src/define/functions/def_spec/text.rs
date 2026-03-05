@@ -27,6 +27,13 @@ fn options_with_font(group: &parse_node::types::text, options: &Options) -> Opti
             "\\textmd" => options.with_text_font_weight("textmd".to_string()),
             "\\textit" => options.with_text_font_shape(Some("textit".to_string())),
             "\\textup" => options.with_text_font_shape(Some("textup".to_string())),
+            "\\emph" => {
+                if options.fontShape() == "textit" {
+                    options.with_text_font_shape(Some("textup".to_string()))
+                } else {
+                    options.with_text_font_shape(Some("textit".to_string()))
+                }
+            }
             &_ => options.with_text_font_shape(None),
         };
     } else {
@@ -95,7 +102,7 @@ lazy_static! {
             // Font weights
             "\\textbf".to_string(), "\\textmd".to_string(),
             // Font Shapes
-            "\\textit".to_string(), "\\textup".to_string(),
+            "\\textit".to_string(), "\\textup".to_string(), "\\emph".to_string(),
         ],
             props,
             handler:text_handler_fn,

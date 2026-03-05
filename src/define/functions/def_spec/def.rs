@@ -333,4 +333,38 @@ lazy_static! {
             mathml_builder: None,
         }
     });
+
+    pub static ref INTERNAL5: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(1);
+        props.set_arg_types(vec![ArgType::primitive]);
+        props.set_allowed_in_text(true);
+        props.set_allowed_in_math(true);
+
+        FunctionDefSpec {
+            def_type: "internal".to_string(),
+            names: vec!["\\romannumeral".to_string()],
+            props,
+            handler: unsupported_control_sequence_handler_fn,
+            html_builder: None,
+            mathml_builder: None,
+        }
+    });
+}
+
+fn unsupported_control_sequence_handler_fn(
+    context: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut ctx = context.borrow_mut();
+    let func_name = ctx.func_name.clone();
+    ctx.parser.report_parse_error(
+        format!("Undefined control sequence: {}", func_name),
+        None,
+    );
+    Box::new(parse_node::types::internal {
+        mode: ctx.parser.mode,
+        loc: None,
+    }) as Box<dyn AnyParseNode>
 }

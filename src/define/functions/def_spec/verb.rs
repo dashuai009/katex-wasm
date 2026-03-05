@@ -22,21 +22,79 @@ use std::sync::Mutex;
  * \verb replaces each space with a no-break space \xA0
  */
 fn make_verb(group: &parse_node::types::verb) -> String {
-    group.body.replace(' ', if group.star { "\u{2423}" } else { "U+00A0"})
+    group.body
+        .replace(' ', if group.star { "\u{2423}" } else { "\u{00A0}" })
 }
 
 
 
 pub fn handler_fn(
     context: FunctionContext,
-    args: Vec<Box<dyn AnyParseNode>>,
-    opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
-// \verb and \verb* are dealt with directly in Parser.js.
-// If we end up here, it's because of a failure to match the two delimiters
-// in the regex in Lexer.js.  LaTeX raises the following error when \verb is
-// terminated by end of line (or file).
-    panic!("\\verb ended by end of line instead of matching delimiter");
+    let mut ctx = context.borrow_mut();
+    let mut star = false;
+    let mut delim_token = ctx.parser.fetch();
+    if delim_token.text == "*" {
+        star = true;
+        ctx.parser.consume();
+        delim_token = ctx.parser.fetch();
+    }
+
+    if delim_token.text == "EOF" {
+        ctx.parser.report_parse_error(
+            "\\verb ended by end of line instead of matching delimiter".to_string(),
+            delim_token.loc.clone(),
+        );
+        return Box::new(parse_node::types::verb {
+            mode: ctx.parser.mode,
+            loc: None,
+            body: String::new(),
+            star,
+        }) as Box<dyn AnyParseNode>;
+    }
+
+    let delimiter = delim_token.text.clone();
+    ctx.parser.consume(); // consume opening delimiter
+    let mut body = String::new();
+    loop {
+        let tok = ctx.parser.fetch();
+        if tok.text == "EOF" || tok.text.contains('\n') {
+            ctx.parser.report_parse_error(
+                "\\verb ended by end of line instead of matching delimiter".to_string(),
+                tok.loc.clone(),
+            );
+            break;
+        }
+        if tok.text == delimiter {
+            ctx.parser.consume(); // consume closing delimiter
+            return Box::new(parse_node::types::verb {
+                mode: ctx.parser.mode,
+                loc: None,
+                body,
+                star,
+            }) as Box<dyn AnyParseNode>;
+        }
+        if tok.text == " " {
+            if let Some(loc) = &tok.loc {
+                let count = (loc.end - loc.start).max(1) as usize;
+                body.push_str(&" ".repeat(count));
+            } else {
+                body.push(' ');
+            }
+        } else {
+            body.push_str(&tok.text);
+        }
+        ctx.parser.consume();
+    }
+
+    Box::new(parse_node::types::verb {
+        mode: ctx.parser.mode,
+        loc: None,
+        body,
+        star,
+    }) as Box<dyn AnyParseNode>
 }
 
 fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {

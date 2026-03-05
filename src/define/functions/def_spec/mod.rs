@@ -63,6 +63,7 @@ lazy_static! {
         let e = accentunder::ACCENTUNDER.lock().unwrap();
         let f = arrow::XARROW.lock().unwrap();
         let g = cr::CR.lock().unwrap();
+        let g2 = cr::HLINE_OUTSIDE_ARRAY.lock().unwrap();
         let h1 = enclose::COLOR_BOX.lock().unwrap();
         let h2 = enclose::FCOLOR_BOX.lock().unwrap();
         let h3 = enclose::FBOX.lock().unwrap();
@@ -131,6 +132,7 @@ lazy_static! {
         let nb = def::INTERNAL2.lock().unwrap();
         let nc = def::INTERNAL3.lock().unwrap();
         let nd = def::INTERNAL4.lock().unwrap();
+        let ne = def::INTERNAL5.lock().unwrap();
 
         let res = vec![
             x.clone(),
@@ -145,6 +147,7 @@ lazy_static! {
             e.clone(),
             f.clone(),
             g.clone(),
+            g2.clone(),
             h1.clone(),
             h2.clone(),
             h3.clone(),
@@ -201,7 +204,8 @@ lazy_static! {
             na.clone(),
             nb.clone(),
             nc.clone(),
-            nd.clone()
+            nd.clone(),
+            ne.clone()
         ];
         res
     });

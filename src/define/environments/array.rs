@@ -1272,6 +1272,25 @@ lazy_static! {
             mathml_builder: Some(array_mathml_builder),
         }
     });
+
+    pub static ref CASES: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec![
+                "cases".to_string(),
+                "dcases".to_string(),
+                "rcases".to_string(),
+                "drcases".to_string(),
+            ],
+            props,
+            handler: cases_handler_fn,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
 }
 
 // The matrix environments of amsmath builds on the array environment
@@ -1340,6 +1359,58 @@ pub fn matrix_handler_fn(
     } else {
         Box::new(res) as Box<dyn AnyParseNode>
     }
+}
+
+pub fn cases_handler_fn(
+    ctx: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    let func_name = context.func_name.clone();
+    let payload = ParseArrayArgs {
+        hskip_before_and_after: false,
+        add_jot: false,
+        cols: vec![
+            AlignSpec::Align(Align {
+                align: "l".to_string(),
+                pregap: Some("0".to_string()),
+                postgap: Some("1".to_string()),
+            }),
+            AlignSpec::Align(Align {
+                align: "l".to_string(),
+                pregap: Some("0".to_string()),
+                postgap: Some("0".to_string()),
+            }),
+        ],
+        array_stretch: Some(1.2),
+        col_separation_type: None,
+        auto_tag: false,
+        single_row: false,
+        empty_single_row: false,
+        max_num_cols: None,
+        leqno: false,
+    };
+    let res = parse_array(context.parser, payload, dCellStyle(&func_name));
+    let right_cases = func_name.contains("r");
+
+    let leftright_node = parse_node::types::leftright {
+        mode: context.parser.mode,
+        loc: None,
+        body: vec![Box::new(res) as Box<dyn AnyParseNode>],
+        left: if right_cases {
+            ".".to_string()
+        } else {
+            "\\{".to_string()
+        },
+        right: if right_cases {
+            "\\}".to_string()
+        } else {
+            ".".to_string()
+        },
+        right_color: None,
+    };
+    Box::new(leftright_node) as Box<dyn AnyParseNode>
 }
 
 // // The matrix environments of amsmath builds on the array environment

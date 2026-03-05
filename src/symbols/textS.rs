@@ -66,7 +66,7 @@ pub fn define_all_text_symbols() -> HashMap<String, Symbol> {
 
     defineSymbolM!(text, main, inner, "\u{2026}", "\\textellipsis");
 
-    defineSymbolM!(text, main, inner, "\u{2026}", "\\ldots}", true);
+    defineSymbolM!(text, main, inner, "\u{2026}", "\\ldots", true);
 
     defineSymbolM!(text, main, textord, "\u{0131}", "\\i", true);
     defineSymbolM!(text, main, textord, "\u{0237}", "\\j", true);

@@ -161,12 +161,15 @@ pub fn build_expression(
     let xx = |node: &mut Box<dyn HtmlDomNode>,
               prev: &mut Box<dyn HtmlDomNode>|
      -> Option<Box<dyn HtmlDomNode>> {
-        if let Some(prev_type) = prev.get_classes().get(0){
-            if let Some(_type) = node.get_classes().get(0){
-                if _type == "mbin" && BIN_LEFT_CANCELLER.contains(&prev_type.as_str()) {
+        let prev_type = prev.get_classes().get(0).cloned();
+        let node_type = node.get_classes().get(0).cloned();
+        if let (Some(prev_type), Some(node_type)) = (prev_type, node_type) {
+                if prev_type == "mbin" && BIN_RIGHT_CANCELLER.contains(&node_type.as_str()) {
+                    prev.get_mut_classes()[0] = "mord".to_string();
+                }
+                if node_type == "mbin" && BIN_LEFT_CANCELLER.contains(&prev_type.as_str()) {
                     node.get_mut_classes()[0] = "mord".to_string();
                 }
-            }
         }
         return None;
     };
@@ -181,34 +184,6 @@ pub fn build_expression(
         Some(Box::new(dummy_next.clone()) as Box<dyn HtmlDomNode>),
         is_root,
     );
-
-    let mut next_type = if let Some(ref next) = surrounding.1 {
-        next.as_str().to_string()
-    } else {
-        "rightmost".to_string()
-    };
-    for node in groups.iter_mut().rev() {
-        if node.has_class(&"mspace".to_string()) {
-            if is_root && node.has_class(&"newline".to_string()) {
-                next_type = "leftmost".to_string();
-            }
-            continue;
-        }
-
-        if node
-            .get_classes()
-            .get(0)
-            .map(|class| class.as_str() == "mbin")
-            .unwrap_or(false)
-            && BIN_RIGHT_CANCELLER.contains(&next_type.as_str())
-        {
-            node.get_mut_classes()[0] = "mord".to_string();
-        }
-
-        next_type = get_type_of_dom_tree(node, Some(Side::Left))
-            .map(|t| t.as_str().to_string())
-            .unwrap_or_else(|| "rightmost".to_string());
-    }
 
     traverse_non_space_nodes(
         &mut groups,

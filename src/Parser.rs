@@ -298,7 +298,25 @@ impl Parser<'_> {
         for (i, node) in body.iter().enumerate() {
             if node.get_type() == "infix" {
                 if infix_index.is_some() {
-                    panic!("only one infix operator per group");
+                    if let Some(infix) = node.as_any().downcast_ref::<parse_node::types::infix>() {
+                        if let Some(tok) = &infix.token {
+                            self.report_token_error(
+                                "only one infix operator per group".to_string(),
+                                tok,
+                            );
+                        } else {
+                            self.report_parse_error(
+                                "only one infix operator per group".to_string(),
+                                infix.loc.clone(),
+                            );
+                        }
+                    } else {
+                        self.report_parse_error(
+                            "only one infix operator per group".to_string(),
+                            None,
+                        );
+                    }
+                    return vec![];
                 }
                 infix_index = Some(i);
             }
@@ -472,7 +490,11 @@ impl Parser<'_> {
                                 op.alwaysHandleSupSub = true;
                                 Some(Box::new(op.clone()) as Box<dyn AnyParseNode>)
                             } else {
-                                unreachable!();
+                                self.report_token_error(
+                                    "Limit controls must follow a math operator".to_string(),
+                                    &lex,
+                                );
+                                return None;
                             }
                         }
                         "operatorname" => {
@@ -485,7 +507,11 @@ impl Parser<'_> {
                                 }
                                 Some(Box::new(op.clone()) as Box<dyn AnyParseNode>)
                             } else {
-                                unreachable!()
+                                self.report_token_error(
+                                    "Limit controls must follow a math operator".to_string(),
+                                    &lex,
+                                );
+                                return None;
                             }
                         }
                         _ => {
@@ -904,10 +930,11 @@ impl Parser<'_> {
         }
 
         if _str == "" {
-            panic!("Invalid {}:'{}'", modeName, firstToken.text);
-            // throw new ParseError(
-            //     "Invalid " + modeName + ": '" + firstToken.text + "'",
-            //     firstToken);
+            self.report_token_error(
+                format!("Invalid {}: '{}'", modeName, firstToken.text),
+                &firstToken,
+            );
+            return firstToken.range(&firstToken, firstToken.text.clone());
         }
         return firstToken.range(&lastToken, _str);
     }
@@ -956,6 +983,10 @@ impl Parser<'_> {
         } else {
             self.parse_string_group(ArgType::size, optional)
         };
+
+        if self.error.is_some() {
+            return None;
+        }
 
         if let Some(mut res) = _res {
             if (!optional && res.text.len() == 0) {
@@ -1241,9 +1272,12 @@ impl Parser<'_> {
             // Lexer's tokenRegex is letructed to always have matching
             // first/last characters.
             if (arg.len() < 2 || arg.chars().nth(0) != arg.chars().last()) {
-                panic!("\\verb assertion failed --");
-                // throw new ParseError(`\\verb assertion failed --
-                //     please report what input caused this bug`);
+                self.report_parse_error(
+                    "\\verb assertion failed -- please report what input caused this bug"
+                        .to_string(),
+                    nucleus.loc.clone(),
+                );
+                return None;
             }
             arg = &arg[1..arg.len() - 1]; // remove first and last char
             return Some(Box::new(parse_node::types::verb {

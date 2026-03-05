@@ -40,6 +40,25 @@ fn handler_fn(
     }) as Box<dyn AnyParseNode>;
 }
 
+fn hline_outside_array_handler_fn(
+    ctx: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    let func_name = context.func_name.clone();
+    context.parser.report_parse_error(
+        format!("{} valid only within array environment", func_name),
+        None,
+    );
+    Box::new(parse_node::types::cr {
+        mode: context.parser.mode,
+        loc: None,
+        newLine: false,
+        size: None,
+    }) as Box<dyn AnyParseNode>
+}
+
 // The following builders are called only at the top level,
 // not within tabular/array environments.
 
@@ -72,7 +91,7 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
 
 // \DeclareRobustCommand\\{...\@xnewline}
 lazy_static! {
-    pub static ref CR : Mutex<FunctionDefSpec> = Mutex::new({
+pub static ref CR : Mutex<FunctionDefSpec> = Mutex::new({
         let mut props = FunctionPropSpec::new();
         props.set_num_args(0);
         props.set_num_optional_args(1);
@@ -85,6 +104,22 @@ lazy_static! {
             ],
             props,
             handler:handler_fn,
+            html_builder: Some(html_builder),
+            mathml_builder: Some(mathml_builder),
+        }
+    });
+
+    pub static ref HLINE_OUTSIDE_ARRAY: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+        props.set_allowed_in_text(true);
+        props.set_allowed_in_math(true);
+
+        FunctionDefSpec {
+            def_type: "text".to_string(),
+            names: vec!["\\hline".to_string(), "\\hdashline".to_string()],
+            props,
+            handler: hline_outside_array_handler_fn,
             html_builder: Some(html_builder),
             mathml_builder: Some(mathml_builder),
         }
