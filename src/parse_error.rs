@@ -31,7 +31,8 @@ impl fmt::Display for ParseError {
                 if start == input.len() as usize {
                     error += " at end of input: ";
                 } else {
-                    error.push_str(&format!(" at position {}: ", start + 1));
+                    let display_pos = input[..start].chars().count() + 1;
+                    error.push_str(&format!(" at position {}: ", display_pos));
                 }
 
                 // Underline token in question using combining underscores

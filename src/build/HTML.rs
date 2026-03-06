@@ -156,32 +156,49 @@ pub fn build_expression(
     // of its `classes` array. A later cleanup should ensure this, for
     // instance by changing the signature of `make_span`.
 
+    let is_root = (is_real_group == IsRealGroup::Root);
     // Before determining what spaces to insert, perform bin cancellation.
     // Binary operators change to ordinary symbols in some contexts.
-    let xx = |node: &mut Box<dyn HtmlDomNode>,
-              prev: &mut Box<dyn HtmlDomNode>|
-     -> Option<Box<dyn HtmlDomNode>> {
-        let prev_type = prev.get_classes().get(0).cloned();
-        let node_type = node.get_classes().get(0).cloned();
-        if let (Some(prev_type), Some(node_type)) = (prev_type, node_type) {
-                if prev_type == "mbin" && BIN_RIGHT_CANCELLER.contains(&node_type.as_str()) {
-                    prev.get_mut_classes()[0] = "mord".to_string();
-                }
+    // We do this in two passes:
+    // 1) left-cancellation in forward order (`mbin` after left-cancellers),
+    // 2) right-cancellation in reverse order (`mbin` before right-cancellers).
+    // This avoids mutating a cloned "previous node".
+    traverse_non_space_nodes(
+        &mut groups,
+        &|node: &mut Box<dyn HtmlDomNode>,
+          prev: &mut Box<dyn HtmlDomNode>|
+         -> Option<Box<dyn HtmlDomNode>> {
+            let prev_type = prev.get_classes().get(0).cloned();
+            let node_type = node.get_classes().get(0).cloned();
+            if let (Some(prev_type), Some(node_type)) = (prev_type, node_type) {
                 if node_type == "mbin" && BIN_LEFT_CANCELLER.contains(&prev_type.as_str()) {
                     node.get_mut_classes()[0] = "mord".to_string();
                 }
-        }
-        return None;
-    };
-    let is_root = (is_real_group == IsRealGroup::Root);
-    traverse_non_space_nodes(
-        &mut groups,
-        &xx,
+            }
+            None
+        },
         &mut TraversePrev {
             node: Box::new(dummy_prev.clone()) as Box<dyn HtmlDomNode>,
             insert_after: None,
         },
         Some(Box::new(dummy_next.clone()) as Box<dyn HtmlDomNode>),
+        is_root,
+    );
+    let mut reverse_prev = Box::new(dummy_next.clone()) as Box<dyn HtmlDomNode>;
+    let reverse_line_reset = reverse_prev.clone();
+    traverse_non_space_nodes_reverse(
+        &|node: &mut Box<dyn HtmlDomNode>, next_node: &Box<dyn HtmlDomNode>| {
+            let node_type = node.get_classes().get(0).cloned();
+            let next_type = next_node.get_classes().get(0).cloned();
+            if let (Some(node_type), Some(next_type)) = (node_type, next_type) {
+                if node_type == "mbin" && BIN_RIGHT_CANCELLER.contains(&next_type.as_str()) {
+                    node.get_mut_classes()[0] = "mord".to_string();
+                }
+            }
+        },
+        &mut groups,
+        &mut reverse_prev,
+        &reverse_line_reset,
         is_root,
     );
 
@@ -396,6 +413,33 @@ pub fn build_group(
         return group_node;
     } else {
         return Box::new(make_span(vec![], vec![], None, CssStyle::default()));
+    }
+}
+
+fn traverse_non_space_nodes_reverse(
+    callback: &dyn Fn(&mut Box<dyn HtmlDomNode>, &Box<dyn HtmlDomNode>),
+    nodes: &mut Vec<Box<dyn HtmlDomNode>>,
+    prev: &mut Box<dyn HtmlDomNode>,
+    line_reset: &Box<dyn HtmlDomNode>,
+    is_root: bool,
+) {
+    let mut i = nodes.len();
+    while i > 0 {
+        i -= 1;
+        if check_partial_group(&nodes[i]) {
+            if let Some(partial_group) = nodes[i].get_mut_children() {
+                traverse_non_space_nodes_reverse(callback, partial_group, prev, line_reset, is_root);
+            }
+            continue;
+        }
+
+        let nonspace = !nodes[i].has_class(&"mspace".to_string());
+        if nonspace {
+            callback(&mut nodes[i], prev);
+            *prev = nodes[i].clone();
+        } else if is_root && nodes[i].has_class(&"newline".to_string()) {
+            *prev = line_reset.clone();
+        }
     }
 }
 
