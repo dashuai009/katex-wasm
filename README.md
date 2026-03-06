@@ -64,6 +64,21 @@ Arguments:
 
 Coverage testing for the CLI is documented in [docs/katex-rs-cli-coverage.md](/home/dashuai/katex-wasm/docs/katex-rs-cli-coverage.md).
 
+Quick coverage run with a `.txt` formula file:
+
+```bash
+scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas.txt
+```
+
+The coverage script uses `katex-rs-cli --summary-only` to print only the final summary.
+
+Merge coverage from two formula files:
+
+```bash
+scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part1.txt --profraw-dir coverage/profraw/part1
+scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part2.txt --profraw-dir coverage/profraw/part2 --merge-profraw coverage/profraw/part1
+```
+
 ## 🚀 Deploy demo to GitHub Pages
 
 已经提供自动化工作流：`.github/workflows/deploy-demo.yml`。

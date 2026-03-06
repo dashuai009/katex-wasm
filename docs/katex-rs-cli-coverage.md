@@ -117,7 +117,6 @@ TOTAL                                                                           
 
 ## What Is Still Not Done
 
-- A committed automation script for coverage collection has not been added yet.
 - A baseline coverage report has not been checked into the repository.
 - In restricted sandbox environments, `cargo` may fail with `Invalid cross-device link (os error 18)`. In that case, run the commands below in a normal host shell instead of the sandbox.
 
@@ -132,6 +131,37 @@ It is useful for:
 - generating a local HTML coverage report before refactors
 
 It does not replace browser-side tests or the JS vs Rust diff harness.
+
+## Automation Script (Recommended)
+
+An automation script is now available:
+
+```bash
+scripts/katex-rs-cli-coverage.sh <formulas.txt> [--profraw-dir <dir>] [--merge-profraw <path> ...]
+```
+
+Examples:
+
+```bash
+scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas.txt
+```
+
+Merge previous `.profraw` data (directory or single file):
+
+```bash
+scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part1.txt --profraw-dir coverage/profraw/part1
+scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part2.txt --profraw-dir coverage/profraw/part2 --merge-profraw coverage/profraw/part1
+```
+
+Notes:
+
+- Input must be a `.txt` formula file (one LaTeX formula per line).
+- The script runs the full flow: instrumented run, `profraw` merge, terminal summary, and HTML report generation.
+- The script invokes `katex-rs-cli` with `--summary-only`, so per-formula output is suppressed during coverage runs.
+- `--profraw-dir` controls where current-run `.profraw` files are written.
+- `--merge-profraw` adds extra `.profraw` inputs (a directory or a single `.profraw` file) into the final merged report; this flag can be repeated.
+- If `Invalid cross-device link (os error 18)` is detected, the script automatically retries with `CARGO_TARGET_DIR=/tmp/katex-wasm-coverage-target`.
+- Generated HTML report path: `coverage/html/index.html`
 
 ## Environment Setup
 
