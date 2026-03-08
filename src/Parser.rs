@@ -1,6 +1,7 @@
-use std::{any::Any, str::FromStr};
 use std::cell::RefCell;
+use std::{any::Any, str::FromStr};
 
+use crate::define::functions::public::FunctionContext2;
 /**
  * This file contains the parser used to parse out a TeX expressi&on from the
  * input. Since TeX isn't context-free, standard parsers don't work particularly
@@ -47,7 +48,6 @@ use crate::{
     types::{ArgType, BreakToken},
     unicodeSupOrSub::U_SUBS_AND_SUPS,
 };
-use crate::define::functions::public::FunctionContext2;
 
 pub struct Parser<'a> {
     pub mode: Mode,
@@ -97,10 +97,7 @@ impl Parser<'_> {
     pub fn expect(&mut self, text: String, consume: bool) {
         let token = self.fetch();
         if token.text != text {
-            self.report_token_error(
-                format!("Expected '{}', got '{}'", text, token.text),
-                &token,
-            );
+            self.report_token_error(format!("Expected '{}', got '{}'", text, token.text), &token);
             return;
         }
         if consume {
@@ -331,27 +328,29 @@ impl Parser<'_> {
         let numer_body = &body[0..infix_idx];
         let denom_body = &body[(infix_idx + 1)..];
 
-        let numerNode: Box<dyn AnyParseNode> = if numer_body.len() == 1 && numer_body[0].get_type() == "ordgroup" {
-            numer_body[0].clone()
-        } else {
-            Box::new(parse_node::types::ordgroup {
-                mode: self.mode,
-                body: numer_body.to_vec(),
-                loc: None,
-                semisimple: false,
-            })
-        };
+        let numerNode: Box<dyn AnyParseNode> =
+            if numer_body.len() == 1 && numer_body[0].get_type() == "ordgroup" {
+                numer_body[0].clone()
+            } else {
+                Box::new(parse_node::types::ordgroup {
+                    mode: self.mode,
+                    body: numer_body.to_vec(),
+                    loc: None,
+                    semisimple: false,
+                })
+            };
 
-        let denomNode: Box<dyn AnyParseNode> = if denom_body.len() == 1 && denom_body[0].get_type() == "ordgroup" {
-            denom_body[0].clone()
-        } else {
-            Box::new(parse_node::types::ordgroup {
-                mode: self.mode,
-                body: denom_body.to_vec(),
-                loc: None,
-                semisimple: false,
-            })
-        };
+        let denomNode: Box<dyn AnyParseNode> =
+            if denom_body.len() == 1 && denom_body[0].get_type() == "ordgroup" {
+                denom_body[0].clone()
+            } else {
+                Box::new(parse_node::types::ordgroup {
+                    mode: self.mode,
+                    body: denom_body.to_vec(),
+                    loc: None,
+                    semisimple: false,
+                })
+            };
 
         let func_name = infix_node
             .as_any()
@@ -574,9 +573,7 @@ impl Parser<'_> {
                 // If there's a superscript following the primes, combine that
                 // superscript in with the primes.
                 if (self.fetch().text == "^") {
-                    if let Some(prime_sup) =
-                        self.handle_sup_sub_script("superscript".to_string())
-                    {
+                    if let Some(prime_sup) = self.handle_sup_sub_script("superscript".to_string()) {
                         primes.push(prime_sup);
                     } else {
                         return None;
@@ -719,7 +716,7 @@ impl Parser<'_> {
     ) -> Box<dyn AnyParseNode> {
         let context = RefCell::new(FunctionContext2 {
             func_name: name.clone(),
-            parser:self,
+            parser: self,
             token,
             break_on_token_text,
         });
@@ -739,7 +736,8 @@ impl Parser<'_> {
         Vec<Box<dyn AnyParseNode>>,
         Vec<Option<Box<dyn AnyParseNode>>>,
     ) {
-        let total_args = (func_data.0.get_num_args() + func_data.0.get_num_optional_args()) as usize;
+        let total_args =
+            (func_data.0.get_num_args() + func_data.0.get_num_optional_args()) as usize;
         if total_args == 0 {
             return (vec![], vec![]);
         }
@@ -747,7 +745,7 @@ impl Parser<'_> {
         let mut args = vec![];
         let mut opt_args = vec![];
 
-        for i in 0..total_args{
+        for i in 0..total_args {
             if self.error.is_some() {
                 break;
             }
@@ -847,10 +845,7 @@ impl Parser<'_> {
                     let group = self.parse_group(name.clone(), None);
                     if group.is_none() {
                         let loc = self.fetch().loc.clone();
-                        self.report_parse_error(
-                            format!("Expected group as {}", name),
-                            loc,
-                        );
+                        self.report_parse_error(format!("Expected group as {}", name), loc);
                     }
                     return group;
                 }
@@ -910,7 +905,7 @@ impl Parser<'_> {
      */
     pub fn parse_regex_group(
         &mut self,
-        re: regex::Regex,
+        re: &regex::Regex,
         modeName: String, // Used to describe the mode in error messages.
     ) -> Token {
         let firstToken = self.fetch();
@@ -975,11 +970,12 @@ impl Parser<'_> {
         let mut isBlank = false;
         // don't expand before parseStringGroup
         self.gullet.consume_spaces();
+        lazy_static! {
+            static ref SIZE_REGEX: regex::Regex =
+                regex::Regex::new(r"^[-+]? *(?:$|\d+|\d+\.\d*|\.\d*) *[a-z]{0,2} *$").unwrap();
+        }
         let _res = if (!optional && self.gullet.future().text != "{") {
-            Some(self.parse_regex_group(
-                regex::Regex::new(r"^[-+]? *(?:$|\d+|\d+\.\d*|\.\d*) *[a-z]{0,2} *$").unwrap(),
-                "size".to_string(),
-            ))
+            Some(self.parse_regex_group(&SIZE_REGEX, "size".to_string()))
         } else {
             self.parse_string_group(ArgType::size, optional)
         };
@@ -1183,7 +1179,8 @@ impl Parser<'_> {
                     // throw new ParseError(
                     //     "Undefined control sequence: " + text, firstToken);
                 }
-                result = Some(Box::new(self.format_unsupported_cmd(&text)) as Box<dyn AnyParseNode>);
+                result =
+                    Some(Box::new(self.format_unsupported_cmd(&text)) as Box<dyn AnyParseNode>);
                 self.consume();
             }
         }
@@ -1295,14 +1292,12 @@ impl Parser<'_> {
             .map(|ch| ch.to_string())
             .unwrap_or_default();
         let first_text_len = first_text.len();
-        if let Some(tmp) =
-            crate::unicodeSysmbols::unicode_sysmbols_result_get(first_text.clone())
-        {
+        if let Some(tmp) = crate::unicodeSysmbols::unicode_sysmbols_result_get(first_text.clone()) {
             if crate::symbols::get_symbol(self.mode, &first_text).is_none() {
                 // This behavior is not strict (XeTeX-compatible) in math mode.
                 if (/*self.settings.get_strict() && */self.mode == Mode::math) {
                     self.settings.report_nonstrict(
-                        "unicodeTextInMathMode" ,
+                        "unicodeTextInMathMode",
                         &format!(
                             "Accented Unicode text character \"{}\" used in math mode",
                             text
@@ -1353,39 +1348,39 @@ impl Parser<'_> {
                     text: text2,
                 }) as Box<dyn AnyParseNode>,
                 Group::accent => Box::new(parse_node::types::accent {
-                    mode:  self.mode,
+                    mode: self.mode,
                     loc,
                     label: "todo!()".to_string(),
                     isStretchy: false,
                     isShifty: false,
                     base: None,
-                }) as Box<dyn AnyParseNode> ,
-                Group::mathord =>Box::new(parse_node::types::mathord{
-                    mode:  self.mode,
+                }) as Box<dyn AnyParseNode>,
+                Group::mathord => Box::new(parse_node::types::mathord {
+                    mode: self.mode,
                     loc,
-                    text:text2,
+                    text: text2,
                 }),
-                Group::op => Box::new(parse_node::types::op{
-                    mode:  self.mode,
+                Group::op => Box::new(parse_node::types::op {
+                    mode: self.mode,
                     loc,
                     limits: false,
                     alwaysHandleSupSub: false,
                     suppressBaseShift: false,
                     parentIsSupSub: false,
-                    symbol:false,
+                    symbol: false,
                     name: None,
                     body: None,
-                })as Box<dyn AnyParseNode>,
-                Group::spacing =>  Box::new(parse_node::types::spacing{
-                    mode:  self.mode,
-                    loc,
-                    text:text2,
-                })as Box<dyn AnyParseNode>,
-                Group::textord =>  Box::new(parse_node::types::textord{
+                }) as Box<dyn AnyParseNode>,
+                Group::spacing => Box::new(parse_node::types::spacing {
                     mode: self.mode,
                     loc,
-                    text:text2,
-                })as Box<dyn AnyParseNode>,
+                    text: text2,
+                }) as Box<dyn AnyParseNode>,
+                Group::textord => Box::new(parse_node::types::textord {
+                    mode: self.mode,
+                    loc,
+                    text: text2,
+                }) as Box<dyn AnyParseNode>,
             };
             symbol = s;
         } else if (text.chars().nth(0).unwrap() as u32 >= 0x80) {

@@ -11,7 +11,7 @@ use wasm_bindgen::prelude::*;
 pub struct LexerInterface {
     input: String,
     // pub tokenRegx: regex::Regex,
-    token_regex: Regex,
+    token_regex: &'static Regex,
     last_index: usize,
 }
 
@@ -26,7 +26,7 @@ impl std::fmt::Debug for LexerInterface {
     }
 }
 impl LexerInterface {
-    pub fn new(input: String, token_regex: Regex) -> LexerInterface {
+    pub fn new(input: String, token_regex: &'static Regex) -> LexerInterface {
         // console_log!("input {}",input);
         return LexerInterface {
             input,

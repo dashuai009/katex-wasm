@@ -102,7 +102,7 @@ impl Lexer {
         Lexer {
             lexer_i: LexerInterface::new(
                 input,
-                Regex::new(&TOKEN_REGEX.to_string()).unwrap(),
+                &TOKEN_REGEX,
             ),
             settings: settings.clone(),
             catcodes: HashMap::from([

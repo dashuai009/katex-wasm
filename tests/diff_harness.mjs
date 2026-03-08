@@ -3,7 +3,7 @@
  * JS-based diff harness for comparing JS KaTeX and Rust WASM KaTeX output.
  *
  * Usage:
- *   node --experimental-wasm-modules diff_harness/scripts/diff_harness.mjs <formulas.txt> [start_line] [end_line] [--summary-only]
+ *   node --experimental-wasm-modules diff_harness/scripts/diff_harness.mjs <formulas.txt> [start_line] [end_line] [--log-level <summary|normal|debug>]
  *
  * Example:
  *   node --experimental-wasm-modules diff_harness/scripts/diff_harness.mjs tests/fixtures/formulas.txt 1 5
@@ -20,21 +20,56 @@ const projectRoot = path.resolve(__dirname, '..');
 
 // ── Argument parsing ──────────────────────────────────────────────────────────
 
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const args = [];
+let logLevel;
 
-const summaryOnlyIndex = args.indexOf('--summary-only');
-const summaryOnly = summaryOnlyIndex !== -1;
-if (summaryOnly) {
-    args.splice(summaryOnlyIndex, 1);
+for (let i = 0; i < rawArgs.length; i++) {
+    const arg = rawArgs[i];
+
+    if (arg === '--log-level') {
+        const nextArg = rawArgs[i + 1];
+        if (!nextArg) {
+            console.error('Missing value for --log-level');
+            process.exit(1);
+        }
+        logLevel = nextArg;
+        i++;
+        continue;
+    }
+
+    if (arg.startsWith('--log-level=')) {
+        logLevel = arg.slice('--log-level='.length);
+        continue;
+    }
+
+    args.push(arg);
 }
 
+const validLogLevels = new Set(['summary', 'error', 'normal', 'debug']);
+logLevel ??= 'debug';
+
+if (!validLogLevels.has(logLevel)) {
+    console.error(`Invalid log level: '${logLevel}'. Expected one of: summary, normal, debug`);
+    process.exit(1);
+}
+
+const showDetails = logLevel !== 'summary';
+const errorOnly = logLevel === 'error';
+const showAllFormulaLogs = logLevel === 'normal' || logLevel === 'debug';
+const showSettings = logLevel === 'debug';
+
 if (args.length < 1) {
-    console.error('Usage: diff_harness.mjs <formulas.txt> [start_line] [end_line] [--summary-only]');
+    console.error('Usage: diff_harness.mjs <formulas.txt> [start_line] [end_line] [--log-level <summary|error|normal|debug>]');
     console.error();
     console.error('  formulas.txt   Path to a file with one LaTeX formula per line');
     console.error('  start_line     Start line number (1-based, inclusive). Default: 1');
     console.error('  end_line       End line number (1-based, inclusive). Default: last line');
-    console.error('  --summary-only Only output the final summary, not detailed results');
+    console.error('  --log-level    summary: only print the final summary');
+    console.error('                 error: only print formulas with render errors or mismatches');
+    console.error('                 normal: print per-formula render results and match status');
+    console.error('                 debug: normal output plus processed JS/Rust settings');
+    console.error('                 default: debug');
     console.error();
     console.error('Example:');
     console.error('  node --experimental-wasm-modules diff_harness/scripts/diff_harness.mjs tests/fixtures/formulas.txt 1 5');
@@ -116,11 +151,44 @@ function highlightDiff(strA, strB) {
     };
 }
 
+function htmlMatchesWithinTolerance(jsHtml, rustHtml) {
+    const jsMatches = [...jsHtml.matchAll(/(-?\d+(?:\.\d+)?)em\b/g)];
+    const rustMatches = [...rustHtml.matchAll(/(-?\d+(?:\.\d+)?)em\b/g)];
+    let jsIndex = 0;
+    let rustIndex = 0;
+
+    if (jsMatches.length !== rustMatches.length) {
+        return false;
+    }
+
+    for (let i = 0; i < jsMatches.length; i++) {
+        const jsMatch = jsMatches[i];
+        const rustMatch = rustMatches[i];
+        const jsStatic = jsHtml.slice(jsIndex, jsMatch.index);
+        const rustStatic = rustHtml.slice(rustIndex, rustMatch.index);
+        if (jsStatic !== rustStatic) {
+            return false;
+        }
+
+        const jsValue = Number(jsMatch[1]);
+        const rustValue = Number(rustMatch[1]);
+        if (Math.abs(jsValue - rustValue) > 0.001) {
+            return false;
+        }
+
+        jsIndex = jsMatch.index + jsMatch[0].length;
+        rustIndex = rustMatch.index + rustMatch[0].length;
+    }
+
+    return jsHtml.slice(jsIndex) === rustHtml.slice(rustIndex);
+}
+
 // ── Main loop ─────────────────────────────────────────────────────────────────
 
-if (!summaryOnly) {
+if (showDetails) {
     console.error(`Processing lines ${startLine}-${endLine} from '${formulaFilePath}'`);
     console.error(`Project root: ${projectRoot}`);
+    console.error(`Log level: ${logLevel}`);
     console.error();
 }
 
@@ -132,64 +200,75 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
     const formula = (allLines[lineNum - 1] || '').trim();
     if (!formula || formula.startsWith('#')) continue;
 
-    if (!summaryOnly) {
-        console.log(`${BOLD}========== Line ${lineNum} ==========${RESET}`);
-        console.log(`Formula: ${formula}`);
-        console.log();
-    }
-
     // ── Print settings (once per formula) ─────────────────────────────────
-    let rustSettings;
-    try {
-        // JS KaTeX processes options through SETTINGS_SCHEMA (defaults + processors)
-        const jsSettings = new katex.Settings(renderSettings);
-        const jsSettingsObj = {};
-        for (const key of Object.keys(katex.SETTINGS_SCHEMA)) {
-            jsSettingsObj[key] = jsSettings[key];
-        }
+    let jsSettingsObj = null;
+    let rustSettingsObj = null;
+    let settingsWarning = null;
+    if (showSettings) {
+        try {
+            // JS KaTeX processes options through SETTINGS_SCHEMA (defaults + processors)
+            const jsSettings = new katex.Settings(renderSettings);
+            jsSettingsObj = {};
+            for (const key of Object.keys(katex.SETTINGS_SCHEMA)) {
+                jsSettingsObj[key] = jsSettings[key];
+            }
 
-        rustSettings = new katexWasm.Settings(renderSettings);
-        const rustSettingsObj = rustSettings.toJsValue();
-
-        if (!summaryOnly) {
-            console.log(`${DIM}--- JS  Settings (after processing) ---${RESET}`);
-            console.log(JSON.stringify(jsSettingsObj, null, 2));
-            console.log(`${DIM}--- Rust Settings (after processing) ---${RESET}`);
-            console.log(JSON.stringify(rustSettingsObj, null, 2));
-            console.log();
-        }
-    } catch (error) {
-        if (!summaryOnly) {
-            console.log(`${YELLOW}Warning: failed to print settings: ${error.message}${RESET}`);
+            const rustSettings = new katexWasm.Settings(renderSettings);
+            rustSettingsObj = rustSettings.toJsValue();
+        } catch (error) {
+            settingsWarning = error.message;
         }
     }
 
     // ── JS KaTeX HTML ─────────────────────────────────────────────────────
     let jsHtml = '';
     let jsTime = 0;
+    let jsHadError = false;
     try {
         const jsStart = performance.now();
         jsHtml = katex.renderToString(formula, renderSettings);
         jsTime = performance.now() - jsStart;
     } catch (error) {
         jsHtml = `JS_ERROR: ${error.message || error}`;
+        jsHadError = true;
         errorCount++;
     }
 
     // ── Rust WASM HTML ────────────────────────────────────────────────────
     let rustHtml = '';
     let rustTime = 0;
+    let rustHadError = false;
     try {
         const rustStart = performance.now();
         rustHtml = katexWasm.renderToString(formula, renderSettings);
         rustTime = performance.now() - rustStart;
     } catch (error) {
         rustHtml = `RUST_ERROR: ${error.message || error}`;
+        rustHadError = true;
         errorCount++;
     }
 
-    // ── Output ────────────────────────────────────────────────────────────
-    if (!summaryOnly) {
+    // ── Compare ───────────────────────────────────────────────────────────
+    const matched = jsHtml === rustHtml || htmlMatchesWithinTolerance(jsHtml, rustHtml);
+    const shouldLogFormula = showAllFormulaLogs || (errorOnly && (jsHadError || rustHadError || !matched));
+
+    if (shouldLogFormula) {
+        console.log(`${BOLD}========== Line ${lineNum} ==========${RESET}`);
+        console.log(`Formula: ${formula}`);
+        console.log();
+
+        if (showSettings) {
+            if (settingsWarning) {
+                console.log(`${YELLOW}Warning: failed to print settings: ${settingsWarning}${RESET}`);
+            } else {
+                console.log(`${DIM}--- JS  Settings (after processing) ---${RESET}`);
+                console.log(JSON.stringify(jsSettingsObj, null, 2));
+                console.log(`${DIM}--- Rust Settings (after processing) ---${RESET}`);
+                console.log(JSON.stringify(rustSettingsObj, null, 2));
+            }
+            console.log();
+        }
+
         console.log(`${DIM}--- JS HTML (${jsTime.toFixed(2)}ms) ---${RESET}`);
         console.log(jsHtml);
         console.log();
@@ -198,16 +277,14 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
         console.log();
     }
 
-    // ── Compare ───────────────────────────────────────────────────────────
-    if (jsHtml === rustHtml) {
-        if (!summaryOnly) {
+    if (matched) {
+        if (shouldLogFormula) {
             console.log(`${GREEN}✓ MATCH${RESET}`);
         }
         passCount++;
     } else {
-        if (!summaryOnly) {
+        if (shouldLogFormula) {
             console.log(`${RED}✗ MISMATCH${RESET}`);
-            failCount++;
 
             const diff = highlightDiff(jsHtml, rustHtml);
             if (diff) {
@@ -216,11 +293,10 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
                 console.log(`  ${YELLOW}Rust:${RESET} ...${diff.rustSnippet}...`);
                 console.log(`        ${RED}${diff.marker}${RESET}`);
             }
-        } else {
-            failCount++;
         }
+        failCount++;
     }
-    if (!summaryOnly) {
+    if (shouldLogFormula) {
         console.log();
     }
 }

@@ -4,8 +4,6 @@ version = "0.1.0"
 # authors = ["dashuai009 <1525836294@qq.com>"]
 edition = "2021"
 
-[build]
-target = "x86_64-pc-windows-gnu"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -56,22 +54,9 @@ wasm-bindgen-test = "0.3.58"
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
 
-[profile.dev]
-opt-level = 0
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = false
 
-# 性能分析专用 profile
-[profile.profiling]
-inherits = "release"
-debug = true          # 保留调试符号，用于分析工具
-strip = false         # 不剥离符号
-opt-level = 3         # 最高优化级别，获得真实性能数据
-lto = true            # 禁用 LTO 以加快编译（分析时可开启）
-
-[profile.release]
-# Tell `rustc` to optimize for small code size.
-opt-level = "s"
-debug = false
-lto = true
 
 #[target.x86_64-unknown-linux-gnu]
 ## 更改链接器，增快编译速度

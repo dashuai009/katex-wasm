@@ -18,6 +18,14 @@ katex-wasm
 wasm-pack build
 ```
 
+Use the custom Cargo profile defined in `Cargo.toml` (`[profile.profiling]`):
+
+```bash
+wasm-pack build --profile profiling
+```
+
+Note: `wasm-pack build --profiling` is wasm-pack's built-in profiling mode and does not select your custom `[profile.profiling]`.
+
 ### 🔬 Test in Headless Browsers with `wasm-pack test`
 
 ```

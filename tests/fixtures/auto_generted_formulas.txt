@@ -1,0 +1,160 @@
+# Auto-generated formulas focused on low-coverage modules
+# One formula per line. Lines starting with # are skipped by diff_harness / katex-rs-cli.
+
+# ---- Macro definitions / internal parser commands (def.rs) ----
+\def\foo#1{#1^2}\foo{x}
+\gdef\bar#1#2{#1+#2}\bar{a}{b}
+\edef\baz{abc123}\baz
+\xdef\qux{xyz789}\qux
+\let\oldalpha=\alpha \oldalpha + \beta
+\global\def\gfoo#1{#1!}\gfoo{n}
+\long\def\twice#1{#1#1}\twice{z}
+\futurelet\nexttoken x\nexttoken + 1
+\romannumeral123
+
+# ---- Internal char command (char.rs) ----
+\@char{65}
+\@char{945}
+\@char{9731}
+
+# ---- Color paths (color.rs) ----
+\textcolor{ff0000}{x+y}
+\textcolor{00aa00}{\frac{a+b}{c+d}}
+\textcolor{0000ff}{x + y + z}
+\textcolor{800080}{\left( \frac{1}{1-x} \right)}
+\textcolor{ff8800}{a+b}+\textcolor{008080}{c+d}
+
+# ---- Delimiter sizing + left/right/middle (delimsizing.rs) ----
+\bigl( x \bigr)
+\Bigl[ x \Bigr]
+\biggl\{ x \biggr\}
+\Biggl\langle x \Biggr\rangle
+\big|x\big|
+\Big\|x\Big\|
+\left( a \bigm| b \right)
+\left\langle a \Bigm\| b \right\rangle
+\left\{ a \middle| b \right\}
+\left. \frac{d}{dx}f(x) \right|_{x=0}
+\left\langle x \middle/ y \right\rangle
+\left( \frac{a}{b} \middle\vert \frac{c}{d} \right)
+
+# ---- Under-accents (accentunder.rs) ----
+\underleftarrow{AB}
+\underrightarrow{AB}
+\underleftrightarrow{AB}
+\undergroup{a+b+c}
+\underlinesegment{mn}
+\utilde{xyz}
+
+# ---- xArrow family (arrow.rs) ----
+\xleftarrow{n}
+\xleftarrow[k\to\infty]{f_k}
+\xrightarrow{f}
+\xrightarrow[i\to\infty]{a_i}
+\xLeftarrow{A}
+\xRightarrow{B}
+\xleftrightarrow{C}
+\xLeftrightarrow{D}
+\xhookleftarrow{h}
+\xhookrightarrow{h}
+\xmapsto{m}
+\xrightharpoondown{r}
+\xrightharpoonup{r}
+\xleftharpoondown{l}
+\xleftharpoonup{l}
+\xrightleftharpoons{eq}
+\xleftrightharpoons{eq}
+\xlongequal{def}
+\xtwoheadrightarrow{surj}
+\xtwoheadleftarrow{inj}
+\xtofrom{swap}
+\xrightleftarrows{mix}
+\xrightequilibrium{chem}
+\xleftequilibrium{chem}
+
+# ---- Enclose family (enclose.rs, dom_tree/line_node.rs, dom_tree/svg_node.rs) ----
+\cancel{x}
+\cancel{a+b}
+\bcancel{x}
+\bcancel{a+b+c}
+\xcancel{x}
+\xcancel{a+b+c+d}
+\sout{abc}
+\fbox{x+y}
+\angl{Z}
+\phase{V}
+\colorbox{ffff00}{x+y}
+\fcolorbox{000000}{ffff00}{x+y}
+
+# ---- Links / HTML extension / images (href.rs, html.rs, includegraphics.rs, dom_tree/anchor.rs, dom_tree/img.rs) ----
+\href{https://example.com}{x+1}
+\href{https://example.com/docs?k=1#top}{\frac{a}{b}}
+\url{https://example.com/a~b}
+\url{https://example.org/path/to/resource}
+\htmlClass{cls-a cls-b}{x+y}
+\htmlId{eq-42}{x^2+y^2}
+\htmlStyle{color: blue; border: 1px solid red;}{x+y}
+\htmlData{key=value,answer=42}{x+y}
+\includegraphics{https://example.com/logo.png}
+\includegraphics[width=1.5em,height=1.2em]{https://example.com/icon.svg}
+\includegraphics[height=1.5em,totalheight=2em,alt=sample-image]{https://example.com/img/test-image.jpg}
+\includegraphics[width=10bp,height=12bp]{https://example.com/file.eps}
+
+# ---- Math class + pmb + style switches (mclass.rs, pmb.rs, styling.rs) ----
+\mathord{+}\mathbin{*}\mathrel{=}
+\mathopen{(}x\mathclose{)}
+\mathpunct{,}\mathinner{x+y}
+\pmb{A+B}
+\displaystyle \sum_{i=1}^{n} i^2
+\textstyle \frac{1}{1+x}
+\scriptstyle \frac{a}{b}
+\scriptscriptstyle x^y
+
+# ---- Array/environments (array.rs) ----
+\begin{array}{cc}a&b\\c&d\end{array}
+\begin{array}{|c|c|}\hline a&b\\\hline c&d\\\hline\end{array}
+\begin{array}{c}a\\[0.5em]b\end{array}
+\begin{array}{c}a\cr b\end{array}
+\begin{darray}{rl}x&=1\\y&=2\end{darray}
+\begin{matrix}a&b\\c&d\end{matrix}
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+\begin{bmatrix}1&0\\0&1\end{bmatrix}
+\begin{Bmatrix}a&b\\c&d\end{Bmatrix}
+\begin{vmatrix}a&b\\c&d\end{vmatrix}
+\begin{Vmatrix}a&b\\c&d\end{Vmatrix}
+\begin{cases}x^2,&x\ge0\\-x,&x<0\end{cases}
+\begin{dcases}x^2,&x\ge0\\-x,&x<0\end{dcases}
+\begin{rcases}x^2,&x\ge0\\-x,&x<0\end{rcases}
+\begin{drcases}x^2,&x\ge0\\-x,&x<0\end{drcases}
+\begin{aligned}a&=b+c\\d&=e+f\end{aligned}
+\begin{align*}a&=b\\c&=d\end{align*}
+\begin{align}a&=b+c\\d&=e+f\end{align}
+\begin{split}a&=b+c\\&=d+e\end{split}
+
+# ---- Symbol families / spacing / delimiter atoms (symbols_op.rs, symbols_ord.rs, symbols_spacing.rs) ----
+x\prime
+x^{\prime\prime\prime}
+1,2,3
+(a,b]
+\lgroup x \rgroup
+\lmoustache x \rmoustache
+\lvert x \rvert + \lVert y \rVert
+\uparrow A \downarrow + \Updownarrow B
+\forall x\in\mathbb{R},\exists y\in\mathbb{Q}
+\operatorname{Var}(X)=\mathbb{E}[X^2]-\mathbb{E}[X]^2
+
+# ---- Unicode symbol normalization / accent decomposition paths ----
+é + è + ã
+x́ + ŷ + z̃
+汉字 + テスト
+
+# ---- Extra mixed formulas for Parser/build/common hot paths ----
+\sqrt[3]{\frac{1+x}{1-x}}
+\frac{\partial^2 u}{\partial x^2}+\frac{\partial^2 u}{\partial y^2}=0
+\sum_{k=0}^{\infty}\frac{x^k}{k!}
+\prod_{i=1}^{n}(1+x_i)
+\int_{-\infty}^{\infty} e^{-x^2}\,dx
+\left(\sum_{i=1}^{n} i\right)^2
+\left\langle \vec{u},\vec{v}\right\rangle
+\verb|a_b^c|
+\verb*| spaced text |

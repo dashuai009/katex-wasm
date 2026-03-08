@@ -34,7 +34,6 @@ f:A\to B
 \mathit{abc}
 \mathrm{d}x
 \text{speed}=\frac{\text{distance}}{\text{time}}
-\color{blue}{x+y}
 \underline{x+y}
 \overline{z}
 \hat{x}
@@ -68,23 +67,146 @@ f:A\to B
 \left( \alpha' \right)^{- 1} e^{- \phi/2} f_{16} \\sim \ g^{-24} \sqrt{N} \ ,
 \Gamma_{i j}^{k} = ( \partial_{i} G_{j {\bar l}} )G^{{\bar l} k} \\
 {\cal{F}}:\ < g > = \int d^{3}\theta \ g({\vec{\theta}}) f({\vec{\theta}},t) \,
-\partial^m_a \Gamma_i = \frac{\Gamma^n}{\lambda_i} \{\delta_{nm} \psi_a^i - \phi^n_b \phi^m_c \psi_b^i \psi_c^i \frac{\psi_a^i}{\lambda_i^2} + \phi^n_b \phi^m_c \sum_{j \neq i} \psi_b^j \frac{(\psi_c^i \psi_a^j + \psi_a^i \psi_c^j)} {(\lambda_i^2 - \lambda_j^2)}\}\label{E11}\vspace{-12pt}
+\partial^m_a \Gamma_i = \frac{\Gamma^n}{\lambda_i} \{\delta_{nm} \psi_a^i - \phi^n_b \phi^m_c \psi_b^i \psi_c^i \frac{\psi_a^i}{\lambda_i^2} + \phi^n_b \phi^m_c \sum_{j \neq i} \psi_b^j \frac{(\psi_c^i \psi_a^j + \psi_a^i \psi_c^j)} {(\lambda_i^2 - \lambda_j^2)}\}
 \tilde S_{r,\Lambda}(t_2,t_1;g)=-2i\delta(t_2-t_1)H_I^{(r)}(t_1)+\tilde S'_{r,\Lambda}(t_2,t_1;g),
-\label{a12}\nu_R(E)=\int_{\mu}^{E-\mu_Q}\nu(E')\nu_Q(E-E') dE'~~~.
-{\mbox{\boldmath $e$}}(t)= \dot{{\mbox{\boldmath $x$}}} /\sqrt{ {\dot{{\mbox{\boldmath $x$}}}}^2} \label{e}\;,
+\nu_R(E)=\int_{\mu}^{E-\mu_Q}\nu(E')\nu_Q(E-E') dE'~~~.
 V_{eff}(z)=\frac{3 (5\alpha+4)k^2}{64\left({kz \over2}+1\right)^2}+{l^2 \over 2R^2}\left({kz \over 2}+1\right)^{{5 \over 2}(\alpha-2)}-{3k \over 4}\delta(z)
-\label{5.17}Z_{\rm F}[A ] = \int \!  D {\bar \psi}D \psi e^{-\int \! d^2 x\,[ \psi_{1}^{\dagger} i \partial \psi_{1} +\psi_{2}^{\dagger} i {\bar \partial} \psi_{2} -\psi_{1}^{\dagger} A\psi_{1} - \psi_{2}^{\dagger} {\bar A} \psi_{2} ] } \; ,
+Z_{\rm F}[A ] = \int \!  D {\bar \psi}D \psi e^{-\int \! d^2 x\,[ \psi_{1}^{\dagger} i \partial \psi_{1} +\psi_{2}^{\dagger} i {\bar \partial} \psi_{2} -\psi_{1}^{\dagger} A\psi_{1} - \psi_{2}^{\dagger} {\bar A} \psi_{2} ] } \; ,
 %Eq(5.2)T_{R}\;\sim\;5\left(\frac{m}{\mbox{TeV}}\right)^{3/2}\;\;\;\mbox{keV}.
-\label{proj}P_n^p = \frac{(-1)^{p+n}}{n!(p-n)!}\mathop{{\prod}'}_{k=0}^p(N-k),\quad n=0,...,p,
-T_{{\cal G}}(-t,-t^{-1})=\sum x^{i(B)}x^{-e(B)}  \label{22}
-\left. \begin{array}{ccc}S_{\sigma \sigma '}\nonumber \\ S_\Delta \nonumber \\ \tilde {S}_\Delta\end{array} \right \} \varpi= (\varpi +2) \left \{ \begin{array}{ccc}S_{\sigma \sigma '}\nonumber \\ S_\Delta \nonumber \\ \tilde {S}_\Delta\end{array} \right. .\label{3.16}
-\label{proj}P_n^p = \frac{(-1)^{p+n}}{n!(p-n)!}\mathop{{\prod}'}_{k=0}^p(N-k),\quad n=0,...,p,
+T_{{\cal G}}(-t,-t^{-1})=\sum x^{i(B)}x^{-e(B)}
+\left. \begin{array}{ccc}S_{\sigma \sigma '}\nonumber \\ S_\Delta \nonumber \\ \tilde {S}_\Delta\end{array} \right \} \varpi= (\varpi +2) \left \{ \begin{array}{ccc}S_{\sigma \sigma '}\nonumber \\ S_\Delta \nonumber \\ \tilde {S}_\Delta\end{array} \right. 
+
 V_{ab\ \ mn}^{k}=\frac{1}{g}\ E_{a}^{r}\ E_{b}^{s}\epsilon _{rs(m}\ \delta_{n)}^{i}.
-W(x) = \frac{x^3}{3} - a^2 x,        \label{eq:supercube}
+W(x) = \frac{x^3}{3} - a^2 x,
 Z_M=\sum_{j_s}\int dU_f\Pi _s\left( 2j_s+1\right) Tr_{j_s}U_s
 f(x,p;t)= \int\! da db ~\tilde{f}(a,b) ~ e^{iax(-t)} e^{ibp(-t)},
 \{ \langle n|O|p\rangle\: | n\in \Sigma_{s}^{\prime}\}
-\label{Maxwell}{\cal L}^{(0)}(B)=-{1\over 2}B^2\; ,
-\langle 0| T_{\mu\nu} |0 \rangle_{\mbox{\tiny Ren.}} = \mbox{diag} \left[\langle 0|T_{tt}|0\rangle , 0, \langle0|T_{ll}|0\rangle,\langle0|T_{ll}|0\rangle\right].\label{eq:4D_StressTensor}
+{\cal L}^{(0)}(B)=-{1\over 2}B^2\; ,
 \frac{1}{24.8\pi^2}\,\int_{\cal M} R\wedge R = \frac{1}{24.8\pi^2}\,\int_{{\cal M}} {\rm d}C = \frac{1}{24.8\pi^2}\,\int_{\partial   {\cal M}} C\, ,
-\label{con3}\quad  |A_1|^2 + |A_2|^2 - |B_1|^2 -|B_2|^2 = 0.
+\quad  |A_1|^2 + |A_2|^2 - |B_1|^2 -|B_2|^2 = 0.
+\def\foo#1{#1^2}\foo{x}
+\gdef\bar#1#2{#1+#2}\bar{a}{b}
+\edef\baz{abc123}\baz
+\xdef\qux{xyz789}\qux
+\let\oldalpha=\alpha \oldalpha + \beta
+\global\def\gfoo#1{#1!}\gfoo{n}
+\long\def\twice#1{#1#1}\twice{z}
+\@char{65}
+\@char{945}
+\@char{9731}
+\textcolor{ff0000}{x+y}
+\textcolor{00aa00}{\frac{a+b}{c+d}}
+\textcolor{0000ff}{x + y + z}
+\textcolor{800080}{\left( \frac{1}{1-x} \right)}
+\textcolor{ff8800}{a+b}+\textcolor{008080}{c+d}
+\bigl( x \bigr)
+\Bigl[ x \Bigr]
+\biggl\{ x \biggr\}
+\Biggl\langle x \Biggr\rangle
+\big|x\big|
+\Big\|x\Big\|
+\left( a \bigm| b \right)
+\left\langle a \Bigm\| b \right\rangle
+\left\{ a \middle| b \right\}
+\left. \frac{d}{dx}f(x) \right|_{x=0}
+\left\langle x \middle/ y \right\rangle
+\left( \frac{a}{b} \middle\vert \frac{c}{d} \right)
+\underleftarrow{AB}
+\underrightarrow{AB}
+\underleftrightarrow{AB}
+\undergroup{a+b+c}
+\underlinesegment{mn}
+\utilde{xyz}
+\xleftarrow{n}
+\xleftarrow[k\to\infty]{f_k}
+\xrightarrow{f}
+\xrightarrow[i\to\infty]{a_i}
+\xLeftarrow{A}
+\xRightarrow{B}
+\xleftrightarrow{C}
+\xLeftrightarrow{D}
+\xhookleftarrow{h}
+\xhookrightarrow{h}
+\xmapsto{m}
+\xrightharpoondown{r}
+\xrightharpoonup{r}
+\xleftharpoondown{l}
+\xleftharpoonup{l}
+\xrightleftharpoons{eq}
+\xleftrightharpoons{eq}
+\xlongequal{def}
+\xtwoheadrightarrow{surj}
+\xtwoheadleftarrow{inj}
+\xtofrom{swap}
+\xrightleftarrows{mix}
+\xrightequilibrium{chem}
+\xleftequilibrium{chem}
+\cancel{x}
+\cancel{a+b}
+\bcancel{x}
+\bcancel{a+b+c}
+\xcancel{x}
+\xcancel{a+b+c+d}
+\sout{abc}
+\fbox{x+y}
+\angl{Z}
+\phase{V}
+\colorbox{ffff00}{x+y}
+\fcolorbox{000000}{ffff00}{x+y}
+\href{https://example.com}{x+1}
+\href{https://example.com/docs?k=1#top}{\frac{a}{b}}
+\url{https://example.com/a~b}
+\url{https://example.org/path/to/resource}
+\htmlClass{cls-a cls-b}{x+y}
+\htmlId{eq-42}{x^2+y^2}
+\htmlStyle{color: blue; border: 1px solid red;}{x+y}
+\htmlData{key=value,answer=42}{x+y}
+\mathord{+}\mathbin{*}\mathrel{=}
+\mathopen{(}x\mathclose{)}
+\mathpunct{,}\mathinner{x+y}
+\pmb{A+B}
+\displaystyle \sum_{i=1}^{n} i^2
+\textstyle \frac{1}{1+x}
+\scriptstyle \frac{a}{b}
+\scriptscriptstyle x^y
+\begin{array}{cc}a&b\\c&d\end{array}
+\begin{array}{|c|c|}\hline a&b\\\hline c&d\\\hline\end{array}
+\begin{array}{c}a\\[0.5em]b\end{array}
+\begin{array}{c}a\cr b\end{array}
+\begin{darray}{rl}x&=1\\y&=2\end{darray}
+\begin{matrix}a&b\\c&d\end{matrix}
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+\begin{bmatrix}1&0\\0&1\end{bmatrix}
+\begin{Bmatrix}a&b\\c&d\end{Bmatrix}
+\begin{vmatrix}a&b\\c&d\end{vmatrix}
+\begin{Vmatrix}a&b\\c&d\end{Vmatrix}
+\begin{cases}x^2,&x\ge0\\-x,&x<0\end{cases}
+\begin{dcases}x^2,&x\ge0\\-x,&x<0\end{dcases}
+\begin{rcases}x^2,&x\ge0\\-x,&x<0\end{rcases}
+\begin{drcases}x^2,&x\ge0\\-x,&x<0\end{drcases}
+\begin{aligned}a&=b+c\\d&=e+f\end{aligned}
+\begin{align*}a&=b\\c&=d\end{align*}
+\begin{align}a&=b+c\\d&=e+f\end{align}
+\begin{split}a&=b+c\\&=d+e\end{split}
+x\prime
+x^{\prime\prime\prime}
+1,2,3
+(a,b]
+\lgroup x \rgroup
+\lmoustache x \rmoustache
+\lvert x \rvert + \lVert y \rVert
+\uparrow A \downarrow + \Updownarrow B
+\forall x\in\mathbb{R},\exists y\in\mathbb{Q}
+\operatorname{Var}(X)=\mathbb{E}[X^2]-\mathbb{E}[X]^2
+é + è + ã
+x́ + ŷ + z̃
+汉字 + テスト
+\sqrt[3]{\frac{1+x}{1-x}}
+\frac{\partial^2 u}{\partial x^2}+\frac{\partial^2 u}{\partial y^2}=0
+\sum_{k=0}^{\infty}\frac{x^k}{k!}
+\prod_{i=1}^{n}(1+x_i)
+\int_{-\infty}^{\infty} e^{-x^2}\,dx
+\left(\sum_{i=1}^{n} i\right)^2
+\left\langle \vec{u},\vec{v}\right\rangle
+\verb|a_b^c|
+\verb*| spaced text |
