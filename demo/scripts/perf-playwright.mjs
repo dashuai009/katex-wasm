@@ -248,6 +248,7 @@ async function main() {
         path.join("demo", "perf-results", `perf-${Date.now()}.cpuprofile`)
     );
     const cpuSamplingIntervalUs = parseIntOrDefault(args["cpu-sampling-interval-us"], 100);
+    const cpuSlowdownRate = 4;
 
     const baseUrl = args.url || `http://${host}:${port}/`;
     const shouldStartServer = !args.url;
@@ -273,8 +274,13 @@ async function main() {
         const chromium = await loadPlaywright();
         browser = await chromium.launch({ headless });
         const page = await browser.newPage();
+        cdpSession = await page.context().newCDPSession(page);
+        await cdpSession.send("Emulation.setCPUThrottlingRate", {
+            rate: cpuSlowdownRate,
+        });
+        console.log(`CPU throttling enabled: ${cpuSlowdownRate}x slowdown`);
+
         if (cpuProfilePath) {
-            cdpSession = await page.context().newCDPSession(page);
             await cdpSession.send("Profiler.enable");
             if (cpuSamplingIntervalUs > 0) {
                 await cdpSession.send("Profiler.setSamplingInterval", {

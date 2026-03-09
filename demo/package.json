@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack --mode production",
     "serve": "webpack serve",
-    "serve:profiling": "WASM_PROFILE=release webpack serve",
+    "serve:profiling": "WASM_PROFILE=profiling webpack serve",
     "build:gh-pages": "PUBLIC_PATH=/katex-wasm/ webpack --mode production",
     "perf:playwright": "node ./scripts/perf-playwright.mjs",
     "perf:playwright:flame": "node ./scripts/perf-playwright.mjs --cpu-profile ../demo/perf-results/perf.cpuprofile"

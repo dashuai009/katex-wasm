@@ -13,6 +13,11 @@ npm run serve
 ```
 
 > `demo` 依赖 `file:../pkg`，因此每次修改 Rust 代码后都需要重新执行一次 `wasm-pack build`。
+>
+> `webpack.config.j` 现在仅通过环境变量 `WASM_PROFILE` 决定 wasm profile：
+> - `WASM_PROFILE=dev` -> `wasm-pack build --dev`
+> - `WASM_PROFILE=release` -> `wasm-pack build --release`
+> - `WASM_PROFILE=profiling` -> `wasm-pack build --profile profiling`
 
 ## GitHub Pages 构建
 

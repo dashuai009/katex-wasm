@@ -1,24 +1,22 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
-const WasmPackWebpackPlugin = require('./wasm-pack-webpack-plugin');
+const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
 
 module.exports = (env, argv) => {
   const envArgs = env || {};
   const isProduction = argv.mode === 'production';
   const publicPath = process.env.PUBLIC_PATH || '/';
 
-  const wasmArgsRaw =
-    process.env.WASM_PACK_ARGS ||
-    envArgs.wasmArgs ||
-    '--no-pack';
-
   const wasmPluginOptions = {
     crateDirectory: path.resolve(__dirname, '..'),
     outDir: 'pkg',
-    outName: 'index',
-    args: wasmArgsRaw,
   };
+
+  if (process.env.WASM_PROFILE === 'profiling') {
+    wasmPluginOptions.extraArgs = '--profiling';
+    wasmPluginOptions.forceMode = 'is_not_development';
+  }
 
   console.log('webpack mode:', isProduction ? 'production' : 'development');
   console.log('wasm plugin options:', wasmPluginOptions);
@@ -35,7 +33,7 @@ module.exports = (env, argv) => {
       new HtmlWebpackPlugin({
         template: 'index.html',
       }),
-      new WasmPackWebpackPlugin(wasmPluginOptions),
+      new WasmPackPlugin(wasmPluginOptions),
       new CopyPlugin({
         patterns: [{ from: 'public', to: 'public' }],
       }),
