@@ -63,5 +63,5 @@ wasm-opt = false
 #linker = "lld"
 
 [workspace]
-members = [".", "struct_format"]
+members = [".", "struct_format", "cpuprofile-mcp"]
 
