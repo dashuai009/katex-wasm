@@ -1,43 +1,27 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
-const CopyPlugin = require("copy-webpack-plugin");
+const CopyPlugin = require('copy-webpack-plugin');
+const WasmPackWebpackPlugin = require('./wasm-pack-webpack-plugin');
 
 module.exports = (env, argv) => {
   const envArgs = env || {};
-  console.log("env:", envArgs, "argv:", argv, "crateDirectory:", path.resolve(__dirname, ".."));
-  const isProduction = argv.mode === "production";
-  const publicPath = process.env.PUBLIC_PATH || "/";
+  const isProduction = argv.mode === 'production';
+  const publicPath = process.env.PUBLIC_PATH || '/';
 
-  const wasmProfile = process.env.WASM_PROFILE || envArgs.wasmProfile || "";
-  const wasmExtraArgs = process.env.WASM_PACK_EXTRA_ARGS || envArgs.wasmExtraArgs || "";
-  const wasmArgs = process.env.WASM_PACK_ARGS || envArgs.wasmArgs || "--verbose";
-  const wasmForceModeRaw =
-    process.env.WASM_FORCE_MODE ||
-    envArgs.wasmForceMode ||
-    (isProduction ? "production" : "development");
-  const wasmForceMode =
-    wasmForceModeRaw === "production" || wasmForceModeRaw === "development"
-      ? wasmForceModeRaw
-      : undefined;
+  const wasmArgsRaw =
+    process.env.WASM_PACK_ARGS ||
+    envArgs.wasmArgs ||
+    '--no-pack';
 
-  const extraArgsParts = [];
-  if (wasmProfile) {
-    extraArgsParts.push(`--${wasmProfile}`);
-  }
-  if (wasmExtraArgs) {
-    extraArgsParts.push(wasmExtraArgs);
-  }
-  const resolvedExtraArgs = extraArgsParts.join(" ").trim();
+  const wasmPluginOptions = {
+    crateDirectory: path.resolve(__dirname, '..'),
+    outDir: 'pkg',
+    outName: 'index',
+    args: wasmArgsRaw,
+  };
 
-  let wasmPackPluginArgs = {
-    crateDirectory: path.resolve(__dirname, ".."),
-    args: wasmArgs,
-    forceMode: "production",
-    extraArgs: "--no-pack",
-    pluginLogLevel: "info",
-  }
-  console.log("wasmPackPluginArgs:", wasmPackPluginArgs);
+  console.log('webpack mode:', isProduction ? 'production' : 'development');
+  console.log('wasm plugin options:', wasmPluginOptions);
 
   return {
     entry: './bootstrap.js',
@@ -49,18 +33,16 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new HtmlWebpackPlugin({
-        template: 'index.html'
+        template: 'index.html',
       }),
-      new WasmPackPlugin(wasmPackPluginArgs),
+      new WasmPackWebpackPlugin(wasmPluginOptions),
       new CopyPlugin({
-        patterns: [
-          { from: "public", to: "public" }
-        ],
+        patterns: [{ from: 'public', to: 'public' }],
       }),
     ],
     mode: isProduction ? 'production' : 'development',
     experiments: {
-      asyncWebAssembly: true
-    }
+      asyncWebAssembly: true,
+    },
   };
 };
