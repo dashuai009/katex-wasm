@@ -2,7 +2,7 @@ use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::line_node::LineNode;
 use crate::dom_tree::utils::{this_init_node, this_to_markup, this_to_node};
 use crate::units::make_em;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use std::any::{Any, TypeId};

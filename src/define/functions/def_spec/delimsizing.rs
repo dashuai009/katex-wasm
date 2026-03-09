@@ -211,7 +211,7 @@ struct IsMiddle {
 use crate::dom_tree::line_node::LineNode;
 use crate::dom_tree::utils::{this_init_node, this_to_markup, this_to_node};
 use crate::units::make_em;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::{path_get, scriptFromCodepoint,  VirtualNode};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;

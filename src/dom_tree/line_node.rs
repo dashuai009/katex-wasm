@@ -1,6 +1,6 @@
 use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
-use crate::utils::{escape};
+use crate::utils::escape_to;
 use crate::units::make_em;
 use crate::{path_get, scriptFromCodepoint, VirtualNode};
 use js_sys::Array;

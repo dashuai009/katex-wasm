@@ -58,21 +58,19 @@ pub fn hyphenate(s: String) -> String {
         .to_lowercase();
 }
 
-pub fn escape_lookup(c: char) -> String {
-    return match c {
-        '&' => "&amp;".to_string(),
-        '>' => "&gt;".to_string(),
-        '<' => "&lt;".to_string(),
-        '\"' => "&quot;".to_string(),
-        '\'' => "&#x27;".to_string(),
-        _ => c.to_string(),
-    };
-}
-/**
- * Escapes text to prevent scripting attacks.
- */
-pub fn escape(text: &String) -> String {
-    return text.chars().map(escape_lookup).collect();
+
+
+pub fn escape_to(out: &mut String, text: &str) {
+    for c in text.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '>' => out.push_str("&gt;"),
+            '<' => out.push_str("&lt;"),
+            '\"' => out.push_str("&quot;"),
+            '\'' => out.push_str("&#x27;"),
+            _ => out.push_str(&c.to_string()),
+        };
+    }
 }
 
 /**
@@ -100,7 +98,7 @@ pub fn get_base_elem(_group: &Box<dyn AnyParseNode>) -> &Box<dyn AnyParseNode> {
         get_base_elem(&font.body)
     } else {
         _group
-    }
+    };
 }
 /**
  * TeXbook algorithms often reference "character boxes", which are simply groups

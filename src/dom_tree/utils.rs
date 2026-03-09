@@ -55,18 +55,24 @@ macro_rules! this_to_markup {
                 .collect::<Vec<_>>()
                 .join(" ");
 
-            markup.push_str(&format!(" class=\"{}\"", escape(&cl)));
+            markup.push_str(" class=\"");
+            escape_to(&mut markup, &cl);
+            markup.push('"');
         }
 
         let styles = $this.style.to_css_str();
 
         if styles != "" {
-            markup.push_str(&format!(" style=\"{}\"", escape(&styles)));
+            markup.push_str(" style=\"");
+            escape_to(&mut markup, &styles);
+            markup.push('"');
         }
 
         // Add the attributes
         for (k, v) in $this.attributes.iter() {
-            markup.push_str(&format!(" {}=\"{}\"", k, escape(&v)));
+            markup.push_str(&format!(" {}=\"", k));
+            escape_to(&mut markup, v);
+            markup.push('"');
         }
 
         markup.push_str(">");

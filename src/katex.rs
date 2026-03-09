@@ -7,7 +7,7 @@ use crate::parse::parse_tree_with_error;
 use crate::parse_error::ParseError;
 use crate::settings::Settings;
 use crate::tree::HtmlDomNode;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::VirtualNode;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use wasm_bindgen::prelude::*;
@@ -33,12 +33,15 @@ fn render_error_dom(error: &ParseError, expression: &str, settings: &Settings) -
 }
 
 fn render_error_markup(error: &ParseError, expression: &str, settings: &Settings) -> String {
-    format!(
-        "<span class=\"katex-error\" title=\"{}\" style=\"color:{}\">{}</span>",
-        escape(&format_parse_error(error)),
-        escape(&settings.get_error_color()),
-        escape(&expression.to_string()),
-    )
+    let mut markup = String::new();
+    markup.push_str("<span class=\"katex-error\" title=\"");
+    escape_to(&mut markup, &format_parse_error(error));
+    markup.push_str("\" style=\"color:");
+    escape_to(&mut markup, &settings.get_error_color());
+    markup.push_str("\">");
+    escape_to(&mut markup, expression);
+    markup.push_str("</span>");
+    return markup;
 }
 
 fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {

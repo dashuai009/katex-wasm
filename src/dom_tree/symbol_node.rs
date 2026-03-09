@@ -1,9 +1,9 @@
-use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::units::make_em;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
+use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use struct_format::html_dom_node;
@@ -150,18 +150,20 @@ impl VirtualNode for SymbolNode {
     fn to_markup(&self) -> String {
         // TODO(alpert): More duplication than I'd like from
         // span.prototype.toMarkup and symbolNode.prototype.toNode...
-        let mut markup = "<span".to_string();
+        let mut markup = String::with_capacity(self.text.len() + 64);
+        markup.push_str("<span");
 
         if self.classes.len() > 0 {
-            let cl = self.classes.iter()
+            let cl = self
+                .classes
+                .iter()
                 .filter(|c| !c.is_empty())
                 .cloned()
                 .collect::<Vec<_>>()
                 .join(" ");
-            markup.push_str(&format!(
-                " class=\"{}\"",
-                escape(&cl).as_str()
-            ));
+            markup.push_str(" class=\"");
+            escape_to(&mut markup, &cl);
+            markup.push_str("\"");
         }
 
         let mut styles = String::new();
@@ -172,15 +174,20 @@ impl VirtualNode for SymbolNode {
 
         styles.push_str(&self.style.to_css_str());
         if styles != "" {
-            markup.push_str(&format!(" style=\"{}\"", escape(&styles.to_string())).as_str());
+            markup.push_str(" style=\"");
+            escape_to(&mut markup, &styles);
+            markup.push_str("\"");
         }
         let needs_span = !self.classes.is_empty() || !styles.is_empty();
-        let escaped_text = escape(&self.text);
-        return if needs_span{
-            markup.push_str(&format!(">{escaped_text}</span>").as_str());
+        return if needs_span {
+            markup.push_str(">");
+            escape_to(&mut markup, &self.text);
+            markup.push_str("</span>");
             markup.to_string()
         } else {
-            escaped_text
+            let mut res = String::with_capacity(self.text.len());
+            escape_to(&mut res, &self.text);
+            res
         };
     }
 }

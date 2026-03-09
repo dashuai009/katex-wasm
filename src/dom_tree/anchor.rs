@@ -1,5 +1,5 @@
 use std::any::Any;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::{
     dom_tree::css_style::CssStyle,
     tree::{HtmlDomNode, VirtualNode},
