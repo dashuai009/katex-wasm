@@ -94,8 +94,6 @@ lazy_static! {
     });
     static ref tightSpacings:Mutex<__spacings>= Mutex::new({
         let thinspace_c = thinspace.lock().unwrap();
-        let mediumspace_c = mediumspace.lock().unwrap();
-        let thickspace_c = thickspace.lock().unwrap();
         let mut m = HashMap::new();
         let   mut mord = HashMap::new();
         mord.insert(String::from("mop"), thinspace_c.clone());
@@ -119,17 +117,9 @@ lazy_static! {
 
 }
 
-pub fn get_spacings(k1: String, k2: String) -> Option<Measurement> {
+pub fn get_spacings(k1: &str, k2: &str) -> Option<Measurement> {
     let _spacings = spacings.lock().unwrap();
-    let res = _spacings.get(&k1);
-
-    match res {
-        Some(p) => match p.get(&k2){
-            Some(q)=>Some(q.clone()),
-            None=>None
-        },
-        None => None,
-    }
+    _spacings.get(k1).and_then(|p| p.get(k2)).cloned()
 }
 
 #[wasm_bindgen]
@@ -158,14 +148,7 @@ macro_rules!  console_log {
 
 use std::panic;
 
-pub fn get_tightSpacings(k1: String, k2: String) -> Option<Measurement> {
+pub fn get_tightSpacings(k1: &str, k2: &str) -> Option<Measurement> {
     let _tight_spacings = tightSpacings.lock().unwrap();
-    let res = _tight_spacings.get(&k1);
-    match res {
-        Some(p) => match p.get(&k2) {
-            Some(q) =>Some(q.clone()),
-            None => None,
-        },
-        None => None,
-    }
+    _tight_spacings.get(k1).and_then(|p| p.get(k2)).cloned()
 }

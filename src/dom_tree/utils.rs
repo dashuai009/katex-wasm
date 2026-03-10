@@ -45,24 +45,27 @@ pub(crate) use this_to_node;
 
 macro_rules! this_to_markup {
     ($this:expr, $tag_name:literal) => {{
-        let mut markup = format!("<{}", $tag_name);
+        let mut markup = String::new();
+        markup.push('<');
+        markup.push_str($tag_name);
         // Add the class
 
         if $this.classes.len() > 0 {
-            let cl = $this.classes.iter()
-                .filter(|c| !c.is_empty())
-                .cloned()
-                .collect::<Vec<_>>()
-                .join(" ");
-
             markup.push_str(" class=\"");
-            escape_to(&mut markup, &cl);
+            let mut first = true;
+            for class_name in $this.classes.iter().filter(|c| !c.is_empty()) {
+                if !first {
+                    markup.push(' ');
+                }
+                escape_to(&mut markup, class_name);
+                first = false;
+            }
             markup.push('"');
         }
 
         let styles = $this.style.to_css_str();
 
-        if styles != "" {
+        if !styles.is_empty() {
             markup.push_str(" style=\"");
             escape_to(&mut markup, &styles);
             markup.push('"');
@@ -70,19 +73,23 @@ macro_rules! this_to_markup {
 
         // Add the attributes
         for (k, v) in $this.attributes.iter() {
-            markup.push_str(&format!(" {}=\"", k));
+            markup.push(' ');
+            markup.push_str(k);
+            markup.push_str("=\"");
             escape_to(&mut markup, v);
             markup.push('"');
         }
 
-        markup.push_str(">");
+        markup.push('>');
 
         // Add the markup of the children, also as markup
         for child in $this.children.iter() {
             markup.push_str(&child.to_markup());
         }
 
-        markup.push_str(&format!("</{}>", $tag_name));
+        markup.push_str("</");
+        markup.push_str($tag_name);
+        markup.push('>');
 
         markup
     }};

@@ -3,6 +3,7 @@ use crate::units::make_em;
 use crate::utils::escape_to;
 use crate::{scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
+use std::fmt::Write;
 use std::any::Any;
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -154,26 +155,26 @@ impl VirtualNode for SymbolNode {
         markup.push_str("<span");
 
         if self.classes.len() > 0 {
-            let cl = self
-                .classes
-                .iter()
-                .filter(|c| !c.is_empty())
-                .cloned()
-                .collect::<Vec<_>>()
-                .join(" ");
             markup.push_str(" class=\"");
-            escape_to(&mut markup, &cl);
+            let mut first = true;
+            for class_name in self.classes.iter().filter(|c| !c.is_empty()) {
+                if !first {
+                    markup.push(' ');
+                }
+                escape_to(&mut markup, class_name);
+                first = false;
+            }
             markup.push_str("\"");
         }
 
         let mut styles = String::new();
 
         if self.italic > 0.0 {
-            styles.push_str(&format!("margin-right:{}em;", self.italic).as_str());
+            let _ = write!(&mut styles, "margin-right:{}em;", self.italic);
         }
 
         styles.push_str(&self.style.to_css_str());
-        if styles != "" {
+        if !styles.is_empty() {
             markup.push_str(" style=\"");
             escape_to(&mut markup, &styles);
             markup.push_str("\"");
