@@ -85,7 +85,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             ("height".to_string(), make_em(viewBoxHeight / 1000.0)),
             (
                 "viewBox".to_string(),
-                format!("0 0 400000 ${viewBoxHeight}"),
+                format!("0 0 400000 {viewBoxHeight}"),
             ),
             (
                 "preserveAspectRatio".to_string(),
