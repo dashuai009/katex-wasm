@@ -150,3 +150,15 @@ wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests
 - `CLAUDE.md`: Claude Code 开发指南
 - `structure.md`: JS KaTeX 到 Rust 的模块映射关系
 - `README.md`: 项目简介
+
+
+## 如何迭代性能表现
+
+我们需要反复迭代rust代码的性能，测试环境定为浏览器，即wasm的rust代码和katex.js在浏览器中的对比。
+
+已经在demo中设计了基于playwright的性能测试命令。你需要在迭代性能的任务中遵循以下原则：
+
+1. 当前针对 `tests/fixtures/im2latex_formulas.lst` 的前1000行公式进行测试。
+2. 结果保存在`demo/perf-results`下，注意查看性能测试命令的默认值。
+3. 结果保存为不同版本，文件名以`-opt{number}`结尾，每次不同的迭代过程接续前一次的编号。baseline为上一次接迭代结束的编号。
+4. 每次修改rust代码后需要先验证改动是否保持结果正确，即需要随机前1000行的连续的50行公式，使用  Diff Harness 测试工具 测试结果正确，没有错误。

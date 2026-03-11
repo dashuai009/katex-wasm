@@ -132,10 +132,15 @@ async function prepareInputFile(inputPath) {
     }
 
     const resolvedInputPath = path.resolve(process.cwd(), inputPath);
-    const targetRelPath = "./public/perf-input.lst";
-    const targetAbsPath = path.resolve(demoDir, "public", "perf-input.lst");
+    const inputExt = path.extname(resolvedInputPath).toLowerCase() || ".lst";
+    const targetFilename = `perf-input${inputExt}`;
+    const targetRelPath = `./public/${targetFilename}`;
+    const targetAbsPath = path.resolve(demoDir, "public", targetFilename);
 
     await fs.copyFile(resolvedInputPath, targetAbsPath);
+    console.log(
+        `Copied perf input to public: ${path.relative(process.cwd(), resolvedInputPath)} -> ${targetRelPath}`
+    );
     return targetRelPath;
 }
 

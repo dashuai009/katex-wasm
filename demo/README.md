@@ -62,7 +62,7 @@ npm run perf:playwright -- \
 
 说明：
 
-- `--input`：本地公式文件路径（脚本会自动复制到 `demo/public/perf-input.lst`）
+- `--input`：本地公式文件路径；支持逐行文本文件，也支持 `.yml/.yaml`，脚本会先复制到 `demo/public/`，再由 demo 页面按文件类型解析
 - `--start/--end`：行号范围（1-based）
 - `--repeat`：重复轮次
 - `--warmup`：每轮前 N 条样本不计入统计
@@ -70,6 +70,28 @@ npm run perf:playwright -- \
 - `--output`：结果 JSON 输出路径
 - `--cpu-profile`：可选，输出 Chromium CPU profile（`.cpuprofile`），用于火焰图分析
 - `--cpu-sampling-interval-us`：可选，CPU 采样间隔（微秒），默认 `100`
+
+默认不传 `--input` 时，行为保持不变，仍然使用 `demo/public/formulas.txt`。
+
+当 `--input` 指向 `KaTeX/test/screenshotter/ss_data.yaml` 这类 YAML 文件时，demo 页面会按条目提取公式：
+
+- 值为字符串的条目，直接取该字符串
+- 值为对象且包含 `tex` 字段的条目，取 `tex`
+- YAML 中的 `display`、`macros`、`pre/post`、`styles` 等 option 不参与 perf 测试
+- `--start/--end` 对 YAML 输入按“提取后的公式顺序”生效，不按文件物理行号生效
+
+示例：
+
+```bash
+cd demo
+npm run perf:playwright -- \
+  --input ../KaTeX/test/screenshotter/ss_data.yaml \
+  --start 1 \
+  --end 50 \
+  --repeat 3 \
+  --warmup 1 \
+  --mode compute
+```
 
 ### 2.1) 导出火焰图数据（CPU Profile）
 

@@ -3,20 +3,23 @@
  * JS-based diff harness for comparing JS KaTeX and Rust WASM KaTeX output.
  *
  * Usage:
- *   node --experimental-wasm-modules diff_harness/scripts/diff_harness.mjs <formulas.txt> [start_line] [end_line] [--log-level <summary|normal|debug>]
+ *   node --experimental-wasm-modules tests/diff_harness.mjs <formulas.txt|formulas.yaml> [start_line] [end_line] [--log-level <summary|error|normal|debug>]
  *
  * Example:
- *   node --experimental-wasm-modules diff_harness/scripts/diff_harness.mjs tests/fixtures/formulas.txt 1 5
+ *   node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5
  */
 
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { performance } from 'perf_hooks';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
+const demoRequire = createRequire(path.join(projectRoot, 'demo', 'package.json'));
+const yaml = demoRequire('js-yaml');
 
 // ── Argument parsing ──────────────────────────────────────────────────────────
 
@@ -60,11 +63,12 @@ const showAllFormulaLogs = logLevel === 'normal' || logLevel === 'debug';
 const showSettings = logLevel === 'debug';
 
 if (args.length < 1) {
-    console.error('Usage: diff_harness.mjs <formulas.txt> [start_line] [end_line] [--log-level <summary|error|normal|debug>]');
+    console.error('Usage: diff_harness.mjs <formulas.txt|formulas.yaml> [start_line] [end_line] [--log-level <summary|error|normal|debug>]');
     console.error();
-    console.error('  formulas.txt   Path to a file with one LaTeX formula per line');
-    console.error('  start_line     Start line number (1-based, inclusive). Default: 1');
-    console.error('  end_line       End line number (1-based, inclusive). Default: last line');
+    console.error('  formulas.txt   Path to a text file with one LaTeX formula per line');
+    console.error('  formulas.yaml  Path to a YAML file; values are formulas or objects with a tex field');
+    console.error('  start_line     Start index (1-based, inclusive). For YAML, applies to extracted formulas');
+    console.error('  end_line       End index (1-based, inclusive). For YAML, applies to extracted formulas');
     console.error('  --log-level    summary: only print the final summary');
     console.error('                 error: only print formulas with render errors or mismatches');
     console.error('                 normal: print per-formula render results and match status');
@@ -78,14 +82,49 @@ if (args.length < 1) {
 
 const formulaFilePath = path.resolve(args[0]);
 const content = fs.readFileSync(formulaFilePath, 'utf8');
-const allLines = content.split('\n');
+const normalizedFormulaPath = formulaFilePath.toLowerCase();
+const isYamlFile = normalizedFormulaPath.endsWith('.yml') || normalizedFormulaPath.endsWith('.yaml');
+
+function extractFormulasFromYaml(filePath, rawContent) {
+    const data = yaml.load(rawContent);
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error(`Expected a top-level YAML mapping in ${filePath}`);
+    }
+
+    const formulas = [];
+    const skippedKeys = [];
+
+    for (const [key, value] of Object.entries(data)) {
+        if (typeof value === 'string') {
+            formulas.push(value);
+            continue;
+        }
+
+        if (value && typeof value === 'object' && typeof value.tex === 'string') {
+            formulas.push(value.tex);
+            continue;
+        }
+
+        skippedKeys.push(key);
+    }
+
+    if (skippedKeys.length > 0) {
+        console.error(`Skipped ${skippedKeys.length} YAML entries without a formula: ${skippedKeys.join(', ')}`);
+    }
+
+    return formulas;
+}
+
+const allLines = isYamlFile
+    ? extractFormulasFromYaml(formulaFilePath, content)
+    : content.split('\n');
 const totalLines = allLines.length;
 
 const startLine = Math.max(1, parseInt(args[1]) || 1);
 const endLine = Math.min(totalLines, parseInt(args[2]) || totalLines);
 
 if (startLine > endLine || startLine > totalLines) {
-    console.error(`Invalid line range: ${startLine}-${endLine} (file has ${totalLines} lines)`);
+    console.error(`Invalid range: ${startLine}-${endLine} (input has ${totalLines} ${isYamlFile ? 'items' : 'lines'})`);
     process.exit(1);
 }
 
@@ -186,7 +225,7 @@ function htmlMatchesWithinTolerance(jsHtml, rustHtml) {
 // ── Main loop ─────────────────────────────────────────────────────────────────
 
 if (showDetails) {
-    console.error(`Processing lines ${startLine}-${endLine} from '${formulaFilePath}'`);
+    console.error(`Processing ${isYamlFile ? 'items' : 'lines'} ${startLine}-${endLine} from '${formulaFilePath}'`);
     console.error(`Project root: ${projectRoot}`);
     console.error(`Log level: ${logLevel}`);
     console.error();
@@ -253,7 +292,7 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
     const shouldLogFormula = showAllFormulaLogs || (errorOnly && (jsHadError || rustHadError || !matched));
 
     if (shouldLogFormula) {
-        console.log(`${BOLD}========== Line ${lineNum} ==========${RESET}`);
+        console.log(`${BOLD}========== ${isYamlFile ? 'Item' : 'Line'} ${lineNum} ==========${RESET}`);
         console.log(`Formula: ${formula}`);
         console.log();
 

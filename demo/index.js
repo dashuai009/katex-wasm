@@ -1,5 +1,6 @@
 import * as katex_wasm from "katex-wasm";
 import katex from "katex";
+import yaml from "js-yaml";
 import {
     Chart,
     LinearScale,
@@ -28,8 +29,57 @@ function parseIntegerParam(rawValue, defaultValue, min = null) {
     return value;
 }
 
+function selectFormulas(formulas, startLine = 1, endLine = null, maxFormulas = null) {
+    const totalLines = formulas.length;
+    const actualStart = Math.max(1, startLine);
+    const actualEnd = endLine !== null ? Math.min(endLine, totalLines) : totalLines;
+
+    if (actualStart > totalLines || actualStart > actualEnd) {
+        return { selectedLines: [], actualStart, actualEnd };
+    }
+
+    let selectedLines = formulas.slice(actualStart - 1, actualEnd);
+    if (maxFormulas != null) {
+        selectedLines = selectedLines.slice(0, maxFormulas);
+    }
+
+    return { selectedLines, actualStart, actualEnd };
+}
+
+function extractFormulasFromYaml(filePath, text) {
+    const data = yaml.load(text);
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+        throw new Error(`Expected a top-level YAML mapping in ${filePath}`);
+    }
+
+    const formulas = [];
+    const skippedKeys = [];
+
+    for (const [key, value] of Object.entries(data)) {
+        if (typeof value === "string") {
+            formulas.push(value);
+            continue;
+        }
+
+        if (value && typeof value === "object" && typeof value.tex === "string") {
+            formulas.push(value.tex);
+            continue;
+        }
+
+        skippedKeys.push(key);
+    }
+
+    if (skippedKeys.length > 0) {
+        console.warn(
+            `Skipped ${skippedKeys.length} YAML entries without a formula: ${skippedKeys.join(", ")}`
+        );
+    }
+
+    return formulas;
+}
+
 /**
- * 从文本文件中读取指定行号范围的内容。
+ * 从文本文件或 YAML 文件中读取指定范围的公式。
  */
 async function loadFormulasFromFile(filePath, startLine = 1, endLine = null, maxFormulas = null) {
     const response = await fetch(filePath);
@@ -38,23 +88,21 @@ async function loadFormulasFromFile(filePath, startLine = 1, endLine = null, max
     }
 
     const text = await response.text();
-    const allLines = text.split("\n").filter((line) => line.trim() !== "");
+    const normalizedPath = filePath.toLowerCase();
+    const isYamlFile = normalizedPath.endsWith(".yml") || normalizedPath.endsWith(".yaml");
+    const allLines = isYamlFile
+        ? extractFormulasFromYaml(filePath, text)
+        : text.split("\n").filter((line) => line.trim() !== "");
 
-    const totalLines = allLines.length;
-    const actualStart = Math.max(1, startLine);
-    const actualEnd = endLine !== null ? Math.min(endLine, totalLines) : totalLines;
-
-    if (actualStart > totalLines || actualStart > actualEnd) {
-        return [];
-    }
-
-    let selectedLines = allLines.slice(actualStart - 1, actualEnd);
-    if (maxFormulas != null) {
-        selectedLines = selectedLines.slice(0, maxFormulas);
-    }
+    const { selectedLines, actualStart, actualEnd } = selectFormulas(
+        allLines,
+        startLine,
+        endLine,
+        maxFormulas
+    );
 
     console.log(
-        `Loaded ${selectedLines.length} formulas from ${filePath} (lines ${actualStart}-${actualEnd})`
+        `Loaded ${selectedLines.length} formulas from ${filePath} (${isYamlFile ? "items" : "lines"} ${actualStart}-${actualEnd})`
     );
 
     return selectedLines;
@@ -67,7 +115,7 @@ const rawMode = (urlParams.get("mode") || "both").toLowerCase();
 const mode = rawMode === "compute" ? "compute" : "both";
 
 const CONFIG = {
-    filePath: urlParams.get("file") || "./public/formulas.txt",
+    filePath: urlParams.get("file") || "./public/perf-input.yaml",
     startLine: parseIntegerParam(urlParams.get("start"), 1, 1),
     endLine: urlParams.get("end") ? parseIntegerParam(urlParams.get("end"), null, 1) : null,
     maxFormulas: urlParams.get("max") ? parseIntegerParam(urlParams.get("max"), null, 1) : null,

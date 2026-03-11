@@ -87,6 +87,36 @@ scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part1.txt --profraw-dir
 scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part2.txt --profraw-dir coverage/profraw/part2 --merge-profraw coverage/profraw/part1
 ```
 
+## Diff Harness
+
+Use `tests/diff_harness.mjs` to compare JS KaTeX and Rust WASM output on the same formulas.
+
+```bash
+wasm-pack build
+node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5 --log-level error
+```
+
+The harness now accepts either:
+
+- text input with one formula per line
+- YAML input such as `KaTeX/test/screenshotter/ss_data.yaml`; it extracts formulas from string values or object `tex` fields
+
+For YAML input, `start_line` and `end_line` apply to the extracted formula order, not physical file lines.
+
+```bash
+wasm-pack build
+node --experimental-wasm-modules tests/diff_harness.mjs KaTeX/test/screenshotter/ss_data.yaml 1 20 --log-level summary
+```
+
+Log levels:
+
+- `summary`: only the final summary
+- `error`: only render errors or mismatches
+- `normal`: per-formula render results and match status
+- `debug`: `normal` plus processed JS/Rust settings
+
+YAML parsing in the harness uses `demo`'s `js-yaml` dependency, so make sure `cd demo && npm install` has been run at least once before using YAML input.
+
 ## 🚀 Deploy demo to GitHub Pages
 
 已经提供自动化工作流：`.github/workflows/deploy-demo.yml`。
