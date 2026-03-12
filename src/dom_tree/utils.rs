@@ -1,7 +1,7 @@
 macro_rules! this_init_node {
     ($this:expr,$classes: expr, $options:expr, $style:expr) => {
         $this.classes = $classes;
-        $this.attributes = HashMap::new();
+        $this.attributes = Default::default();
         $this.height = 0.0;
         $this.depth = 0.0;
         $this.max_font_size = 0.0;
@@ -45,38 +45,51 @@ pub(crate) use this_to_node;
 
 macro_rules! this_to_markup {
     ($this:expr, $tag_name:literal) => {{
-        let mut markup = format!("<{}", $tag_name);
+        let mut markup = String::new();
+        markup.push('<');
+        markup.push_str($tag_name);
         // Add the class
 
         if $this.classes.len() > 0 {
-            let cl = $this.classes.iter()
-                .filter(|c| !c.is_empty())
-                .cloned()
-                .collect::<Vec<_>>()
-                .join(" ");
-
-            markup.push_str(&format!(" class=\"{}\"", escape(&cl)));
+            markup.push_str(" class=\"");
+            let mut first = true;
+            for class_name in $this.classes.iter().filter(|c| !c.is_empty()) {
+                if !first {
+                    markup.push(' ');
+                }
+                escape_to(&mut markup, class_name);
+                first = false;
+            }
+            markup.push('"');
         }
 
         let styles = $this.style.to_css_str();
 
-        if styles != "" {
-            markup.push_str(&format!(" style=\"{}\"", escape(&styles)));
+        if !styles.is_empty() {
+            markup.push_str(" style=\"");
+            escape_to(&mut markup, &styles);
+            markup.push('"');
         }
 
         // Add the attributes
         for (k, v) in $this.attributes.iter() {
-            markup.push_str(&format!(" {}=\"{}\"", k, escape(&v)));
+            markup.push(' ');
+            markup.push_str(k);
+            markup.push_str("=\"");
+            escape_to(&mut markup, v);
+            markup.push('"');
         }
 
-        markup.push_str(">");
+        markup.push('>');
 
         // Add the markup of the children, also as markup
         for child in $this.children.iter() {
             markup.push_str(&child.to_markup());
         }
 
-        markup.push_str(&format!("</{}>", $tag_name));
+        markup.push_str("</");
+        markup.push_str($tag_name);
+        markup.push('>');
 
         markup
     }};

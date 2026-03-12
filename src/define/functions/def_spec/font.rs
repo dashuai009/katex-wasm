@@ -75,7 +75,7 @@ lazy_static! {
             def_type: "font".to_string(),
             names: vec! [
         // styles, except \boldsymbol defined below
-        "\\mathrm".to_string(), "\\mathit".to_string(), "\\mathbf".to_string(), "\\mathnormal".to_string(),
+        "\\mathrm".to_string(), "\\mathit".to_string(), "\\mathbf".to_string(), "\\mathnormal".to_string(), "\\mathsfit".to_string(),
 
         // families
         "\\mathbb".to_string(), "\\mathcal".to_string(), "\\mathfrak".to_string(), "\\mathscr".to_string(), "\\mathsf".to_string(),

@@ -94,6 +94,48 @@ pub struct Lexer {
 // set tokenRegex(t: RegExp) {
 // this.lexerI.tokenRegex = t;
 // }
+impl Lexer {
+    fn lex_verb_token(&mut self, pos: usize) -> Option<Token> {
+        let input = self.lexer_i.get_input().to_string();
+        let remaining = &input[pos..];
+        if !remaining.starts_with("\\verb") {
+            return None;
+        }
+
+        let mut chars = remaining.char_indices();
+        chars.next()?;
+        chars.next()?;
+        chars.next()?;
+        chars.next()?;
+        chars.next()?;
+
+        let (mut delim_offset, mut delimiter) = chars.next()?;
+        if delimiter == '*' {
+            let (offset, ch) = chars.next()?;
+            delim_offset = offset;
+            delimiter = ch;
+        }
+
+        if delimiter.is_ascii_alphabetic() {
+            return None;
+        }
+
+        let body_start = pos + delim_offset + delimiter.len_utf8();
+        let body = &input[body_start..];
+        let body_end = body.find(delimiter)?;
+        let end = body_start + body_end + delimiter.len_utf8();
+        let text = input[pos..end].to_string();
+        self.lexer_i.set_last_index(end);
+
+        Some(Token {
+            text,
+            loc: Some(SourceLocation::new(&self.lexer_i, pos as f64, end as f32)),
+            noexpand: false,
+            treatAsRelax: false,
+        })
+    }
+}
+
 #[wasm_bindgen]
 impl Lexer {
     #[wasm_bindgen(constructor)]
@@ -102,7 +144,7 @@ impl Lexer {
         Lexer {
             lexer_i: LexerInterface::new(
                 input,
-                Regex::new(&TOKEN_REGEX.to_string()).unwrap(),
+                &TOKEN_REGEX,
             ),
             settings: settings.clone(),
             catcodes: HashMap::from([
@@ -133,6 +175,10 @@ impl Lexer {
                 noexpand: false,
                 treatAsRelax: false,
             };
+        }
+
+        if let Some(token) = self.lex_verb_token(pos) {
+            return token;
         }
 
         let _match = self.lexer_i.captures();

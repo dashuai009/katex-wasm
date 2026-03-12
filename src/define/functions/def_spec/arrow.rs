@@ -14,6 +14,13 @@ use crate::Options::Options;
 use crate::{parse_node, stretchy, AnyParseNode, HtmlDomNode};
 use std::sync::Mutex;
 
+fn is_empty_ordgroup(node: &dyn AnyParseNode) -> bool {
+    node.as_any()
+        .downcast_ref::<parse_node::types::ordgroup>()
+        .map(|group| group.body.is_empty() && group.semisimple)
+        .unwrap_or(false)
+}
+
 // Helper function
 fn paddedNode(group: Option<Box<dyn MathDomNode>>) -> MathNode {
     let mut node = MathNode::new(
@@ -32,12 +39,20 @@ fn handler_fn(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let context = ctx.borrow();
+    let body = args.get(0).cloned().unwrap_or_else(|| {
+        Box::new(parse_node::types::ordgroup {
+            mode: context.parser.mode,
+            loc: None,
+            body: vec![],
+            semisimple: true,
+        }) as Box<dyn AnyParseNode>
+    });
     return Box::new(parse_node::types::xArrow {
         mode: context.parser.mode,
         loc: None,
         label: context.func_name.clone(),
-        body: args[0].clone(),
-        below: opt_args[0].clone(),
+        body,
+        below: opt_args.get(0).cloned().unwrap_or(None),
     }) as Box<dyn AnyParseNode>;
 }
 
@@ -56,8 +71,13 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     // Some groups can return document fragments.  Handle those by wrapping
     // them in a span.
     let mut new_options = options.having_style(&style.sup());
+    let upper_body = if is_empty_ordgroup(group.body.as_ref()) {
+        None
+    } else {
+        Some(group.body.clone())
+    };
     let mut upper_group = common::wrap_fragment(
-        HTML::build_group(Some(group.body.clone()), new_options, Some(options.clone())),
+        HTML::build_group(upper_body, new_options, Some(options.clone())),
         &options,
     );
     let arrow_prefix = if &group.label[0..2] == "\\x" {
@@ -73,8 +93,13 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     if let Some(below) = &group.below {
         // Build the lower group
         new_options = options.having_style(&style.sub());
+        let below_body = if is_empty_ordgroup(below.as_ref()) {
+            None
+        } else {
+            Some(below.clone())
+        };
         let mut tmp = common::wrap_fragment(
-            HTML::build_group(Some(below.clone()), new_options, Some(options.clone())),
+            HTML::build_group(below_body, new_options, Some(options.clone())),
             &options,
         );
         tmp.get_mut_classes()
@@ -196,26 +221,63 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
     );
     let node;
 
-    // if (group.body) {
-    let upper_node = paddedNode(Some(mathML::build_group(
-        Some(group.body.clone()),
-        options.clone(),
-    )));
-    if let Some(below) = &group.below {
+    let upper_body = if is_empty_ordgroup(group.body.as_ref()) {
+        None
+    } else {
+        Some(group.body.clone())
+    };
+    let lower_body = group.below.as_ref().and_then(|below| {
+        if is_empty_ordgroup(below.as_ref()) {
+            None
+        } else {
+            Some(below.clone())
+        }
+    });
+
+    if let Some(upper_body) = upper_body {
+        let upper_node = paddedNode(Some(mathML::build_group(
+            Some(upper_body),
+            options.clone(),
+        )));
+        if let Some(below_body) = lower_body {
+            let lower_node = paddedNode(Some(mathML::build_group(
+                Some(below_body),
+                options.clone(),
+            )));
+            node = MathNode::new(
+                MathNodeType::Munderover,
+                vec![
+                    Box::new(arrowNode) as Box<dyn MathDomNode>,
+                    Box::new(lower_node) as Box<dyn MathDomNode>,
+                    Box::new(upper_node) as Box<dyn MathDomNode>,
+                ],
+                vec![],
+            );
+        } else {
+            node = MathNode::new(
+                MathNodeType::Mover,
+                vec![
+                    Box::new(arrowNode) as Box<dyn MathDomNode>,
+                    Box::new(upper_node) as Box<dyn MathDomNode>,
+                ],
+                vec![],
+            );
+        }
+    } else if let Some(below_body) = lower_body {
         let lower_node = paddedNode(Some(mathML::build_group(
-            Some(below.clone()),
+            Some(below_body),
             options.clone(),
         )));
         node = MathNode::new(
-            MathNodeType::Munderover,
+            MathNodeType::Munder,
             vec![
                 Box::new(arrowNode) as Box<dyn MathDomNode>,
                 Box::new(lower_node) as Box<dyn MathDomNode>,
-                Box::new(upper_node) as Box<dyn MathDomNode>,
             ],
             vec![],
         );
     } else {
+        let upper_node = paddedNode(None);
         node = MathNode::new(
             MathNodeType::Mover,
             vec![
@@ -225,15 +287,6 @@ pub fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dy
             vec![],
         );
     }
-    // } else if (group.below) {
-    //     let lowerNode = paddedNode(mml.buildGroup(group.below, options));
-    //     node = MathNode::new(MathNodeType::Munder, [arrowNode, lowerNode]);
-    // } else {
-    //     // This should never happen.
-    //     // Parser.js throws an error if there is no argument.
-    //     node = paddedNode(None);
-    //     node = MathNode::new("mover", [arrowNode, node]);
-    // }
     return Box::new(node) as Box<dyn MathDomNode>;
 }
 

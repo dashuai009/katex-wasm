@@ -12,7 +12,7 @@ use crate::settings::TrustContext;
 use crate::utils::is_character_box;
 use crate::Options::Options;
 use crate::{parse_node, types::ArgType, AnyParseNode, HtmlDomNode};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use std::sync::Mutex;
 
 fn handler_fn(
@@ -36,7 +36,7 @@ fn handler_fn(
         );
     }
 
-    let mut attributes = HashMap::new();
+    let mut attributes = IndexMap::new();
 
     match context.func_name.as_str() {
         "\\htmlClass" => {
@@ -63,7 +63,7 @@ fn handler_fn(
     }
     let trust_context = TrustContext {
         command: context.func_name.clone(),
-        context: attributes.clone(),
+        context: attributes.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
     };
 
     if !context.parser.settings.is_trusted(&trust_context) {

@@ -1,6 +1,6 @@
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
 use crate::units::make_em;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
 use js_sys::Array;
@@ -100,13 +100,17 @@ impl VirtualNode for MathNode {
         let mut markup = format!("<{}", tag_name);
         // Add the attributes
         for (k, v) in self.attributes.iter() {
-            markup.push_str(&format!(" {}={}", k, escape(&v)));
+            markup.push(' ');
+            markup.push_str(k);
+            markup.push('=');
+            escape_to(&mut markup, v);
         }
         // Add the class
         if self.classes.len() > 0 {
             let cl = self.classes.join(" ");
-
-            markup.push_str(&format!(" class=\"{}\"", escape(&cl)));
+            markup.push_str(" class=\"");
+            escape_to(&mut markup, &cl);
+            markup.push('"');
         }
 
         markup.push_str(">");

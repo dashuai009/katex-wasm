@@ -105,6 +105,7 @@ fn handler_fn_2(
         .downcast_ref::<parse_node::types::color_token>()
         .unwrap();
     let color = _color.color.clone();
+    let previous_color = ctx.parser.gullet.macros.get("\\current@color");
 
     // Set macro \current@color in current namespace to store the current
     // color, mimicking the behavior of color.sty.
@@ -119,11 +120,14 @@ fn handler_fn_2(
     );
 
     // Parse out the implicit body that should be colored.
-    let tmp = {
-      let t = context.borrow();
-        t.break_on_token_text.clone()
-    };
+    let tmp = ctx.break_on_token_text.clone();
     let body = ctx.parser.parse_expression(true, tmp);
+    if ctx.parser.fetch().text != "\\right" {
+        ctx.parser
+            .gullet
+            .macros
+            .set(&"\\current@color".to_string(), previous_color, false);
+    }
 
     let res = parse_node::types::color {
         mode: ctx.parser.mode,

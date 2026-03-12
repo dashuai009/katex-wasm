@@ -152,7 +152,7 @@ impl MacroExpander<'_> {
                 return Ok(None);
             }
             _start = Some(self.pop_token()); // don't include [ in tokens
-            self.consume_arg(Some(vec!["]".to_string()]))
+            self.consume_arg(Some(&vec!["]".to_string()]))
         } else {
             self.consume_arg(None)
         };
@@ -195,7 +195,7 @@ impl MacroExpander<'_> {
      * Consume an argument from the token stream, and return the resulting array
      * of tokens and start/end token.
      */
-    pub fn consume_arg(&mut self, delims: Option<Vec<String>>) -> Result<MacroArg, ParseError> {
+    pub fn consume_arg(&mut self, delims: Option<&Vec<String>>) -> Result<MacroArg, ParseError> {
         // The argument for a delimited parameter is the shortest (possibly
         // empty) sequence of tokens with properly nested {...} groups that is
         // followed ... by this particular list of non-parameter tokens.
@@ -306,7 +306,7 @@ impl MacroExpander<'_> {
         let mut res: Vec<Vec<Token>> = vec![];
         for i in 0..num_args {
             match self.consume_arg(if let Some(d) = &_delimiters {
-                Some(d[i + 1].to_vec())
+                Some(&d[i + 1])
             } else {
                 None
             }) {
@@ -393,11 +393,14 @@ impl MacroExpander<'_> {
                     }
                     i -= 1;
                     tok = &tokens[i as usize]; // next token on stack
-                    let number = Regex::new(r"^[1-9]$").unwrap();
+                    lazy_static! {
+                         static ref NUMBER: Regex = Regex::new(r"^[1-9]$").
+                            unwrap();
+                    }
                     if tok.text == "#" {
                         // ## → #
                         tokens.remove((i + 1) as usize); // drop first #
-                    } else if number.is_match(&tok.text) {
+                    } else if NUMBER.is_match(&tok.text) {
                         // replace the placeholder with the indicated argument
                         tokens.splice(
                             (i as usize)..(i + 2) as usize,

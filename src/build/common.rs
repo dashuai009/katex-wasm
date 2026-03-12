@@ -85,7 +85,19 @@ pub fn make_symbol(
         symbol_node.italic = italic;
         symbol_node.skew = metrics.skew;
         symbol_node.width = metrics.width;
-        symbol_node.set_classes(classes);
+        symbol_node.get_mut_classes().extend(classes);
+        let mut fallback_classes = Vec::new();
+        symbol_node
+            .get_mut_classes()
+            .retain(|class_name| {
+                if class_name.ends_with("_fallback") {
+                    fallback_classes.push(class_name.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+        symbol_node.get_mut_classes().extend(fallback_classes);
     } else {
         // TODO(emily): Figure out a good way to only print this in development
         //         typeof console !== "undefined" && console.warn("No character metrics " +
@@ -97,7 +109,19 @@ pub fn make_symbol(
         symbol_node.italic = 0.0;
         symbol_node.skew = 0.0;
         symbol_node.width = 0.0;
-        symbol_node.set_classes(classes);
+        symbol_node.get_mut_classes().extend(classes);
+        let mut fallback_classes = Vec::new();
+        symbol_node
+            .get_mut_classes()
+            .retain(|class_name| {
+                if class_name.ends_with("_fallback") {
+                    fallback_classes.push(class_name.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+        symbol_node.get_mut_classes().extend(fallback_classes);
     }
 
     if let Some(opt) = options {
@@ -187,12 +211,17 @@ impl Options {}
 /**
  * Makes either a mathord or textord in the correct font and color.
  */
-pub fn make_ord(
+enum MakeOrdResult {
+    Symbol(SymbolNode),
+    Fragment(DocumentFragment),
+}
+
+fn make_ord_node(
     //<NODETYPE: "spacing" | "mathord" | "textord">
     group: Box<dyn AnyParseNode>,
     options: Options,
     _type: String,
-) -> SymbolNode {
+) -> MakeOrdResult {
     let (mode, text) = if let Some(s) = group.as_any().downcast_ref::<parse_node::types::spacing>()
     {
         (s.mode, s.text.clone())
@@ -215,13 +244,13 @@ pub fn make_ord(
         // surrogate pairs get special treatment
         let [wide_font_name, wide_font_class] = wide_character_font(&text, mode).unwrap();
         classes.push(wide_font_class.to_string());
-        return make_symbol(
+        return MakeOrdResult::Symbol(make_symbol(
             text.clone(),
             wide_font_name.to_string(),
             mode,
             Some(&options),
             classes,
-        );
+        ));
     } else if font_or_family != "" {
         let font_name;
         let font_classes;
@@ -252,42 +281,42 @@ pub fn make_ord(
             .metrics
             .is_some()
         {
-            return make_symbol(
+            return MakeOrdResult::Symbol(make_symbol(
                 text.clone(),
                 font_name.clone(),
                 mode,
                 Some(&options),
                 [classes, font_classes].concat(),
-            );
+            ));
         } else if LIGATURES.contains(&text.as_str()) && font_name.starts_with("Typewriter") {
             // Deconstruct ligatures in monospace fonts (\texttt, \tt).
             let mut parts = vec![];
             for c in text.clone().chars() {
-                parts.push(make_symbol(
+                parts.push(Box::new(make_symbol(
                     c.to_string(),
                     font_name.clone(),
                     mode,
                     Some(&options),
                     [classes.clone(), font_classes.clone()].concat(),
-                ));
+                )) as Box<dyn HtmlDomNode>);
             }
-            // return makeFragment(parts);
+            return MakeOrdResult::Fragment(make_fragment(parts));
         }
     }
     // Makes a symbol in the default font for mathords and textords.
     if _type == "mathord" {
-        return make_symbol(
+        return MakeOrdResult::Symbol(make_symbol(
             text.clone(),
             "Math-Italic".to_string(),
             mode,
             Some(&options),
             vec![classes, vec!["mathnormal".to_string()]].concat(),
-        );
+        ));
     } else if _type == "textord" {
         let font = get_symbol(mode, &text).map(|s| s.font);
         if font == Some(Font::ams) {
             let font_name = options.retrieve_text_font_name("amsrm".to_string());
-            return make_symbol(
+            return MakeOrdResult::Symbol(make_symbol(
                 text.clone(),
                 font_name,
                 mode,
@@ -301,21 +330,21 @@ pub fn make_ord(
                     ],
                 ]
                 .concat(),
-            );
+            ));
         } else if font == Some(Font::main) || font.is_none() {
             let font_name = options.retrieve_text_font_name("textrm".to_string());
-            return make_symbol(
+            return MakeOrdResult::Symbol(make_symbol(
                 text.clone(),
                 font_name,
                 mode,
                 Some(&options),
                 vec![classes, vec![options.fontWeight(), options.fontShape()]].concat(),
-            );
+            ));
         } else {
             // fonts added by plugins
             let font_name = options.retrieve_text_font_name(font.unwrap().as_str().to_string());
             // We add font name as a css class
-            return make_symbol(
+            return MakeOrdResult::Symbol(make_symbol(
                 text.clone(),
                 font_name.clone(),
                 mode,
@@ -325,10 +354,32 @@ pub fn make_ord(
                     vec![font_name, options.fontWeight(), options.fontShape()],
                 ]
                 .concat(),
-            );
+            ));
         }
     } else {
         panic!("unexpected type: {} in make_ord", _type);
+    }
+}
+
+pub fn make_ord(
+    group: Box<dyn AnyParseNode>,
+    options: Options,
+    _type: String,
+) -> Box<dyn HtmlDomNode> {
+    match make_ord_node(group, options, _type) {
+        MakeOrdResult::Symbol(symbol) => Box::new(symbol) as Box<dyn HtmlDomNode>,
+        MakeOrdResult::Fragment(fragment) => Box::new(fragment) as Box<dyn HtmlDomNode>,
+    }
+}
+
+pub fn make_ord_symbol(
+    group: Box<dyn AnyParseNode>,
+    options: Options,
+    _type: String,
+) -> SymbolNode {
+    match make_ord_node(group, options, _type) {
+        MakeOrdResult::Symbol(symbol) => symbol,
+        MakeOrdResult::Fragment(_) => panic!("expected symbol node from make_ord"),
     }
 }
 
@@ -791,6 +842,10 @@ lazy_static! {
         ("mathnormal", FontInfo{
             variant:  FontVariant::italic,
             fontName: "Math-Italic",
+        }),
+        ("mathsfit", FontInfo{
+            variant:  FontVariant::sans_serif_italic,
+            fontName: "SansSerif-Italic",
         }),
 
         // "boldsymbol" is missing because they require the use of multiple fonts:

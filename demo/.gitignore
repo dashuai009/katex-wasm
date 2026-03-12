@@ -3,3 +3,7 @@ dist
 
 
 .DS_Store
+
+perf-results
+
+public/perf-input*

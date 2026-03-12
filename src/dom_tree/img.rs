@@ -1,6 +1,6 @@
 use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::{HtmlDomNode, VirtualNode};
 use js_sys::Array;
 use struct_format::html_dom_node;
@@ -66,10 +66,20 @@ impl VirtualNode for Img {
     }
 
     fn to_markup(&self) -> String {
-        let mut markup = format!("<img  src='{}' alt='{}' ", self.src, self.alt);
-        let style_str = escape(&format!("style={}", self.style.to_css_str()));
-        markup.push_str(style_str.as_str());
-        markup += "'/>";
-        return markup;
+        let mut markup = String::from("<img src=\"");
+        escape_to(&mut markup, &self.src);
+        markup.push_str("\" alt=\"");
+        escape_to(&mut markup, &self.alt);
+        markup.push('"');
+
+        let styles = self.style.to_css_str();
+        if !styles.is_empty() {
+            markup.push_str(" style=\"");
+            escape_to(&mut markup, &styles);
+            markup.push('"');
+        }
+
+        markup.push_str("'/>");
+        markup
     }
 }

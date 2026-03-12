@@ -68,6 +68,20 @@ fn html_builder_delegate(
     }
 }
 
+fn find_symbol_italic(node: &Box<dyn HtmlDomNode>) -> Option<f64> {
+    if let Some(symbol) = node.as_any().downcast_ref::<SymbolNode>() {
+        return Some(symbol.italic);
+    }
+    if let Some(children) = node.get_children() {
+        for child in children {
+            if let Some(italic) = find_symbol_italic(child) {
+                return Some(italic);
+            }
+        }
+    }
+    None
+}
+
 fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     // Superscript and subscripts are handled in the TeXbook on page
     // 445-446, rules 18(a-f).
@@ -162,9 +176,9 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         };
         if let Some(b) = base.as_any().downcast_ref::<SymbolNode>() {
             margin_left = Some(make_em(-b.italic));
-        } else {
-            if is_oiint {
-                panic!("emmmmm base type = ");
+        } else if is_oiint {
+            if let Some(italic) = find_symbol_italic(&base) {
+                margin_left = Some(make_em(-italic));
             }
         }
     }

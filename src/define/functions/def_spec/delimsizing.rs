@@ -211,7 +211,7 @@ struct IsMiddle {
 use crate::dom_tree::line_node::LineNode;
 use crate::dom_tree::utils::{this_init_node, this_to_markup, this_to_node};
 use crate::units::make_em;
-use crate::utils::escape;
+use crate::utils::escape_to;
 use crate::{path_get, scriptFromCodepoint,  VirtualNode};
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -508,6 +508,11 @@ pub fn lrr_handler_fn(
     // if color && typeof color != "string".to_string()) {
     //     panic!("\\current@color set to non-string in \\right".to_string());
     // }
+    context
+        .parser
+        .gullet
+        .macros
+        .set(&"\\current@color".to_string(), None, false);
     let res = parse_node::types::leftright_right {
         mode: context.parser.mode,
         loc: None,

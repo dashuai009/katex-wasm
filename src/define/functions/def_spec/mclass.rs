@@ -112,6 +112,74 @@ pub fn mclass_handler_fn(
         is_character_box: is_character_box(body),
     }) as Box<dyn AnyParseNode>;
 }
+
+pub fn binrel_handler_fn(
+    ctx: FunctionContext,
+    args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
+    let mclass = binrel_class(&args[0]);
+    return Box::new(parse_node::types::mclass {
+        mode: context.parser.mode,
+        loc: None,
+        mclass,
+        body: ord_argument(&args[1]),
+        is_character_box: is_character_box(&args[1]),
+    }) as Box<dyn AnyParseNode>;
+}
+
+pub fn stackrel_handler_fn(
+    ctx: FunctionContext,
+    args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let context = ctx.borrow();
+    let base_arg = &args[1];
+    let shifted_arg = &args[0];
+    let mclass = if context.func_name != "\\stackrel" {
+        binrel_class(base_arg)
+    } else {
+        "mrel".to_string()
+    };
+
+    let base_op = Box::new(parse_node::types::op {
+        mode: context.parser.mode,
+        loc: None,
+        limits: true,
+        alwaysHandleSupSub: true,
+        suppressBaseShift: context.func_name != "\\stackrel",
+        parentIsSupSub: false,
+        symbol: false,
+        name: None,
+        body: Some(ord_argument(base_arg)),
+    }) as Box<dyn AnyParseNode>;
+
+    let supsub = Box::new(parse_node::types::supsub {
+        mode: context.parser.mode,
+        loc: None,
+        base: Some(base_op),
+        sup: if context.func_name == "\\underset" {
+            None
+        } else {
+            Some(shifted_arg.clone())
+        },
+        sub: if context.func_name == "\\underset" {
+            Some(shifted_arg.clone())
+        } else {
+            None
+        },
+    }) as Box<dyn AnyParseNode>;
+
+    let is_character_box = is_character_box(&supsub);
+    return Box::new(parse_node::types::mclass {
+        mode: context.parser.mode,
+        loc: None,
+        mclass,
+        body: vec![supsub],
+        is_character_box,
+    }) as Box<dyn AnyParseNode>;
+}
 // Math class commands except \mathop
 lazy_static! {
     pub static ref MCLASS: Mutex<FunctionDefSpec> = Mutex::new({
@@ -132,6 +200,36 @@ lazy_static! {
             ],
             props,
             handler: mclass_handler_fn,
+            html_builder: Some(html_builder),
+            mathml_builder: Some(mathml_builder),
+        }
+    });
+    pub static ref BINREL: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(2);
+
+        FunctionDefSpec {
+            def_type: "mclass".to_string(),
+            names: vec!["\\@binrel".to_string()],
+            props,
+            handler: binrel_handler_fn,
+            html_builder: Some(html_builder),
+            mathml_builder: Some(mathml_builder),
+        }
+    });
+    pub static ref STACKREL: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(2);
+
+        FunctionDefSpec {
+            def_type: "mclass".to_string(),
+            names: vec![
+                "\\stackrel".to_string(),
+                "\\overset".to_string(),
+                "\\underset".to_string(),
+            ],
+            props,
+            handler: stackrel_handler_fn,
             html_builder: Some(html_builder),
             mathml_builder: Some(mathml_builder),
         }

@@ -13,6 +13,142 @@ fn new_me(tokens: Vec<Token>, num_args: i32) -> MacroDefinition {
     })
 }
 
+fn tokens_from_texts(texts: &[&str]) -> Vec<Token> {
+    texts
+        .iter()
+        .map(|text| Token::new((*text).to_string(), None))
+        .collect()
+}
+
+fn expand_braket_tokens(
+    mut arg_tokens: Vec<Token>,
+    single_middle: &[&str],
+    double_middle: Option<&[&str]>,
+    replace_only_first: bool,
+) -> Vec<Token> {
+    arg_tokens.reverse();
+    let mut expanded = Vec::new();
+    let mut depth = 0i32;
+    let mut used_special_middle = false;
+    let mut i = 0usize;
+
+    while i < arg_tokens.len() {
+        let token = arg_tokens[i].clone();
+
+        if token.text == "{" {
+            depth += 1;
+            expanded.push(token);
+            i += 1;
+            continue;
+        }
+        if token.text == "}" {
+            depth -= 1;
+            expanded.push(token);
+            i += 1;
+            continue;
+        }
+
+        let can_replace = depth == 0 && (!replace_only_first || !used_special_middle);
+        if can_replace {
+            if token.text == "\\|" {
+                if let Some(double_middle_tokens) = double_middle {
+                    expanded.extend(tokens_from_texts(double_middle_tokens));
+                    used_special_middle = true;
+                    i += 1;
+                    continue;
+                }
+            } else if token.text == "|" {
+                if let Some(double_middle_tokens) = double_middle {
+                    if i + 1 < arg_tokens.len() && arg_tokens[i + 1].text == "|" {
+                        expanded.extend(tokens_from_texts(double_middle_tokens));
+                        used_special_middle = true;
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                expanded.extend(tokens_from_texts(single_middle));
+                used_special_middle = true;
+                i += 1;
+                continue;
+            }
+        }
+
+        expanded.push(token);
+        i += 1;
+    }
+
+    expanded
+}
+
+fn braket_macro(context: &mut MacroExpander) -> MacroDefinition {
+    match context.consume_arg(None) {
+        Ok(arg) => {
+            let mut expanded = tokens_from_texts(&["\\left", "\\langle"]);
+            expanded.extend(expand_braket_tokens(
+                arg.tokens,
+                &["\\,", "\\middle", "\\vert", "\\,"],
+                Some(&["\\,", "\\middle", "\\vert", "\\,"]),
+                false,
+            ));
+            expanded.extend(tokens_from_texts(&["\\right", "\\rangle"]));
+            expanded.reverse();
+            new_me(expanded, 0)
+        }
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
+fn set_macro(context: &mut MacroExpander) -> MacroDefinition {
+    match context.consume_arg(None) {
+        Ok(arg) => {
+            let mut expanded = tokens_from_texts(&["\\left", "\\{", "\\:"]);
+            expanded.extend(expand_braket_tokens(
+                arg.tokens,
+                &["\\;", "\\middle", "\\vert", "\\;"],
+                Some(&["\\;", "\\middle", "\\Vert", "\\;"]),
+                true,
+            ));
+            expanded.extend(tokens_from_texts(&["\\:", "\\right", "\\}"]));
+            expanded.reverse();
+            new_me(expanded, 0)
+        }
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
+fn set_small_macro(context: &mut MacroExpander) -> MacroDefinition {
+    match context.consume_arg(None) {
+        Ok(arg) => {
+            let mut expanded = tokens_from_texts(&["\\{", "\\,"]);
+            expanded.extend(expand_braket_tokens(arg.tokens, &["\\mid"], None, true));
+            expanded.extend(tokens_from_texts(&["\\,", "\\}"]));
+            expanded.reverse();
+            new_me(expanded, 0)
+        }
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
+fn tag_literal_macro(context: &mut MacroExpander) -> MacroDefinition {
+    if context.macros.get("\\df@tag").is_some() {
+        return report_macro_error(context, "Multiple \\tag".to_string(), None);
+    }
+
+    match context.consume_arg(None) {
+        Ok(arg) => {
+            let mut expanded = tokens_from_texts(&["\\gdef", "\\df@tag", "{", "\\text", "{"]);
+            let mut body = arg.tokens;
+            body.reverse();
+            expanded.extend(body);
+            expanded.extend(tokens_from_texts(&["}", "}"]));
+            expanded.reverse();
+            new_me(expanded, 0)
+        }
+        Err(err) => report_macro_error(context, err.msg, err.loc),
+    }
+}
+
 fn space_after_dots(next: &str) -> bool {
     matches!(
         next,
@@ -98,6 +234,97 @@ fn hspace_macro(context: &mut MacroExpander) -> MacroDefinition {
     } else {
         MacroDefinition::Str("\\@hspace{#1}".to_string())
     }
+}
+
+fn digit_to_number(text: &str) -> Option<u32> {
+    match text {
+        "0" => Some(0),
+        "1" => Some(1),
+        "2" => Some(2),
+        "3" => Some(3),
+        "4" => Some(4),
+        "5" => Some(5),
+        "6" => Some(6),
+        "7" => Some(7),
+        "8" => Some(8),
+        "9" => Some(9),
+        "a" | "A" => Some(10),
+        "b" | "B" => Some(11),
+        "c" | "C" => Some(12),
+        "d" | "D" => Some(13),
+        "e" | "E" => Some(14),
+        "f" | "F" => Some(15),
+        _ => None,
+    }
+}
+
+fn char_macro(context: &mut MacroExpander) -> MacroDefinition {
+    let mut token = context.pop_token();
+    let mut base: Option<u32> = None;
+    let number = if token.text == "'" {
+        base = Some(8);
+        token = context.pop_token();
+        None
+    } else if token.text == "\"" {
+        base = Some(16);
+        token = context.pop_token();
+        None
+    } else if token.text == "`" {
+        token = context.pop_token();
+        if token.text == "EOF" {
+            return report_macro_error(
+                context,
+                "\\char` missing argument".to_string(),
+                token.loc.clone(),
+            );
+        }
+        let code = if token.text.starts_with('\\') {
+            token.text.chars().nth(1).map(|ch| ch as u32)
+        } else {
+            token.text.chars().next().map(|ch| ch as u32)
+        };
+        match code {
+            Some(code) => Some(code),
+            None => {
+                return report_macro_error(
+                    context,
+                    "\\char` missing argument".to_string(),
+                    token.loc.clone(),
+                );
+            }
+        }
+    } else {
+        base = Some(10);
+        None
+    };
+
+    let number = if let Some(number) = number {
+        number
+    } else {
+        let base = base.unwrap();
+        let mut number = match digit_to_number(&token.text) {
+            Some(number) if number < base => number,
+            _ => {
+                return report_macro_error(
+                    context,
+                    format!("Invalid base-{base} digit {}", token.text),
+                    token.loc.clone(),
+                );
+            }
+        };
+
+        while let Some(digit) = digit_to_number(&context.future().text) {
+            if digit >= base {
+                break;
+            }
+            number *= base;
+            number += digit;
+            context.pop_token();
+        }
+        number
+    };
+
+    MacroDefinition::Str(format!("\\@char{{{number}}}"))
 }
 
 fn firstoftwo_macro(context: &mut MacroExpander) -> MacroDefinition {
@@ -410,6 +637,7 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         }
         //         return `\\@char{${number}}`;
         //     });
+        ("\\char".to_string(), MacroDefinition::MacroContext(char_macro)),
         //
         //     // \newcommand{\macro}[args]{definition}
         // // \renewcommand{\macro}[args]{definition}
@@ -521,6 +749,22 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //                 "\\TextOrMath{\\textcopyright}{\\text{\\textcopyright}}");
         //     defineMacro("\\textregistered",
         //                 "\\html@mathml{\\textcircled{\\scriptsize R}}{\\char`®}");
+        (
+            "\\textcopyright".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\textcircled{c}}{\\char`©}".to_string()),
+        ),
+        (
+            "\\copyright".to_string(),
+            MacroDefinition::Str(
+                "\\TextOrMath{\\textcopyright}{\\text{\\textcopyright}}".to_string(),
+            ),
+        ),
+        (
+            "\\textregistered".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\textcircled{\\scriptsize R}}{\\char`®}".to_string(),
+            ),
+        ),
         //
         // // Characters omitted from Unicode range 1D400–1D7FF
         //     defineMacro("\u212C", "\\mathscr{B}");  // script
@@ -534,14 +778,27 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //     defineMacro("\u212D", "\\mathfrak{C}");  // Fraktur
         //     defineMacro("\u210C", "\\mathfrak{H}");
         //     defineMacro("\u2128", "\\mathfrak{Z}");
+        ("ℬ".to_string(), MacroDefinition::Str("\\mathscr{B}".to_string())),
+        ("ℰ".to_string(), MacroDefinition::Str("\\mathscr{E}".to_string())),
+        ("ℱ".to_string(), MacroDefinition::Str("\\mathscr{F}".to_string())),
+        ("ℋ".to_string(), MacroDefinition::Str("\\mathscr{H}".to_string())),
+        ("ℐ".to_string(), MacroDefinition::Str("\\mathscr{I}".to_string())),
+        ("ℒ".to_string(), MacroDefinition::Str("\\mathscr{L}".to_string())),
+        ("ℳ".to_string(), MacroDefinition::Str("\\mathscr{M}".to_string())),
+        ("ℛ".to_string(), MacroDefinition::Str("\\mathscr{R}".to_string())),
+        ("ℭ".to_string(), MacroDefinition::Str("\\mathfrak{C}".to_string())),
+        ("ℌ".to_string(), MacroDefinition::Str("\\mathfrak{H}".to_string())),
+        ("ℨ".to_string(), MacroDefinition::Str("\\mathfrak{Z}".to_string())),
         //
         // // Define \Bbbk with a macro that works in both HTML and MathML.
         //     defineMacro("\\Bbbk", "\\Bbb{k}");
+        ("\\Bbbk".to_string(), MacroDefinition::Str("\\Bbb{k}".to_string())),
         //
         // // Unicode middle dot
         // // The KaTeX fonts do not contain U+00B7. Instead, \cdotp displays
         // // the dot at U+22C5 and gives it punct spacing.
         //     defineMacro("\u00b7", "\\cdotp");
+        ("·".to_string(), MacroDefinition::Str("\\cdotp".to_string())),
         //
         // // \llap and \rlap render their contents in text mode
         (
@@ -637,6 +894,14 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // defineMacro("\u00A9", "\\copyright");
         // defineMacro("\u00AE", "\\textregistered");
         // defineMacro("\uFE0F", "\\textregistered");
+        ("∌".to_string(), MacroDefinition::Str("\\notni".to_string())),
+        ("⌜".to_string(), MacroDefinition::Str("\\ulcorner".to_string())),
+        ("⌝".to_string(), MacroDefinition::Str("\\urcorner".to_string())),
+        ("⌞".to_string(), MacroDefinition::Str("\\llcorner".to_string())),
+        ("⌟".to_string(), MacroDefinition::Str("\\lrcorner".to_string())),
+        ("©".to_string(), MacroDefinition::Str("\\copyright".to_string())),
+        ("®".to_string(), MacroDefinition::Str("\\textregistered".to_string())),
+        ("\u{fe0f}".to_string(), MacroDefinition::Str("\\textregistered".to_string())),
         //
         // // The KaTeX fonts have corners at codepoints that don't match Unicode.
         // // For MathML purposes, use the Unicode code point.
@@ -644,6 +909,22 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\urcorner", "\\html@mathml{\\@urcorner}{\\mathop{\\char\"231d}}");
         //         defineMacro("\\llcorner", "\\html@mathml{\\@llcorner}{\\mathop{\\char\"231e}}");
         //         defineMacro("\\lrcorner", "\\html@mathml{\\@lrcorner}{\\mathop{\\char\"231f}}");
+        (
+            "\\ulcorner".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@ulcorner}{\\mathop{\\char\"231c}}".to_string()),
+        ),
+        (
+            "\\urcorner".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@urcorner}{\\mathop{\\char\"231d}}".to_string()),
+        ),
+        (
+            "\\llcorner".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@llcorner}{\\mathop{\\char\"231e}}".to_string()),
+        ),
+        (
+            "\\lrcorner".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@lrcorner}{\\mathop{\\char\"231f}}".to_string()),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // LaTeX_2ε
@@ -678,9 +959,24 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\varPhi", "\\mathit{\\Phi}");
         //         defineMacro("\\varPsi", "\\mathit{\\Psi}");
         //         defineMacro("\\varOmega", "\\mathit{\\Omega}");
+        ("\\varGamma".to_string(), MacroDefinition::Str("\\mathit{\\Gamma}".to_string())),
+        ("\\varDelta".to_string(), MacroDefinition::Str("\\mathit{\\Delta}".to_string())),
+        ("\\varTheta".to_string(), MacroDefinition::Str("\\mathit{\\Theta}".to_string())),
+        ("\\varLambda".to_string(), MacroDefinition::Str("\\mathit{\\Lambda}".to_string())),
+        ("\\varXi".to_string(), MacroDefinition::Str("\\mathit{\\Xi}".to_string())),
+        ("\\varPi".to_string(), MacroDefinition::Str("\\mathit{\\Pi}".to_string())),
+        ("\\varSigma".to_string(), MacroDefinition::Str("\\mathit{\\Sigma}".to_string())),
+        ("\\varUpsilon".to_string(), MacroDefinition::Str("\\mathit{\\Upsilon}".to_string())),
+        ("\\varPhi".to_string(), MacroDefinition::Str("\\mathit{\\Phi}".to_string())),
+        ("\\varPsi".to_string(), MacroDefinition::Str("\\mathit{\\Psi}".to_string())),
+        ("\\varOmega".to_string(), MacroDefinition::Str("\\mathit{\\Omega}".to_string())),
         //
         // //\newcommand{\substack}[1]{\subarray{c}#1\endsubarray}
         //         defineMacro("\\substack", "\\begin{subarray}{c}#1\\end{subarray}");
+        (
+            "\\substack".to_string(),
+            MacroDefinition::Str("\\begin{subarray}{c}#1\\end{subarray}".to_string()),
+        ),
         //
         // // \renewcommand{\colon}{\nobreak\mskip2mu\mathpunct{}\nonscript
         // // \mkern-\thinmuskip{:}\mskip6muplus1mu\relax}
@@ -695,6 +991,34 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //
         // // \newcommand{\boxed}[1]{\fbox{\m@th$\displaystyle#1$}}
         //         defineMacro("\\boxed", "\\fbox{$\\displaystyle{#1}$}");
+        (
+            "\\boxed".to_string(),
+            MacroDefinition::Str("\\fbox{$\\displaystyle{#1}$}".to_string()),
+        ),
+        (
+            "\\bra".to_string(),
+            MacroDefinition::Str("\\mathinner{\\langle{#1}|}".to_string()),
+        ),
+        (
+            "\\ket".to_string(),
+            MacroDefinition::Str("\\mathinner{|{#1}\\rangle}".to_string()),
+        ),
+        (
+            "\\braket".to_string(),
+            MacroDefinition::Str("\\mathinner{\\langle{#1}\\rangle}".to_string()),
+        ),
+        (
+            "\\Bra".to_string(),
+            MacroDefinition::Str("\\left\\langle#1\\right|".to_string()),
+        ),
+        (
+            "\\Ket".to_string(),
+            MacroDefinition::Str("\\left|#1\\right\\rangle".to_string()),
+        ),
+        (
+            "\\Braket".to_string(),
+            MacroDefinition::MacroContext(braket_macro),
+        ),
         //
         // // \def\iff{\DOTSB\;\Longleftrightarrow\;}
         // // \def\implies{\DOTSB\;\Longrightarrow\;}
@@ -702,6 +1026,18 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\iff", "\\DOTSB\\;\\Longleftrightarrow\\;");
         //         defineMacro("\\implies", "\\DOTSB\\;\\Longrightarrow\\;");
         //         defineMacro("\\impliedby", "\\DOTSB\\;\\Longleftarrow\\;");
+        (
+            "\\iff".to_string(),
+            MacroDefinition::Str("\\DOTSB\\;\\Longleftrightarrow\\;".to_string()),
+        ),
+        (
+            "\\implies".to_string(),
+            MacroDefinition::Str("\\DOTSB\\;\\Longrightarrow\\;".to_string()),
+        ),
+        (
+            "\\impliedby".to_string(),
+            MacroDefinition::Str("\\DOTSB\\;\\Longleftarrow\\;".to_string()),
+        ),
         //
         // // AMSMath's automatic \dots, based on \mdots@@ macro.
         //         const dotsByToken = {
@@ -935,16 +1271,9 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\qquad".to_string(),
             MacroDefinition::Str("\\hskip2em\\relax".to_string()),
         ),
-        //
-        // // \tag@in@display form of \tag
-        //         defineMacro("\\tag", "\\@ifstar\\tag@literal\\tag@paren");
-        //         defineMacro("\\tag@paren", "\\tag@literal{({#1})}");
-        //         defineMacro("\\tag@literal", (context) => {
-        //             if (context.macros.get("\\df@tag")) {
-        //                 throw new ParseError("Multiple \\tag");
-        //             }
-        //             return "\\gdef\\df@tag{\\text{#1}}";
-        //         });
+        ("\\tag".to_string(), MacroDefinition::Str("\\@ifstar\\tag@literal\\tag@paren".to_string())),
+        ("\\tag@paren".to_string(), MacroDefinition::Str("\\tag@literal{({#1})}".to_string())),
+        ("\\tag@literal".to_string(), MacroDefinition::MacroContext(tag_literal_macro)),
         //
         // // \renewcommand{\bmod}{\nonscript\mskip-\medmuskip\mkern5mu\mathbin
         // //   {\operator@font mod}\penalty900
@@ -993,6 +1322,10 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // //     \csname\expandafter\@gobble\string\\ \endcsname
         // // \DeclareRobustCommand\newline{\@normalcr\relax}
         //         defineMacro("\\newline", "\\\\\\relax");
+        (
+            "\\newline".to_string(),
+            MacroDefinition::Str("\\\\\\relax".to_string()),
+        ),
         //
         // // \def\TeX{T\kern-.1667em\lower.5ex\hbox{E}\kern-.125emX\@}
         // // TODO: Doesn't normally work in math mode because \@ fails.  KaTeX doesn't
@@ -1026,6 +1359,28 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\KaTeX", "\\textrm{\\html@mathml{" +
         //                     `K\\kern-.17em\\raisebox{${latexRaiseA}}{\\scriptstyle A}` +
         //                     "\\kern-.15em\\TeX}{KaTeX}}");
+        //
+        (
+            "\\TeX".to_string(),
+            MacroDefinition::Str(
+                "\\textrm{\\html@mathml{T\\kern-.1667em\\raisebox{-.5ex}{E}\\kern-.125emX}{TeX}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\LaTeX".to_string(),
+            MacroDefinition::Str(
+                "\\textrm{\\html@mathml{L\\kern-.36em\\raisebox{0.205em}{\\scriptstyle A}\\kern-.15em\\TeX}{LaTeX}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\KaTeX".to_string(),
+            MacroDefinition::Str(
+                "\\textrm{\\html@mathml{K\\kern-.17em\\raisebox{0.205em}{\\scriptstyle A}\\kern-.15em\\TeX}{KaTeX}}"
+                    .to_string(),
+            ),
+        ),
         //
         // \DeclareRobustCommand\hspace{\@ifstar\@hspacer\@hspace}
         // \def\@hspace#1{\hskip  #1\relax}
@@ -1115,6 +1470,107 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\u2254", "\\coloneqq");  // :=
         //         defineMacro("\u2255", "\\eqqcolon");  // =:
         //         defineMacro("\u2A74", "\\Coloneqq");  // ::=
+        ("\\ordinarycolon".to_string(), MacroDefinition::Str(":".to_string())),
+        (
+            "\\vcentcolon".to_string(),
+            MacroDefinition::Str("\\mathrel{\\mathop\\ordinarycolon}".to_string()),
+        ),
+        (
+            "\\dblcolon".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-.9mu}\\vcentcolon}}{\\mathop{\\char\"2237}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\coloneqq".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}=}}{\\mathop{\\char\"2254}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\Coloneqq".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}=}}{\\mathop{\\char\"2237\\char\"3d}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\coloneq".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}\\mathrel{-}}}{\\mathop{\\char\"3a\\char\"2212}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\Coloneq".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}\\mathrel{-}}}{\\mathop{\\char\"2237\\char\"2212}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\eqqcolon".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{=\\mathrel{\\mkern-1.2mu}\\vcentcolon}}{\\mathop{\\char\"2255}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\Eqqcolon".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{=\\mathrel{\\mkern-1.2mu}\\dblcolon}}{\\mathop{\\char\"3d\\char\"2237}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\eqcolon".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\mathrel{-}\\mathrel{\\mkern-1.2mu}\\vcentcolon}}{\\mathop{\\char\"2239}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\Eqcolon".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\mathrel{-}\\mathrel{\\mkern-1.2mu}\\dblcolon}}{\\mathop{\\char\"2212\\char\"2237}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\colonapprox".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}\\approx}}{\\mathop{\\char\"3a\\char\"2248}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\Colonapprox".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}\\approx}}{\\mathop{\\char\"2237\\char\"2248}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\colonsim".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\vcentcolon\\mathrel{\\mkern-1.2mu}\\sim}}{\\mathop{\\char\"3a\\char\"223c}}"
+                    .to_string(),
+            ),
+        ),
+        (
+            "\\Colonsim".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathrel{\\dblcolon\\mathrel{\\mkern-1.2mu}\\sim}}{\\mathop{\\char\"2237\\char\"223c}}"
+                    .to_string(),
+            ),
+        ),
+        ("∷".to_string(), MacroDefinition::Str("\\dblcolon".to_string())),
+        ("∹".to_string(), MacroDefinition::Str("\\eqcolon".to_string())),
+        ("≔".to_string(), MacroDefinition::Str("\\coloneqq".to_string())),
+        ("≕".to_string(), MacroDefinition::Str("\\eqqcolon".to_string())),
+        ("⩴".to_string(), MacroDefinition::Str("\\Coloneqq".to_string())),
         //
         // //////////////////////////////////////////////////////////////////////
         // // colonequals.sty
@@ -1147,6 +1603,76 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //
         // // Present in newtxmath, pxfonts and txfonts
         //         defineMacro("\\notni", "\\html@mathml{\\not\\ni}{\\mathrel{\\char`\u220C}}");
+        ("\\ratio".to_string(), MacroDefinition::Str("\\vcentcolon".to_string())),
+        ("\\coloncolon".to_string(), MacroDefinition::Str("\\dblcolon".to_string())),
+        (
+            "\\colonequals".to_string(),
+            MacroDefinition::Str("\\coloneqq".to_string()),
+        ),
+        (
+            "\\coloncolonequals".to_string(),
+            MacroDefinition::Str("\\Coloneqq".to_string()),
+        ),
+        (
+            "\\equalscolon".to_string(),
+            MacroDefinition::Str("\\eqqcolon".to_string()),
+        ),
+        (
+            "\\equalscoloncolon".to_string(),
+            MacroDefinition::Str("\\Eqqcolon".to_string()),
+        ),
+        (
+            "\\colonminus".to_string(),
+            MacroDefinition::Str("\\coloneq".to_string()),
+        ),
+        (
+            "\\coloncolonminus".to_string(),
+            MacroDefinition::Str("\\Coloneq".to_string()),
+        ),
+        (
+            "\\minuscolon".to_string(),
+            MacroDefinition::Str("\\eqcolon".to_string()),
+        ),
+        (
+            "\\minuscoloncolon".to_string(),
+            MacroDefinition::Str("\\Eqcolon".to_string()),
+        ),
+        (
+            "\\coloncolonapprox".to_string(),
+            MacroDefinition::Str("\\Colonapprox".to_string()),
+        ),
+        (
+            "\\coloncolonsim".to_string(),
+            MacroDefinition::Str("\\Colonsim".to_string()),
+        ),
+        (
+            "\\simcolon".to_string(),
+            MacroDefinition::Str(
+                "\\mathrel{\\sim\\mathrel{\\mkern-1.2mu}\\vcentcolon}".to_string(),
+            ),
+        ),
+        (
+            "\\simcoloncolon".to_string(),
+            MacroDefinition::Str(
+                "\\mathrel{\\sim\\mathrel{\\mkern-1.2mu}\\dblcolon}".to_string(),
+            ),
+        ),
+        (
+            "\\approxcolon".to_string(),
+            MacroDefinition::Str(
+                "\\mathrel{\\approx\\mathrel{\\mkern-1.2mu}\\vcentcolon}".to_string(),
+            ),
+        ),
+        (
+            "\\approxcoloncolon".to_string(),
+            MacroDefinition::Str(
+                "\\mathrel{\\approx\\mathrel{\\mkern-1.2mu}\\dblcolon}".to_string(),
+            ),
+        ),
+        (
+            "\\notni".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\not\\ni}{\\mathrel{\\char`∌}}".to_string()),
+        ),
         (
             "\\stackrel".to_string(),
             MacroDefinition::Str("\\mathrel{\\mathop{#2}\\limits^{#1}}".to_string()),
@@ -1158,6 +1684,30 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         (
             "\\liminf".to_string(),
             MacroDefinition::Str("\\DOTSB\\operatorname*{lim\\,inf}".to_string()),
+        ),
+        (
+            "\\injlim".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{inj\\,lim}".to_string()),
+        ),
+        (
+            "\\projlim".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{proj\\,lim}".to_string()),
+        ),
+        (
+            "\\varlimsup".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{\\overline{lim}}".to_string()),
+        ),
+        (
+            "\\varliminf".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{\\underline{lim}}".to_string()),
+        ),
+        (
+            "\\varinjlim".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{\\underrightarrow{lim}}".to_string()),
+        ),
+        (
+            "\\varprojlim".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{\\underleftarrow{lim}}".to_string()),
         ),
         //
         // //////////////////////////////////////////////////////////////////////
@@ -1186,6 +1736,74 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\varsupsetneq", "\\html@mathml{\\@varsupsetneq}{⊋}");
         //         defineMacro("\\varsupsetneqq", "\\html@mathml{\\@varsupsetneqq}{⫌}");
         (
+            "\\gvertneqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@gvertneqq}{≩}".to_string()),
+        ),
+        (
+            "\\lvertneqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@lvertneqq}{≨}".to_string()),
+        ),
+        (
+            "\\ngeqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@ngeqq}{≱}".to_string()),
+        ),
+        (
+            "\\ngeqslant".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@ngeqslant}{≱}".to_string()),
+        ),
+        (
+            "\\nleqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@nleqq}{≰}".to_string()),
+        ),
+        (
+            "\\nleqslant".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@nleqslant}{≰}".to_string()),
+        ),
+        (
+            "\\nshortmid".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@nshortmid}{∤}".to_string()),
+        ),
+        (
+            "\\nshortparallel".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@nshortparallel}{∦}".to_string()),
+        ),
+        (
+            "\\nsubseteqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@nsubseteqq}{⊈}".to_string()),
+        ),
+        (
+            "\\nsupseteqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@nsupseteqq}{⊉}".to_string()),
+        ),
+        (
+            "\\varsubsetneq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@varsubsetneq}{⊊}".to_string()),
+        ),
+        (
+            "\\varsubsetneqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@varsubsetneqq}{⫋}".to_string()),
+        ),
+        (
+            "\\varsupsetneq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@varsupsetneq}{⊋}".to_string()),
+        ),
+        (
+            "\\varsupsetneqq".to_string(),
+            MacroDefinition::Str("\\html@mathml{\\@varsupsetneqq}{⫌}".to_string()),
+        ),
+        (
+            "\\argmin".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{arg\\,min}".to_string()),
+        ),
+        (
+            "\\argmax".to_string(),
+            MacroDefinition::Str("\\DOTSB\\operatorname*{arg\\,max}".to_string()),
+        ),
+        (
+            "\\plim".to_string(),
+            MacroDefinition::Str("\\DOTSB\\mathop{\\operatorname{plim}}\\limits".to_string()),
+        ),
+        (
             "\\imath".to_string(),
             MacroDefinition::Str("\\html@mathml{\\@imath}{\u{0131}}".to_string()),
         ),
@@ -1193,6 +1811,63 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
             "\\jmath".to_string(),
             MacroDefinition::Str("\\html@mathml{\\@jmath}{\u{0237}}".to_string()),
         ),
+        ("\\angln".to_string(), MacroDefinition::Str("{\\angl n}".to_string())),
+        ("\\blue".to_string(), MacroDefinition::Str("\\textcolor{##6495ed}{#1}".to_string())),
+        ("\\orange".to_string(), MacroDefinition::Str("\\textcolor{##ffa500}{#1}".to_string())),
+        ("\\pink".to_string(), MacroDefinition::Str("\\textcolor{##ff00af}{#1}".to_string())),
+        ("\\red".to_string(), MacroDefinition::Str("\\textcolor{##df0030}{#1}".to_string())),
+        ("\\green".to_string(), MacroDefinition::Str("\\textcolor{##28ae7b}{#1}".to_string())),
+        ("\\gray".to_string(), MacroDefinition::Str("\\textcolor{gray}{#1}".to_string())),
+        ("\\purple".to_string(), MacroDefinition::Str("\\textcolor{##9d38bd}{#1}".to_string())),
+        ("\\blueA".to_string(), MacroDefinition::Str("\\textcolor{##ccfaff}{#1}".to_string())),
+        ("\\blueB".to_string(), MacroDefinition::Str("\\textcolor{##80f6ff}{#1}".to_string())),
+        ("\\blueC".to_string(), MacroDefinition::Str("\\textcolor{##63d9ea}{#1}".to_string())),
+        ("\\blueD".to_string(), MacroDefinition::Str("\\textcolor{##11accd}{#1}".to_string())),
+        ("\\blueE".to_string(), MacroDefinition::Str("\\textcolor{##0c7f99}{#1}".to_string())),
+        ("\\tealA".to_string(), MacroDefinition::Str("\\textcolor{##94fff5}{#1}".to_string())),
+        ("\\tealB".to_string(), MacroDefinition::Str("\\textcolor{##26edd5}{#1}".to_string())),
+        ("\\tealC".to_string(), MacroDefinition::Str("\\textcolor{##01d1c1}{#1}".to_string())),
+        ("\\tealD".to_string(), MacroDefinition::Str("\\textcolor{##01a995}{#1}".to_string())),
+        ("\\tealE".to_string(), MacroDefinition::Str("\\textcolor{##208170}{#1}".to_string())),
+        ("\\greenA".to_string(), MacroDefinition::Str("\\textcolor{##b6ffb0}{#1}".to_string())),
+        ("\\greenB".to_string(), MacroDefinition::Str("\\textcolor{##8af281}{#1}".to_string())),
+        ("\\greenC".to_string(), MacroDefinition::Str("\\textcolor{##74cf70}{#1}".to_string())),
+        ("\\greenD".to_string(), MacroDefinition::Str("\\textcolor{##1fab54}{#1}".to_string())),
+        ("\\greenE".to_string(), MacroDefinition::Str("\\textcolor{##0d923f}{#1}".to_string())),
+        ("\\goldA".to_string(), MacroDefinition::Str("\\textcolor{##ffd0a9}{#1}".to_string())),
+        ("\\goldB".to_string(), MacroDefinition::Str("\\textcolor{##ffbb71}{#1}".to_string())),
+        ("\\goldC".to_string(), MacroDefinition::Str("\\textcolor{##ff9c39}{#1}".to_string())),
+        ("\\goldD".to_string(), MacroDefinition::Str("\\textcolor{##e07d10}{#1}".to_string())),
+        ("\\goldE".to_string(), MacroDefinition::Str("\\textcolor{##a75a05}{#1}".to_string())),
+        ("\\redA".to_string(), MacroDefinition::Str("\\textcolor{##fca9a9}{#1}".to_string())),
+        ("\\redB".to_string(), MacroDefinition::Str("\\textcolor{##ff8482}{#1}".to_string())),
+        ("\\redC".to_string(), MacroDefinition::Str("\\textcolor{##f9685d}{#1}".to_string())),
+        ("\\redD".to_string(), MacroDefinition::Str("\\textcolor{##e84d39}{#1}".to_string())),
+        ("\\redE".to_string(), MacroDefinition::Str("\\textcolor{##bc2612}{#1}".to_string())),
+        ("\\maroonA".to_string(), MacroDefinition::Str("\\textcolor{##ffbde0}{#1}".to_string())),
+        ("\\maroonB".to_string(), MacroDefinition::Str("\\textcolor{##ff92c6}{#1}".to_string())),
+        ("\\maroonC".to_string(), MacroDefinition::Str("\\textcolor{##ed5fa6}{#1}".to_string())),
+        ("\\maroonD".to_string(), MacroDefinition::Str("\\textcolor{##ca337c}{#1}".to_string())),
+        ("\\maroonE".to_string(), MacroDefinition::Str("\\textcolor{##9e034e}{#1}".to_string())),
+        ("\\purpleA".to_string(), MacroDefinition::Str("\\textcolor{##ddd7ff}{#1}".to_string())),
+        ("\\purpleB".to_string(), MacroDefinition::Str("\\textcolor{##c6b9fc}{#1}".to_string())),
+        ("\\purpleC".to_string(), MacroDefinition::Str("\\textcolor{##aa87ff}{#1}".to_string())),
+        ("\\purpleD".to_string(), MacroDefinition::Str("\\textcolor{##7854ab}{#1}".to_string())),
+        ("\\purpleE".to_string(), MacroDefinition::Str("\\textcolor{##543b78}{#1}".to_string())),
+        ("\\mintA".to_string(), MacroDefinition::Str("\\textcolor{##f5f9e8}{#1}".to_string())),
+        ("\\mintB".to_string(), MacroDefinition::Str("\\textcolor{##edf2df}{#1}".to_string())),
+        ("\\mintC".to_string(), MacroDefinition::Str("\\textcolor{##e0e5cc}{#1}".to_string())),
+        ("\\grayA".to_string(), MacroDefinition::Str("\\textcolor{##f6f7f7}{#1}".to_string())),
+        ("\\grayB".to_string(), MacroDefinition::Str("\\textcolor{##f0f1f2}{#1}".to_string())),
+        ("\\grayC".to_string(), MacroDefinition::Str("\\textcolor{##e3e5e6}{#1}".to_string())),
+        ("\\grayD".to_string(), MacroDefinition::Str("\\textcolor{##d6d8da}{#1}".to_string())),
+        ("\\grayE".to_string(), MacroDefinition::Str("\\textcolor{##babec2}{#1}".to_string())),
+        ("\\grayF".to_string(), MacroDefinition::Str("\\textcolor{##888d93}{#1}".to_string())),
+        ("\\grayG".to_string(), MacroDefinition::Str("\\textcolor{##626569}{#1}".to_string())),
+        ("\\grayH".to_string(), MacroDefinition::Str("\\textcolor{##3b3e40}{#1}".to_string())),
+        ("\\grayI".to_string(), MacroDefinition::Str("\\textcolor{##21242c}{#1}".to_string())),
+        ("\\kaBlue".to_string(), MacroDefinition::Str("\\textcolor{##314453}{#1}".to_string())),
+        ("\\kaGreen".to_string(), MacroDefinition::Str("\\textcolor{##71B307}{#1}".to_string())),
         //
         // //////////////////////////////////////////////////////////////////////
         // // stmaryrd and semantic
@@ -1230,6 +1905,42 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //             "{\\kern{0.1015em}}{\\kern{0.0725em}}\\circ}{-}}}" +
         //             "{\\char`⦵}}");
         //         defineMacro("⦵", "\\minuso");
+        (
+            "\\llbracket".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathopen{[\\mkern-3.2mu[}}{\\mathopen{\\char`⟦}}".to_string(),
+            ),
+        ),
+        (
+            "\\rrbracket".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathclose{]\\mkern-3.2mu]}}{\\mathclose{\\char`⟧}}".to_string(),
+            ),
+        ),
+        ("⟦".to_string(), MacroDefinition::Str("\\llbracket".to_string())),
+        ("⟧".to_string(), MacroDefinition::Str("\\rrbracket".to_string())),
+        (
+            "\\lBrace".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathopen{\\{\\mkern-3.2mu[}}{\\mathopen{\\char`⦃}}".to_string(),
+            ),
+        ),
+        (
+            "\\rBrace".to_string(),
+            MacroDefinition::Str(
+                "\\html@mathml{\\mathclose{]\\mkern-3.2mu\\}}}{\\mathclose{\\char`⦄}}".to_string(),
+            ),
+        ),
+        ("⦃".to_string(), MacroDefinition::Str("\\lBrace".to_string())),
+        ("⦄".to_string(), MacroDefinition::Str("\\rBrace".to_string())),
+        (
+            "\\minuso".to_string(),
+            MacroDefinition::Str(
+                "\\mathbin{\\html@mathml{{\\mathrlap{\\mathchoice{\\kern{0.145em}}{\\kern{0.145em}}{\\kern{0.1015em}}{\\kern{0.0725em}}\\circ}{-}}}{\\char`⦵}}"
+                    .to_string(),
+            ),
+        ),
+        ("⦵".to_string(), MacroDefinition::Str("\\minuso".to_string())),
         //
         // //////////////////////////////////////////////////////////////////////
         // // texvc.sty
@@ -1304,6 +2015,69 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         // // TODO: defineMacro("\\varcoppa", "\\\mbox{\\coppa}");
         //         defineMacro("\\weierp", "\\wp");
         //         defineMacro("\\Zeta", "\\mathrm{Z}");
+        ("\\darr".to_string(), MacroDefinition::Str("\\downarrow".to_string())),
+        ("\\dArr".to_string(), MacroDefinition::Str("\\Downarrow".to_string())),
+        ("\\Darr".to_string(), MacroDefinition::Str("\\Downarrow".to_string())),
+        ("\\lang".to_string(), MacroDefinition::Str("\\langle".to_string())),
+        ("\\rang".to_string(), MacroDefinition::Str("\\rangle".to_string())),
+        ("\\uarr".to_string(), MacroDefinition::Str("\\uparrow".to_string())),
+        ("\\uArr".to_string(), MacroDefinition::Str("\\Uparrow".to_string())),
+        ("\\Uarr".to_string(), MacroDefinition::Str("\\Uparrow".to_string())),
+        ("\\N".to_string(), MacroDefinition::Str("\\mathbb{N}".to_string())),
+        ("\\R".to_string(), MacroDefinition::Str("\\mathbb{R}".to_string())),
+        ("\\Z".to_string(), MacroDefinition::Str("\\mathbb{Z}".to_string())),
+        ("\\alef".to_string(), MacroDefinition::Str("\\aleph".to_string())),
+        ("\\alefsym".to_string(), MacroDefinition::Str("\\aleph".to_string())),
+        ("\\Alpha".to_string(), MacroDefinition::Str("\\mathrm{A}".to_string())),
+        ("\\Beta".to_string(), MacroDefinition::Str("\\mathrm{B}".to_string())),
+        ("\\bull".to_string(), MacroDefinition::Str("\\bullet".to_string())),
+        ("\\Chi".to_string(), MacroDefinition::Str("\\mathrm{X}".to_string())),
+        ("\\clubs".to_string(), MacroDefinition::Str("\\clubsuit".to_string())),
+        ("\\cnums".to_string(), MacroDefinition::Str("\\mathbb{C}".to_string())),
+        ("\\Complex".to_string(), MacroDefinition::Str("\\mathbb{C}".to_string())),
+        ("\\Dagger".to_string(), MacroDefinition::Str("\\ddagger".to_string())),
+        ("\\diamonds".to_string(), MacroDefinition::Str("\\diamondsuit".to_string())),
+        ("\\empty".to_string(), MacroDefinition::Str("\\emptyset".to_string())),
+        ("\\Epsilon".to_string(), MacroDefinition::Str("\\mathrm{E}".to_string())),
+        ("\\Eta".to_string(), MacroDefinition::Str("\\mathrm{H}".to_string())),
+        ("\\exist".to_string(), MacroDefinition::Str("\\exists".to_string())),
+        ("\\harr".to_string(), MacroDefinition::Str("\\leftrightarrow".to_string())),
+        ("\\hArr".to_string(), MacroDefinition::Str("\\Leftrightarrow".to_string())),
+        ("\\Harr".to_string(), MacroDefinition::Str("\\Leftrightarrow".to_string())),
+        ("\\hearts".to_string(), MacroDefinition::Str("\\heartsuit".to_string())),
+        ("\\image".to_string(), MacroDefinition::Str("\\Im".to_string())),
+        ("\\infin".to_string(), MacroDefinition::Str("\\infty".to_string())),
+        ("\\Iota".to_string(), MacroDefinition::Str("\\mathrm{I}".to_string())),
+        ("\\isin".to_string(), MacroDefinition::Str("\\in".to_string())),
+        ("\\Kappa".to_string(), MacroDefinition::Str("\\mathrm{K}".to_string())),
+        ("\\larr".to_string(), MacroDefinition::Str("\\leftarrow".to_string())),
+        ("\\lArr".to_string(), MacroDefinition::Str("\\Leftarrow".to_string())),
+        ("\\Larr".to_string(), MacroDefinition::Str("\\Leftarrow".to_string())),
+        ("\\lrarr".to_string(), MacroDefinition::Str("\\leftrightarrow".to_string())),
+        ("\\lrArr".to_string(), MacroDefinition::Str("\\Leftrightarrow".to_string())),
+        ("\\Lrarr".to_string(), MacroDefinition::Str("\\Leftrightarrow".to_string())),
+        ("\\Mu".to_string(), MacroDefinition::Str("\\mathrm{M}".to_string())),
+        ("\\natnums".to_string(), MacroDefinition::Str("\\mathbb{N}".to_string())),
+        ("\\Nu".to_string(), MacroDefinition::Str("\\mathrm{N}".to_string())),
+        ("\\Omicron".to_string(), MacroDefinition::Str("\\mathrm{O}".to_string())),
+        ("\\plusmn".to_string(), MacroDefinition::Str("\\pm".to_string())),
+        ("\\rarr".to_string(), MacroDefinition::Str("\\rightarrow".to_string())),
+        ("\\rArr".to_string(), MacroDefinition::Str("\\Rightarrow".to_string())),
+        ("\\Rarr".to_string(), MacroDefinition::Str("\\Rightarrow".to_string())),
+        ("\\real".to_string(), MacroDefinition::Str("\\Re".to_string())),
+        ("\\reals".to_string(), MacroDefinition::Str("\\mathbb{R}".to_string())),
+        ("\\Reals".to_string(), MacroDefinition::Str("\\mathbb{R}".to_string())),
+        ("\\Rho".to_string(), MacroDefinition::Str("\\mathrm{P}".to_string())),
+        ("\\sdot".to_string(), MacroDefinition::Str("\\cdot".to_string())),
+        ("\\sect".to_string(), MacroDefinition::Str("\\S".to_string())),
+        ("\\spades".to_string(), MacroDefinition::Str("\\spadesuit".to_string())),
+        ("\\sub".to_string(), MacroDefinition::Str("\\subset".to_string())),
+        ("\\sube".to_string(), MacroDefinition::Str("\\subseteq".to_string())),
+        ("\\supe".to_string(), MacroDefinition::Str("\\supseteq".to_string())),
+        ("\\Tau".to_string(), MacroDefinition::Str("\\mathrm{T}".to_string())),
+        ("\\thetasym".to_string(), MacroDefinition::Str("\\vartheta".to_string())),
+        ("\\weierp".to_string(), MacroDefinition::Str("\\wp".to_string())),
+        ("\\Zeta".to_string(), MacroDefinition::Str("\\mathrm{Z}".to_string())),
         //
         // //////////////////////////////////////////////////////////////////////
         // // statmath.sty
@@ -1312,6 +2086,18 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //         defineMacro("\\argmin", "\\DOTSB\\operatorname*{arg\\,min}");
         //         defineMacro("\\argmax", "\\DOTSB\\operatorname*{arg\\,max}");
         //         defineMacro("\\plim", "\\DOTSB\\mathop{\\operatorname{plim}}\\limits");
+        (
+            "\\dddot".to_string(),
+            MacroDefinition::Str(
+                "{\\overset{\\raisebox{-0.1ex}{\\normalsize ...}}{#1}}".to_string(),
+            ),
+        ),
+        (
+            "\\ddddot".to_string(),
+            MacroDefinition::Str(
+                "{\\overset{\\raisebox{-0.1ex}{\\normalsize ....}}{#1}}".to_string(),
+            ),
+        ),
         //
         // //////////////////////////////////////////////////////////////////////
         // // braket.sty
@@ -1372,6 +2158,8 @@ pub fn create_macro_map() -> crate::Namespace::Mapping<MacroDefinition> {
         //             "{\\,\\middle\\vert\\,}{\\,\\middle\\vert\\,}{\\right\\rangle}");
         //         defineMacro("\\Set", "\\bra@set{\\left\\{\\:}" +
         //             "{\\;\\middle\\vert\\;}{\\;\\middle\\Vert\\;}{\\:\\right\\}}");
+        ("\\Set".to_string(), MacroDefinition::MacroContext(set_macro)),
+        ("\\set".to_string(), MacroDefinition::MacroContext(set_small_macro)),
         //         defineMacro("\\set", "\\bra@set{\\{\\,}{\\mid}{}{\\,\\}}");
         //         // has no support for special || or \|
         //
