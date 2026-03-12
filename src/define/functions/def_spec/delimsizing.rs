@@ -508,6 +508,11 @@ pub fn lrr_handler_fn(
     // if color && typeof color != "string".to_string()) {
     //     panic!("\\current@color set to non-string in \\right".to_string());
     // }
+    context
+        .parser
+        .gullet
+        .macros
+        .set(&"\\current@color".to_string(), None, false);
     let res = parse_node::types::leftright_right {
         mode: context.parser.mode,
         loc: None,

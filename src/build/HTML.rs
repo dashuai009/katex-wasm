@@ -7,6 +7,7 @@ use crate::{
     Options::Options,
 };
 use std::any::{Any, TypeId};
+use std::collections::VecDeque;
 use std::str::FromStr;
 /**
  * This file does the main work of building a domTree structure from a parse
@@ -19,6 +20,7 @@ use std::vec;
 use super::common::make_span;
 use crate::define::functions::public::_HTML_GROUP_BUILDERS;
 use crate::dom_tree::anchor::Anchor;
+use crate::dom_tree::document_fragment::DocumentFragment;
 use crate::parse_node::types::ParseNodeToAny;
 
 // Binary atoms (first class `mbin`) change into ordinary atoms (`mord`)
@@ -84,6 +86,16 @@ pub enum IsRealGroup {
     Root,
 }
 
+#[inline]
+fn first_class(node: &dyn HtmlDomNode) -> Option<&str> {
+    node.get_classes().get(0).map(|class_name| class_name.as_str())
+}
+
+#[inline]
+fn has_class(node: &dyn HtmlDomNode, class_name: &str) -> bool {
+    node.get_classes().iter().any(|class| class == class_name)
+}
+
 /// Take a list of nodes, build them in order, and return a list of the built
 /// nodes. documentFragments are flattened into their contents, so the
 /// returned list contains no fragments. `is_real_group` is true if `expression`
@@ -97,12 +109,25 @@ pub fn build_expression(
     surrounding: (Option<DomType>, Option<DomType>),
 ) -> Vec<Box<dyn HtmlDomNode>> {
     // return vec![];
+    let expression_len = expression.len();
+    let mut glue_options = options.clone();
+    if expression_len == 1 {
+        let node = &expression[0];
+        if let Some(s) = node.as_any().downcast_ref::<parse_node::types::sizing>() {
+            glue_options = options.having_size(s.size as f64);
+        } else if let Some(s) = node.as_any().downcast_ref::<parse_node::types::styling>() {
+            glue_options = options.having_style(&s.style.as_style());
+        }
+    }
+
     // Parse expressions into `groups`.
     let mut groups = vec![];
-    for expr in expression.iter() {
-        let mut output = build_group(Some(expr.clone()), options.clone(), None);
-        if let Some(k) = output.as_any().downcast_ref::<crate::dom_tree::document_fragment::DocumentFragment>() {
-            groups.append(&mut k.clone().get_mut_children().unwrap().clone());
+    for expr in expression {
+        let mut output = build_group(Some(expr), options.clone(), None);
+        if output.as_any().is::<DocumentFragment>() {
+            if let Some(children) = output.get_mut_children() {
+                groups.append(children);
+            }
         } else {
             groups.push(output);
         }
@@ -115,42 +140,22 @@ pub fn build_expression(
     // If `expression` is a partial group, let the parent handle spacings
     // to avoid processing groups multiple times.
     if is_real_group == IsRealGroup::F {
-        return groups.clone();
-    }
-
-    let mut glue_options = options.clone();
-    if expression.len() == 1 {
-        let node = &expression[0];
-        if let Some(s) = node.as_any().downcast_ref::<parse_node::types::sizing>() {
-            glue_options = options.having_size(s.size as f64);
-        } else if let Some(s) = node.as_any().downcast_ref::<parse_node::types::styling>() {
-            glue_options = options.having_style(&s.style.as_style());
-        }
+        return groups;
     }
 
     // Dummy spans for determining spacings between surrounding atoms.
     // If `expression` has no atoms on the left or right, class "leftmost"
     // or "rightmost", respectively, is used to indicate it.
-    let dummy_prev = make_span(
-        vec![if let Some(s) = surrounding.0 {
-            s.as_str().to_string()
-        } else {
-            "leftmost".to_string()
-        }],
-        vec![],
-        Some(&options),
-        CssStyle::default(),
-    );
-    let dummy_next = make_span(
-        vec![if let Some(ref s) = surrounding.1 {
-            s.as_str().to_string()
-        } else {
-            "rightmost".to_string()
-        }],
-        vec![],
-        Some(&options),
-        CssStyle::default(),
-    );
+    let dummy_prev_type = if let Some(s) = surrounding.0 {
+        s.as_str().to_string()
+    } else {
+        "leftmost".to_string()
+    };
+    let dummy_next_type = if let Some(ref s) = surrounding.1 {
+        s.as_str().to_string()
+    } else {
+        "rightmost".to_string()
+    };
 
     // TODO: These code assumes that a node's math class is the first element
     // of its `classes` array. A later cleanup should ensure this, for
@@ -162,99 +167,230 @@ pub fn build_expression(
     // We do this in two passes:
     // 1) left-cancellation in forward order (`mbin` after left-cancellers),
     // 2) right-cancellation in reverse order (`mbin` before right-cancellers).
-    // This avoids mutating a cloned "previous node".
+    // This avoids mutating/cloning full previous nodes.
     traverse_non_space_nodes(
         &mut groups,
-        &|node: &mut Box<dyn HtmlDomNode>,
-          prev: &mut Box<dyn HtmlDomNode>|
-         -> Option<Box<dyn HtmlDomNode>> {
-            let prev_type = prev.get_classes().get(0).cloned();
-            let node_type = node.get_classes().get(0).cloned();
-            if let (Some(prev_type), Some(node_type)) = (prev_type, node_type) {
-                if node_type == "mbin" && BIN_LEFT_CANCELLER.contains(&prev_type.as_str()) {
-                    node.get_mut_classes()[0] = "mord".to_string();
-                }
+        &|node: &mut Box<dyn HtmlDomNode>, prev_type: &str| -> Option<Box<dyn HtmlDomNode>> {
+            if first_class(&**node).is_some_and(|node_type| {
+                node_type == "mbin" && BIN_LEFT_CANCELLER.contains(&prev_type)
+            }) {
+                node.get_mut_classes()[0] = "mord".to_string();
             }
             None
         },
         &mut TraversePrev {
-            node: Box::new(dummy_prev.clone()) as Box<dyn HtmlDomNode>,
+            node_type: dummy_prev_type.clone(),
             insert_after: None,
+            pending: vec![],
         },
-        Some(Box::new(dummy_next.clone()) as Box<dyn HtmlDomNode>),
         is_root,
+        &mut vec![],
     );
-    let mut reverse_prev = Box::new(dummy_next.clone()) as Box<dyn HtmlDomNode>;
-    let reverse_line_reset = reverse_prev.clone();
+    let mut reverse_prev_type = dummy_next_type.clone();
     traverse_non_space_nodes_reverse(
-        &|node: &mut Box<dyn HtmlDomNode>, next_node: &Box<dyn HtmlDomNode>| {
-            let node_type = node.get_classes().get(0).cloned();
-            let next_type = next_node.get_classes().get(0).cloned();
-            if let (Some(node_type), Some(next_type)) = (node_type, next_type) {
-                if node_type == "mbin" && BIN_RIGHT_CANCELLER.contains(&next_type.as_str()) {
-                    node.get_mut_classes()[0] = "mord".to_string();
-                }
+        &|node: &mut Box<dyn HtmlDomNode>, next_type: &str| {
+            if first_class(&**node)
+                .is_some_and(|node_type| node_type == "mbin" && BIN_RIGHT_CANCELLER.contains(&next_type))
+            {
+                node.get_mut_classes()[0] = "mord".to_string();
             }
         },
         &mut groups,
-        &mut reverse_prev,
-        &reverse_line_reset,
+        &mut reverse_prev_type,
+        "leftmost",
         is_root,
     );
 
     traverse_non_space_nodes(
         &mut groups,
         &Box::new(
-            |node: &mut Box<dyn HtmlDomNode>,
-             prev: &mut Box<dyn HtmlDomNode>|
-             -> Option<Box<dyn HtmlDomNode>> {
-                let prev_type = get_type_of_dom_tree(prev, None);
-                let _type = get_type_of_dom_tree(node, None);
-
-                // 'mtight' indicates that the node is script or scriptscript style.
-                //console.log(node,prev_type,type);
-                let space = if prev_type.is_some() && _type.is_some() {
-                    if node.get_classes().contains(&"mtight".to_string()) {
-                        crate::spacingData::get_tightSpacings(
-                            prev_type.unwrap().as_str().to_string(),
-                            _type.unwrap().as_str().to_string(),
-                        )
+            |node: &mut Box<dyn HtmlDomNode>, prev_type: &str| -> Option<Box<dyn HtmlDomNode>> {
+                let node_type = first_class(&**node);
+                let space = if let Some(node_type) = node_type {
+                    if has_class(&**node, "mtight") {
+                        crate::spacingData::get_tightSpacings(prev_type, node_type)
                     } else {
-                        crate::spacingData::get_spacings(
-                            prev_type.unwrap().as_str().to_string(),
-                            _type.unwrap().as_str().to_string(),
-                        )
+                        crate::spacingData::get_spacings(prev_type, node_type)
                     }
                 } else {
                     None
                 };
                 if let Some(s) = space {
                     // Insert glue (spacing) after the `prev`.
-                    return Some(Box::new(super::common::make_glue(
-                        &s,
-                        &glue_options.clone(),
-                    )) as Box<dyn HtmlDomNode>);
+                    return Some(Box::new(super::common::make_glue(&s, &glue_options))
+                        as Box<dyn HtmlDomNode>);
                 }
                 return None;
             },
         ),
         &mut TraversePrev {
-            node: Box::new(dummy_prev) as Box<dyn HtmlDomNode>,
+            node_type: dummy_prev_type,
             insert_after: None,
+            pending: vec![],
         },
-        Some(Box::new(dummy_next) as Box<dyn HtmlDomNode>),
         is_root,
+        &mut vec![],
     );
+
+    // Patch remaining spacing gaps around partial groups where JS inserts glue
+    // across wrapper boundaries by sharing prev.insertAfter through recursion.
+    insert_missing_partial_group_spacing(&mut groups, &glue_options, is_root);
+
+    // Our simplified spacing traversal can miss punct->close glue in some nested
+    // delimiter shapes (e.g. `\\left( ,\\right)` and `\\left. ... , \\right.`).
+    // Patch these cases recursively to match KaTeX JS output.
+    insert_missing_punct_close_spacing(&mut groups, &glue_options);
 
     // println!("build_expression groups = {:#?}", groups);
     return groups;
 }
 
-// type InsertAfter =
-struct TraversePrev {
-    node: Box<dyn HtmlDomNode>,
-    insert_after: Option<Box<dyn FnMut(Box<dyn HtmlDomNode>) -> ()>>,
+#[derive(Clone)]
+struct InsertAfterTarget {
+    path: Vec<usize>,
+    index: usize,
 }
+
+struct PendingInsert {
+    target: InsertAfterTarget,
+    node: Box<dyn HtmlDomNode>,
+}
+
+struct TraversePrev {
+    node_type: String,
+    insert_after: Option<InsertAfterTarget>,
+    pending: Vec<PendingInsert>,
+}
+
+fn insert_after_target(
+    nodes: &mut Vec<Box<dyn HtmlDomNode>>,
+    target: &InsertAfterTarget,
+    current_path: &[usize],
+    node: Box<dyn HtmlDomNode>,
+) -> bool {
+    if target.path == current_path {
+        nodes.insert(target.index + 1, node);
+        return true;
+    }
+    if !target.path.starts_with(current_path) {
+        return false;
+    }
+    let Some(&child_index) = target.path.get(current_path.len()) else {
+        return false;
+    };
+    if child_index >= nodes.len() {
+        return false;
+    }
+    if let Some(children) = nodes[child_index].get_mut_children() {
+        let mut next_path = current_path.to_vec();
+        next_path.push(child_index);
+        return insert_after_target(children, target, next_path.as_slice(), node);
+    }
+    false
+}
+
+fn apply_pending_inserts(
+    nodes: &mut Vec<Box<dyn HtmlDomNode>>,
+    prev: &mut TraversePrev,
+    current_path: &[usize],
+    current_index: &mut usize,
+) {
+    let mut pending = Vec::new();
+    std::mem::swap(&mut pending, &mut prev.pending);
+    for entry in pending {
+        if entry.target.path == current_path {
+            if entry.target.index < *current_index {
+                *current_index += 1;
+            }
+            nodes.insert(entry.target.index + 1, entry.node);
+        } else {
+            prev.pending.push(entry);
+        }
+    }
+}
+
+fn has_boundary_space(node: &Box<dyn HtmlDomNode>, side: Side, is_root: bool) -> bool {
+    if !check_partial_group(node) {
+        return false;
+    }
+    let Some(children) = node.get_children() else {
+        return false;
+    };
+    let iter: Box<dyn Iterator<Item = &Box<dyn HtmlDomNode>> + '_> = match side {
+        Side::Left => Box::new(children.iter()),
+        Side::Right => Box::new(children.iter().rev()),
+    };
+    for child in iter {
+        if has_class(&**child, "mspace") {
+            if !has_class(&**child, "newline") {
+                return true;
+            }
+            if is_root {
+                return false;
+            }
+        } else if check_partial_group(child) {
+            return has_boundary_space(child, side, is_root);
+        } else {
+            return false;
+        }
+    }
+    false
+}
+
+fn insert_missing_partial_group_spacing(
+    nodes: &mut Vec<Box<dyn HtmlDomNode>>,
+    glue_options: &Options,
+    is_root: bool,
+) {
+    let mut i = 0usize;
+    let mut prev_type = "leftmost".to_string();
+    let mut space_after_prev = false;
+    while i < nodes.len() {
+        if check_partial_group(&nodes[i]) {
+            if let Some(children) = nodes[i].get_mut_children() {
+                insert_missing_partial_group_spacing(children, glue_options, is_root);
+            }
+        }
+
+        if has_class(&*nodes[i], "mspace") {
+            if is_root && has_class(&*nodes[i], "newline") {
+                prev_type = "leftmost".to_string();
+                space_after_prev = false;
+            } else {
+                space_after_prev = true;
+            }
+            i += 1;
+            continue;
+        }
+
+        let has_leading_space = has_boundary_space(&nodes[i], Side::Left, is_root);
+        let left_node = get_outermost_node(&nodes[i], Side::Left);
+        let left_type = get_type_of_dom_tree(&nodes[i], Some(Side::Left));
+        if !space_after_prev && !has_leading_space {
+            if let Some(left_type) = left_type {
+                let space = if has_class(&**left_node, "mtight") {
+                    crate::spacingData::get_tightSpacings(&prev_type, left_type.as_str())
+                } else {
+                    crate::spacingData::get_spacings(&prev_type, left_type.as_str())
+                };
+                if let Some(space) = space {
+                    nodes.insert(
+                        i,
+                        Box::new(super::common::make_glue(&space, glue_options)) as Box<dyn HtmlDomNode>,
+                    );
+                    i += 1;
+                }
+            }
+        }
+
+        if let Some(right_type) = get_type_of_dom_tree(&nodes[i], Some(Side::Right)) {
+            prev_type = right_type.as_str().to_string();
+        }
+        space_after_prev = has_boundary_space(&nodes[i], Side::Right, is_root);
+        i += 1;
+    }
+}
+
 // Depth-first traverse non-space `nodes`, calling `callback` with the current and
 // previous node as arguments, optionally returning a node to insert after the
 // previous node. `prev` is an object with the previous node and `insertAfter`
@@ -262,29 +398,22 @@ struct TraversePrev {
 // // Used for bin cancellation and inserting spacings.
 fn traverse_non_space_nodes(
     mut nodes: &mut Vec<Box<dyn HtmlDomNode>>,
-    callback: &dyn Fn(
-        &mut Box<dyn HtmlDomNode>,
-        &mut Box<dyn HtmlDomNode>,
-    ) -> Option<Box<dyn HtmlDomNode>>,
-
+    callback: &dyn Fn(&mut Box<dyn HtmlDomNode>, &str) -> Option<Box<dyn HtmlDomNode>>,
     mut prev: &mut TraversePrev,
-    next: Option<Box<dyn HtmlDomNode>>,
     is_root: bool,
+    current_path: &mut Vec<usize>,
 ) {
-    if next.is_some() {
-        // temporarily append the right node, if exists
-        nodes.push(next.as_ref().unwrap().clone());
-    }
-    // println!("travers = {:#?}", nodes);
     let mut i = 0;
-    let mut insert_after_pos = None;
     while i < nodes.len() {
         // println!("i={} len = {}", i, nodes.len());
         if check_partial_group(&nodes[i]){
             // println!("check");
             if let Some(partial_group) = nodes[i].get_mut_children() {
                 // Recursive DFS
-                traverse_non_space_nodes(partial_group, callback, &mut prev, None, is_root.clone());
+                current_path.push(i);
+                traverse_non_space_nodes(partial_group, callback, &mut prev, is_root, current_path);
+                current_path.pop();
+                apply_pending_inserts(nodes, prev, current_path.as_slice(), &mut i);
                 i += 1;
                 continue;
             }
@@ -293,43 +422,47 @@ fn traverse_non_space_nodes(
 
         // Ignore explicit spaces (e.g., \;, \,) when determining what implicit
         // spacing should go between atoms of different classes
-        let nonspace = !nodes[i].has_class(&"mspace".to_string());
+        let nonspace = !has_class(&*nodes[i], "mspace");
         if nonspace {
-            if let Some(result) = callback(&mut nodes[i], &mut prev.node) {
-                //println!("result = {:#?}", result);
-                if insert_after_pos.is_some() {
-                    nodes.insert(insert_after_pos.unwrap() + 1, result);
-                    i+=1;
+            if let Some(result) = callback(&mut nodes[i], prev.node_type.as_str()) {
+                if let Some(target) = prev.insert_after.clone() {
+                    if target.path.starts_with(current_path.as_slice()) {
+                        if insert_after_target(nodes, &target, current_path.as_slice(), result) {
+                            i += 1;
+                        }
+                    } else {
+                        prev.pending.push(PendingInsert {
+                            target,
+                            node: result,
+                        });
+                    }
                 } else {
                     // insert at front
                     nodes.insert(0, result);
                     i += 1;
                 }
             }
-            prev.node = nodes[i].clone();
-        } else if is_root && nodes[i].has_class(&"newline".to_string()) {
-            prev.node = Box::new(make_span(
-                vec!["leftmost".to_string()],
-                vec![],
-                None,
-                CssStyle::default(),
-            )) as Box<dyn HtmlDomNode>;
+            if let Some(node_type) = first_class(&*nodes[i]) {
+                prev.node_type = node_type.to_string();
+            }
+        } else if is_root && has_class(&*nodes[i], "newline") {
+            prev.node_type = "leftmost".to_string();
             // treat like beginning of line
         }
-        insert_after_pos = Some(i);
+        prev.insert_after = Some(InsertAfterTarget {
+            path: current_path.clone(),
+            index: i,
+        });
         i += 1;
-    }
-    if next.is_some() {
-        nodes.pop();
     }
 }
 
 // Check if given node is a partial group, i.e., does not affect spacing around.
 fn check_partial_group(node: &Box<dyn HtmlDomNode>) -> bool {
     let t = node.as_any().type_id();
-    return t == TypeId::of::<crate::dom_tree::document_fragment::DocumentFragment>()
+    return t == TypeId::of::<DocumentFragment>()
         || t == TypeId::of::<Anchor>()
-        || (t == TypeId::of::<Span>() && node.has_class(&"enclosing".to_string()));
+        || (t == TypeId::of::<Span>() && has_class(&**node, "enclosing"));
 }
 
 // Return the outermost node of a domTree.
@@ -361,7 +494,7 @@ pub fn get_type_of_dom_tree(node: &Box<dyn HtmlDomNode>, side: Option<Side>) -> 
 
     // This makes a lot of assumptions as to where the type of atom
     // appears.  We should do a better job of enforcing this.
-    return DomType::from_str(&*_node.get_classes().get(0).unwrap_or(&"".to_string())).ok();
+    return first_class(&**_node).and_then(|class_name| DomType::from_str(class_name).ok());
 }
 
 pub fn make_null_delimiter(
@@ -417,10 +550,10 @@ pub fn build_group(
 }
 
 fn traverse_non_space_nodes_reverse(
-    callback: &dyn Fn(&mut Box<dyn HtmlDomNode>, &Box<dyn HtmlDomNode>),
+    callback: &dyn Fn(&mut Box<dyn HtmlDomNode>, &str),
     nodes: &mut Vec<Box<dyn HtmlDomNode>>,
-    prev: &mut Box<dyn HtmlDomNode>,
-    line_reset: &Box<dyn HtmlDomNode>,
+    prev_type: &mut String,
+    line_reset_type: &str,
     is_root: bool,
 ) {
     let mut i = nodes.len();
@@ -428,18 +561,52 @@ fn traverse_non_space_nodes_reverse(
         i -= 1;
         if check_partial_group(&nodes[i]) {
             if let Some(partial_group) = nodes[i].get_mut_children() {
-                traverse_non_space_nodes_reverse(callback, partial_group, prev, line_reset, is_root);
+                traverse_non_space_nodes_reverse(
+                    callback,
+                    partial_group,
+                    prev_type,
+                    line_reset_type,
+                    is_root,
+                );
             }
             continue;
         }
 
-        let nonspace = !nodes[i].has_class(&"mspace".to_string());
+        let nonspace = !has_class(&*nodes[i], "mspace");
         if nonspace {
-            callback(&mut nodes[i], prev);
-            *prev = nodes[i].clone();
-        } else if is_root && nodes[i].has_class(&"newline".to_string()) {
-            *prev = line_reset.clone();
+            callback(&mut nodes[i], prev_type.as_str());
+            if let Some(node_type) = first_class(&*nodes[i]) {
+                *prev_type = node_type.to_string();
+            }
+        } else if is_root && has_class(&*nodes[i], "newline") {
+            *prev_type = line_reset_type.to_string();
         }
+    }
+}
+
+fn insert_missing_punct_close_spacing(nodes: &mut Vec<Box<dyn HtmlDomNode>>, glue_options: &Options) {
+    let mut i = 0usize;
+    while i < nodes.len() {
+        if check_partial_group(&nodes[i]) || has_class(&*nodes[i], "minner") {
+            if let Some(children) = nodes[i].get_mut_children() {
+                insert_missing_punct_close_spacing(children, glue_options);
+            }
+        }
+
+        if i + 1 < nodes.len()
+            && has_class(&*nodes[i], "mpunct")
+            && has_class(&*nodes[i + 1], "mclose")
+            && !has_class(&*nodes[i + 1], "mtight")
+        {
+            if let Some(space) = crate::spacingData::get_spacings("mpunct", "mclose") {
+                nodes.insert(
+                    i + 1,
+                    Box::new(super::common::make_glue(&space, glue_options)) as Box<dyn HtmlDomNode>,
+                );
+                i += 1;
+            }
+        }
+        i += 1;
     }
 }
 
@@ -486,12 +653,17 @@ pub fn build_html(mut tree: Vec<Box<dyn AnyParseNode>>, options: Options) -> Spa
     }
 
     // Build the expression contained in the tree
-    let mut expression = build_expression(tree, options.clone(), IsRealGroup::Root, (None, None));
+    let mut expression = VecDeque::from(build_expression(
+        tree,
+        options.clone(),
+        IsRealGroup::Root,
+        (None, None),
+    ));
 
     let mut eqn_num = None;
-    if expression.len() == 2 && expression[1].has_class(&"tag".to_string()) {
+    if expression.len() == 2 && expression.get(1).is_some_and(|node| has_class(&**node, "tag")) {
         // An environment with automatic equation numbers, e.g. {gather}.
-        eqn_num = expression.pop();
+        eqn_num = expression.pop_back();
     }
 
     let mut children: Vec<Box<dyn HtmlDomNode>> = vec![];
@@ -503,64 +675,62 @@ pub fn build_html(mut tree: Vec<Box<dyn AnyParseNode>>, options: Options) -> Spa
     // binary operation is on the ``outer level'' of the formula (i.e., not
     // enclosed in {...} and not part of an \over letruction)."
 
-    let mut parts = vec![];
-    let mut i = 0usize;
-    while i < expression.len() {
-        parts.push(expression[i].clone());
-        if expression[i].has_class(&"mbin".to_string())
-            || expression[i].has_class(&"mrel".to_string())
-            || expression[i].has_class(&"allowbreak".to_string())
-        {
+    let mut parts: Vec<Box<dyn HtmlDomNode>> = vec![];
+    while let Some(node) = expression.pop_front() {
+        if has_class(&*node, "newline") {
+            if !parts.is_empty() {
+                children.push(Box::new(buildHTMLUnbreakable(parts, Some(&options)))
+                    as Box<dyn HtmlDomNode>);
+                parts = vec![];
+            }
+            children.push(node);
+            continue;
+        }
+
+        let allow_break = has_class(&*node, "mbin")
+            || has_class(&*node, "mrel")
+            || has_class(&*node, "allowbreak");
+        parts.push(node);
+
+        if allow_break {
             // Put any post-operator glue on same line as operator.
             // Watch for \nobreak along the way, and stop at \newline.
             let mut nobreak = false;
-            while i < expression.len() - 1
-                && expression[i + 1].has_class(&"mspace".to_string())
-                && !expression[i + 1].has_class(&"newline".to_string())
+            while expression
+                .front()
+                .is_some_and(|next| has_class(&**next, "mspace") && !has_class(&**next, "newline"))
             {
-                i += 1;
-                parts.push(expression[i].clone());
-                if expression[i].has_class(&"nobreak".to_string()) {
-                    nobreak = true;
+                if let Some(next) = expression.pop_front() {
+                    if has_class(&*next, "nobreak") {
+                        nobreak = true;
+                    }
+                    parts.push(next);
                 }
             }
-            // Don't allow break if \nobreak among the post-operator glue.
-            if (!nobreak) {
-                children
-                    .push(Box::new(buildHTMLUnbreakable(parts, Some(&options)))
-                        as Box<dyn HtmlDomNode>);
-                parts = vec![];
-            }
-        } else if (expression[i].has_class(&"newline".to_string())) {
-            // Write the line except the newline
-            parts.pop();
-            if (parts.len() > 0) {
-                children
-                    .push(Box::new(buildHTMLUnbreakable(parts, Some(&options)))
-                        as Box<dyn HtmlDomNode>);
-                parts = vec![];
-            }
-            // Put the newline at the top level
-            children.push(expression[i].clone());
-        }
 
-        i += 1;
+            // Don't allow break if \nobreak among the post-operator glue.
+            if !nobreak {
+                children.push(Box::new(buildHTMLUnbreakable(parts, Some(&options)))
+                    as Box<dyn HtmlDomNode>);
+                parts = vec![];
+            }
+        }
     }
-    if (parts.len() > 0) {
+    if !parts.is_empty() {
         children
             .push(Box::new(buildHTMLUnbreakable(parts, Some(&options))) as Box<dyn HtmlDomNode>);
     }
 
     // Now, if there was a tag, build it too and append it as a final child.
-    let mut tag_child = None;
+    let mut tag_child_index = None;
     if tag.is_some() {
         let mut _tag_child = Box::new(buildHTMLUnbreakable(
             build_expression(tag.unwrap(), options, IsRealGroup::T, (None, None)),
             None,
         )) as Box<dyn HtmlDomNode>;
         _tag_child.set_classes(vec!["tag".to_string()]);
-        children.push(_tag_child.clone());
-        tag_child = Some(_tag_child.clone());
+        children.push(_tag_child);
+        tag_child_index = Some(children.len() - 1);
     } else if eqn_num.is_some() {
         children.push(eqn_num.unwrap());
     }
@@ -575,12 +745,17 @@ pub fn build_html(mut tree: Vec<Box<dyn AnyParseNode>>, options: Options) -> Spa
 
     // Adjust the strut of the tag to be the maximum height of all children
     // (the height of the enclosing htmlNode) for proper vertical alignment.
-    if let Some(mut t) = tag_child {
-        let mut strut = &mut t.get_mut_children().unwrap()[0];
-        strut.get_mut_style().height =
-            Some(make_em(html_node.get_height() + html_node.get_depth()));
-        if html_node.get_depth() > 0.0 {
-            strut.get_mut_style().vertical_align = Some(make_em(-html_node.get_depth()));
+    let html_height = html_node.get_height();
+    let html_depth = html_node.get_depth();
+    if let Some(index) = tag_child_index {
+        if let Some(children) = html_node.get_mut_children() {
+            if let Some(tag_child) = children.get_mut(index) {
+                let strut = &mut tag_child.get_mut_children().unwrap()[0];
+                strut.get_mut_style().height = Some(make_em(html_height + html_depth));
+                if html_depth > 0.0 {
+                    strut.get_mut_style().vertical_align = Some(make_em(-html_depth));
+                }
+            }
         }
     }
 

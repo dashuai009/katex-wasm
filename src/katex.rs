@@ -185,12 +185,12 @@ fn contains_infix_node(node: &Box<dyn AnyParseNode>) -> bool {
 fn build_dom_tree(expression: &str, settings: &Settings) -> Result<Span, ParseError> {
     match catch_unwind(AssertUnwindSafe(|| {
         let tree = parse_tree_with_error(expression.to_string(), settings.clone())?;
-        if contains_infix_nodes(&tree) {
-            return Err(ParseError {
-                msg: "Got group of unknown type: 'infix'".to_string(),
-                loc: None,
-            });
-        }
+        // if contains_infix_nodes(&tree) {
+        //     return Err(ParseError {
+        //         msg: "Got group of unknown type: 'infix'".to_string(),
+        //         loc: None,
+        //     });
+        // }
         Ok(crate::build::build_tree(
             tree,
             expression.to_string(),

@@ -38,8 +38,25 @@ impl VirtualNode for LineNode {
     fn to_markup(&self) -> String {
         let mut markup: String = "<line".to_string();
 
+        for key in ["x1", "y1", "x2", "y2", "stroke-width"] {
+            if let Some(value) = self.attributes.get(key) {
+                markup.push(' ');
+                markup.push_str(key);
+                markup.push_str("=\"");
+                escape_to(&mut markup, value);
+                markup.push('"');
+            }
+        }
+
         for (k, v) in self.attributes.iter() {
-            markup.push_str(format!(" {}='{}'", k, v).as_str());
+            if ["x1", "y1", "x2", "y2", "stroke-width"].contains(&k.as_str()) {
+                continue;
+            }
+            markup.push(' ');
+            markup.push_str(k);
+            markup.push_str("=\"");
+            escape_to(&mut markup, v);
+            markup.push('"');
         }
 
         markup.push_str("/>");

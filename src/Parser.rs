@@ -938,25 +938,32 @@ impl Parser<'_> {
      * Parses a color description.
      */
     pub fn parse_color_group(&mut self, optional: bool) -> Option<Box<dyn AnyParseNode>> {
-        //parse_node::types::color_token
         if let Some(res) = self.parse_string_group(ArgType::color, optional) {
-            let re = regex::Regex::new(r"^(#[a-f0-9]{3}|#?[a-f0-9]{6}|[a-z]+)$").unwrap();
-            for cap in re.captures_iter(&res.text) {
-                let color_re = regex::Regex::new(r"^[0-9a-f]{6}$").unwrap();
-                if color_re.is_match(&cap[0]) {
-                    // We allow a 6-digit HTML color spec without a leading "#".
-                    // This follows the xcolor package's HTML color model.
-                    // Predefined color names are all missed by this RegEx pattern.
-                    return Some(Box::new(parse_node::types::color_token {
-                        mode: self.mode,
-                        loc: None,
-                        color: format!("#{}", &cap[0]),
-                    }) as Box<dyn AnyParseNode>);
-                } else {
-                    panic!("Invalid color:  {} ", res.text);
-                }
+            let color_re = regex::Regex::new(
+                r"(?i)^(#[a-f0-9]{3,4}|#[a-f0-9]{6}|#[a-f0-9]{8}|[a-f0-9]{6}|[a-z]+)$",
+            )
+            .unwrap();
+            if !color_re.is_match(&res.text) {
+                self.report_parse_error(format!("Invalid color: '{}'", res.text), res.loc.clone());
+                return Some(Box::new(parse_node::types::color_token {
+                    mode: self.mode,
+                    loc: None,
+                    color: "#000000".to_string(),
+                }) as Box<dyn AnyParseNode>);
             }
-            panic!("Invalid color:  {} ", res.text);
+
+            let bare_hex_re = regex::Regex::new(r"(?i)^[0-9a-f]{6}$").unwrap();
+            let color = if bare_hex_re.is_match(&res.text) {
+                format!("#{}", res.text)
+            } else {
+                res.text.clone()
+            };
+
+            return Some(Box::new(parse_node::types::color_token {
+                mode: self.mode,
+                loc: None,
+                color,
+            }) as Box<dyn AnyParseNode>);
         } else {
             return None;
         }

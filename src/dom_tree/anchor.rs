@@ -5,7 +5,7 @@ use crate::{
     tree::{HtmlDomNode, VirtualNode},
     Options::Options,
 };
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use struct_format::html_dom_node;
 
 use super::utils::{this_init_node, this_to_markup, this_to_node};
@@ -17,7 +17,7 @@ use super::utils::{this_init_node, this_to_markup, this_to_node};
 #[derive(html_dom_node, Clone, Debug)]
 pub struct Anchor {
     children: Vec<Box<dyn HtmlDomNode>>,
-    attributes: HashMap<String, String>,
+    attributes: IndexMap<String, String>,
     classes: Vec<String>,
     height: f64,
     depth: f64,
@@ -33,7 +33,7 @@ impl Anchor {
     ) -> Anchor {
         let mut res = Anchor {
             children: vec![],
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
             classes: vec![],
             height: 0.0,
             depth: 0.0,

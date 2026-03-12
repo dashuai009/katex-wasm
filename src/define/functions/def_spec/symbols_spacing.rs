@@ -53,8 +53,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             // things has an entry in the symbols table, so these will be turned
             // into appropriate outputs.
             if group.mode == Mode::text {
-                let ord = common::make_ord(_group, options, "textord".to_string());
-                return Box::new(ord) as Box<dyn HtmlDomNode>;
+                return common::make_ord(_group, options, "textord".to_string());
             } else {
                 let res = common::make_span(
                     vec!["mspace".to_string()],
@@ -74,7 +73,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             if group.mode ==Mode::text {
                 let mut ord = common::make_ord(_group, options, "textord".to_string());
                 ord.get_mut_classes().push("nobreak".to_string());
-                return Box::new(ord) as Box<dyn HtmlDomNode>;
+                return ord;
             } else {
                 let res = common::make_span(
                     vec!["mspace".to_string(), "nobreak".to_string()],

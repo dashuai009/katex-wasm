@@ -42,6 +42,7 @@ mod math;
 mod htmlmathml;
 mod char;
 mod color;
+mod cd;
 mod assembleSupSub;
 mod def;
 
@@ -52,6 +53,8 @@ use crate::define::functions::def_spec::vcenter::VCENTER;
 lazy_static! {
     pub static ref FUNCS: Mutex<Vec<FunctionDefSpec>> = Mutex::new({
         let x = mclass::MCLASS.lock().unwrap();
+        let x2 = mclass::BINREL.lock().unwrap();
+        let x3 = mclass::STACKREL.lock().unwrap();
         let y = symbols_ord::MATHORD.lock().unwrap();
         let z = symbols_op::ATOM.lock().unwrap();
         //
@@ -71,6 +74,10 @@ lazy_static! {
         let h5 = enclose::ANGL.lock().unwrap();
         let i1 = genfrac::FRAC.lock().unwrap();
         let i2 = genfrac::OCABB.lock().unwrap();
+        let i3 = genfrac::CFRAC.lock().unwrap();
+        let i4 = genfrac::GENFRAC.lock().unwrap();
+        let i5 = genfrac::INFIX.lock().unwrap();
+        let i6 = genfrac::ABOVEFRAC.lock().unwrap();
         let j = horiz_brace::HORIZBRACE.lock().unwrap();
         let k1 = href::HREF.lock().unwrap();
         let k2 = href::URL.lock().unwrap();
@@ -108,6 +115,7 @@ lazy_static! {
         let da = kern::KERN.lock().unwrap();
 
         let ea = verb::VERB.lock().unwrap();
+        let eb = char::CHAR.lock().unwrap();
 
         let fa = vcenter::VCENTER.lock().unwrap();
 
@@ -121,6 +129,8 @@ lazy_static! {
 
         let ja = color::COLOR.lock().unwrap();
         let jb = color::COLOR2.lock().unwrap();
+        let jc = cd::CD_LABEL.lock().unwrap();
+        let jd = cd::CD_LABEL_PARENT.lock().unwrap();
 
         let ka = htmlmathml::HTML_MATHML.lock().unwrap();
 
@@ -136,6 +146,8 @@ lazy_static! {
 
         let res = vec![
             x.clone(),
+            x2.clone(),
+            x3.clone(),
             y.clone(),
             z.clone(),
             //
@@ -155,6 +167,10 @@ lazy_static! {
             h5.clone(),
             i1.clone(),
             i2.clone(),
+            i3.clone(),
+            i4.clone(),
+            i5.clone(),
+            i6.clone(),
             j.clone(),
             k1.clone(),
             k2.clone(),
@@ -189,6 +205,7 @@ lazy_static! {
             ca.clone(),
             da.clone(),
             ea.clone(),
+            eb.clone(),
             fa.clone(),
             ga.clone(),
             ha.clone(),
@@ -198,6 +215,8 @@ lazy_static! {
             ib.clone(),
             ja.clone(),
             jb.clone(),
+            jc.clone(),
+            jd.clone(),
             ka.clone(),
             la.clone(),
             ma.clone(),

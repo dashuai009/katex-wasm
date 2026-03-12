@@ -5,15 +5,15 @@ use crate::units::make_em;
 use crate::utils::escape_to;
 use crate::Options::Options;
 use crate::{path_get, scriptFromCodepoint, HtmlDomNode, VirtualNode};
+use indexmap::IndexMap;
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
 use std::sync::Mutex;
 use struct_format::html_dom_node;
 
 #[derive(html_dom_node, Clone, Debug)]
 pub struct Span {
     children: Vec<Box<dyn HtmlDomNode>>,
-    attributes: HashMap<String, String>,
+    attributes: IndexMap<String, String>,
     classes: Vec<String>,
     height: f64,
     depth: f64,
@@ -31,7 +31,7 @@ impl Span {
     ) -> Span {
         let mut res = Span {
             children: vec![],
-            attributes: HashMap::new(),
+            attributes: IndexMap::new(),
             classes: vec![],
             height: 0.0,
             depth: 0.0,

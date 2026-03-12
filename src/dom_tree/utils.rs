@@ -1,7 +1,7 @@
 macro_rules! this_init_node {
     ($this:expr,$classes: expr, $options:expr, $style:expr) => {
         $this.classes = $classes;
-        $this.attributes = HashMap::new();
+        $this.attributes = Default::default();
         $this.height = 0.0;
         $this.depth = 0.0;
         $this.max_font_size = 0.0;

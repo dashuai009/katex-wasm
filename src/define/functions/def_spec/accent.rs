@@ -125,7 +125,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                 svg_data.get("vec").unwrap().1
             }
         } else {
-            let mut _accent = crate::build::common::make_ord(
+            let mut _accent = crate::build::common::make_ord_symbol(
                 Box::new(parse_node::types::textord {
                     mode: group.mode,
                     loc: None,

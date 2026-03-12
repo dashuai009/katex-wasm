@@ -10,7 +10,7 @@ use crate::dom_tree::span::Span;
 use crate::dom_tree::symbol_node::SymbolNode;
 use crate::mathML_tree::math_node::MathNode;
 use crate::mathML_tree::public::{MathDomNode, MathNodeType};
-use crate::parse_node::check_symbol_node_type;
+use crate::parse_node::{check_symbol_node_type, check_symbol_node_type_text};
 use crate::parse_node::types::{
     cr, ordgroup, textord, ArrayTag, ColSeparationType, ParseNodeToAny,
 };
@@ -49,6 +49,303 @@ fn symbol_node_loc(node: &Box<dyn AnyParseNode>) -> Option<crate::sourceLocation
         a.loc.clone()
     } else {
         None
+    }
+}
+
+fn empty_cd_array(mode: crate::types::Mode) -> parse_node::types::array {
+    parse_node::types::array {
+        mode,
+        loc: None,
+        col_separation_type: Some(ColSeparationType::CD),
+        hskip_before_and_after: false,
+        add_jot: true,
+        cols: vec![],
+        array_stretch: 1.0,
+        body: vec![],
+        row_gaps: vec![],
+        h_lines_before_row: vec![vec![]],
+        tags: None,
+        leqno: false,
+        is_cd: true,
+    }
+}
+
+fn new_cd_cell(mode: crate::types::Mode) -> parse_node::types::styling {
+    parse_node::types::styling {
+        mode,
+        loc: None,
+        style: StyleStr::display,
+        body: vec![],
+    }
+}
+
+fn is_start_of_cd_arrow(node: &Box<dyn AnyParseNode>) -> bool {
+    if let Some(textord) = node.as_any().downcast_ref::<parse_node::types::textord>() {
+        textord.text == "@"
+    } else {
+        false
+    }
+}
+
+fn is_cd_label_end(node: &Box<dyn AnyParseNode>, end_char: &str) -> bool {
+    if let Some(mathord) = node.as_any().downcast_ref::<parse_node::types::mathord>() {
+        mathord.text == end_char
+    } else if let Some(atom) = node.as_any().downcast_ref::<parse_node::types::atom>() {
+        atom.text == end_char
+    } else {
+        false
+    }
+}
+
+fn cd_arrow(
+    parser: &mut crate::Parser::Parser,
+    arrow_char: &str,
+    labels: &[parse_node::types::ordgroup; 2],
+) -> Box<dyn AnyParseNode> {
+    let label_args = vec![
+        Box::new(labels[0].clone()) as Box<dyn AnyParseNode>,
+        Box::new(labels[1].clone()) as Box<dyn AnyParseNode>,
+    ];
+
+    match arrow_char {
+        ">" => parser.call_function(
+            &"\\\\cdrightarrow".to_string(),
+            vec![label_args[0].clone()],
+            vec![Some(label_args[1].clone())],
+            None,
+            None,
+        ),
+        "<" => parser.call_function(
+            &"\\\\cdleftarrow".to_string(),
+            vec![label_args[0].clone()],
+            vec![Some(label_args[1].clone())],
+            None,
+            None,
+        ),
+        "A" | "V" => {
+            let left_label = parser.call_function(
+                &"\\\\cdleft".to_string(),
+                vec![label_args[0].clone()],
+                vec![],
+                None,
+                None,
+            );
+            let bare_arrow = Box::new(parse_node::types::atom {
+                mode: parser.mode,
+                loc: None,
+                family: parse_node::types::Atom::rel,
+                text: if arrow_char == "A" {
+                    "\\uparrow".to_string()
+                } else {
+                    "\\downarrow".to_string()
+                },
+            }) as Box<dyn AnyParseNode>;
+            let sized_arrow =
+                parser.call_function(&"\\Big".to_string(), vec![bare_arrow], vec![], None, None);
+            let right_label = parser.call_function(
+                &"\\\\cdright".to_string(),
+                vec![label_args[1].clone()],
+                vec![],
+                None,
+                None,
+            );
+            let arrow_group = Box::new(parse_node::types::ordgroup {
+                mode: parser.mode,
+                loc: None,
+                body: vec![left_label, sized_arrow, right_label],
+                semisimple: false,
+            }) as Box<dyn AnyParseNode>;
+
+            parser.call_function(&"\\\\cdparent".to_string(), vec![arrow_group], vec![], None, None)
+        }
+        "=" => parser.call_function(&"\\\\cdlongequal".to_string(), vec![], vec![], None, None),
+        "|" => {
+            let arrow = Box::new(parse_node::types::textord {
+                mode: parser.mode,
+                loc: None,
+                text: "\\Vert".to_string(),
+            }) as Box<dyn AnyParseNode>;
+            parser.call_function(&"\\Big".to_string(), vec![arrow], vec![], None, None)
+        }
+        "." => Box::new(parse_node::types::textord {
+            mode: parser.mode,
+            loc: None,
+            text: " ".to_string(),
+        }) as Box<dyn AnyParseNode>,
+        _ => Box::new(parse_node::types::textord {
+            mode: parser.mode,
+            loc: None,
+            text: " ".to_string(),
+        }) as Box<dyn AnyParseNode>,
+    }
+}
+
+fn parse_cd(parser: &mut crate::Parser::Parser) -> parse_node::types::array {
+    let mut parsed_rows: Vec<Vec<Box<dyn AnyParseNode>>> = vec![];
+    parser.gullet.begin_group();
+    parser.gullet.macros.set(
+        &"\\cr".to_string(),
+        Some(MacroDefinition::Str("\\\\\\relax".to_string())),
+        false,
+    );
+    parser.gullet.begin_group();
+
+    loop {
+        let row_nodes = parser.parse_expression(false, Some(BreakToken::DoubleSlash));
+        parser.gullet.end_group();
+        parser.gullet.begin_group();
+
+        let next = parser.fetch().text.clone();
+        if next == "&" || next == "\\\\" {
+            parsed_rows.push(row_nodes);
+            parser.consume();
+        } else if next == "\\end" {
+            if !row_nodes.is_empty() {
+                parsed_rows.push(row_nodes);
+            }
+            break;
+        } else {
+            let token = parser.fetch();
+            parser.report_token_error("Expected \\\\ or \\cr or \\end".to_string(), &token);
+            parser.gullet.end_group();
+            parser.gullet.end_group();
+            return empty_cd_array(parser.mode);
+        }
+    }
+
+    parser.gullet.end_group();
+    parser.gullet.end_group();
+
+    if parser.error.is_some() {
+        return empty_cd_array(parser.mode);
+    }
+
+    let mut body: Vec<Vec<Box<dyn AnyParseNode>>> = vec![];
+
+    for (row_index, row_nodes) in parsed_rows.iter().enumerate() {
+        let mut row: Vec<Box<dyn AnyParseNode>> = vec![];
+        let mut cell = new_cd_cell(parser.mode);
+        let mut j = 0;
+
+        while j < row_nodes.len() {
+            if !is_start_of_cd_arrow(&row_nodes[j]) {
+                cell.body.push(row_nodes[j].clone());
+                j += 1;
+                continue;
+            }
+
+            row.push(Box::new(cell) as Box<dyn AnyParseNode>);
+            j += 1;
+            if j >= row_nodes.len() || !check_symbol_node_type(&row_nodes[j]) {
+                parser.report_parse_error("Expected one of \"<>AV=|.\" after @".to_string(), None);
+                return empty_cd_array(parser.mode);
+            }
+
+            let arrow_char = check_symbol_node_type_text(&row_nodes[j]);
+            let mut labels = [
+                parse_node::types::ordgroup {
+                    mode: parser.mode,
+                    loc: None,
+                    body: vec![],
+                    semisimple: false,
+                },
+                parse_node::types::ordgroup {
+                    mode: parser.mode,
+                    loc: None,
+                    body: vec![],
+                    semisimple: false,
+                },
+            ];
+
+            if !["=", "|", "."].contains(&arrow_char.as_str()) {
+                if !["<", ">", "A", "V"].contains(&arrow_char.as_str()) {
+                    parser.report_parse_error(
+                        "Expected one of \"<>AV=|.\" after @".to_string(),
+                        symbol_node_loc(&row_nodes[j]),
+                    );
+                    return empty_cd_array(parser.mode);
+                }
+
+                for label_num in 0..2 {
+                    let mut found_end = false;
+                    let mut k = j + 1;
+                    while k < row_nodes.len() {
+                        if is_cd_label_end(&row_nodes[k], &arrow_char) {
+                            found_end = true;
+                            j = k;
+                            break;
+                        }
+                        if is_start_of_cd_arrow(&row_nodes[k]) {
+                            parser.report_parse_error(
+                                format!(
+                                    "Missing a {} character to complete a CD arrow.",
+                                    arrow_char
+                                ),
+                                symbol_node_loc(&row_nodes[k]),
+                            );
+                            return empty_cd_array(parser.mode);
+                        }
+
+                        labels[label_num].body.push(row_nodes[k].clone());
+                        k += 1;
+                    }
+
+                    if !found_end {
+                        parser.report_parse_error(
+                            format!("Missing a {} character to complete a CD arrow.", arrow_char),
+                            symbol_node_loc(&row_nodes[j]),
+                        );
+                        return empty_cd_array(parser.mode);
+                    }
+                }
+            }
+
+            let arrow = cd_arrow(parser, &arrow_char, &labels);
+            let wrapped_arrow = parse_node::types::styling {
+                mode: parser.mode,
+                loc: None,
+                style: StyleStr::display,
+                body: vec![arrow],
+            };
+            row.push(Box::new(wrapped_arrow) as Box<dyn AnyParseNode>);
+            cell = new_cd_cell(parser.mode);
+            j += 1;
+        }
+
+        if row_index % 2 == 0 {
+            row.push(Box::new(cell) as Box<dyn AnyParseNode>);
+        } else if !row.is_empty() {
+            row.remove(0);
+        }
+
+        body.push(row);
+    }
+    body.push(vec![]);
+
+    let num_cols = body.iter().map(|row| row.len()).max().unwrap_or(0);
+    let cols = vec![
+        AlignSpec::Align(Align {
+            align: "c".to_string(),
+            pregap: Some("0.25".to_string()),
+            postgap: Some("0.25".to_string()),
+        });
+        num_cols
+    ];
+
+    parse_node::types::array {
+        mode: parser.mode,
+        loc: None,
+        col_separation_type: Some(ColSeparationType::CD),
+        hskip_before_and_after: false,
+        add_jot: true,
+        cols,
+        array_stretch: 1.0,
+        row_gaps: vec![None],
+        h_lines_before_row: vec![vec![]; body.len() + 1],
+        tags: None,
+        leqno: false,
+        body,
+        is_cd: true,
     }
 }
 
@@ -663,7 +960,7 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
             let sepwidth = if col_descr_num >= col_descriptions.len() {
                 None
             } else if let AlignSpec::Align(col_align) = &col_descriptions[col_descr_num] {
-                col_align.clone().pregap
+                col_align.clone().postgap
             } else {
                 None
             }
@@ -1248,6 +1545,21 @@ lazy_static! {
         }
 });
 
+    pub static ref ARRAY_ALIGN_AT: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(1);
+
+        FunctionDefSpec{
+            def_type: "array".to_string(),
+            names: vec!["alignat".to_string(), "alignat*".to_string(), "alignedat".to_string()],
+            props,
+            handler: aligned_handler,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+
+        }
+});
+
     // The matrix environments of amsmath builds on the array environment
     // of LaTeX, which is discussed above.
     // The mathtools package adds starred versions of the same environments.
@@ -1265,9 +1577,71 @@ lazy_static! {
                 "Bmatrix".to_string(),
                 "vmatrix".to_string(),
                 "Vmatrix".to_string(),
+                "matrix*".to_string(),
+                "pmatrix*".to_string(),
+                "bmatrix*".to_string(),
+                "Bmatrix*".to_string(),
+                "vmatrix*".to_string(),
+                "Vmatrix*".to_string(),
             ],
             props,
             handler: matrix_handler_fn,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
+
+    pub static ref SMALLMATRIX: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec!["smallmatrix".to_string()],
+            props,
+            handler: smallmatrix_handler_fn,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
+
+    pub static ref SUBARRAY: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(1);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec!["subarray".to_string()],
+            props,
+            handler: subarray_handler_fn,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
+
+    pub static ref GATHER: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec!["gathered".to_string(), "gather".to_string(), "gather*".to_string()],
+            props,
+            handler: gathered_handler_fn,
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
+
+    pub static ref EQUATION: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec!["equation".to_string(), "equation*".to_string()],
+            props,
+            handler: equation_handler_fn,
             html_builder: Some(array_html_builder),
             mathml_builder: Some(array_mathml_builder),
         }
@@ -1293,6 +1667,26 @@ lazy_static! {
     });
 }
 
+lazy_static! {
+    pub static ref CD: Mutex<FunctionDefSpec> = Mutex::new({
+        let mut props = FunctionPropSpec::new();
+        props.set_num_args(0);
+
+        FunctionDefSpec {
+            def_type: "array".to_string(),
+            names: vec!["CD".to_string()],
+            props,
+            handler: |ctx, _args, _opt_args| {
+                let mut context = ctx.borrow_mut();
+                validate_ams_environment_context(&mut context);
+                Box::new(parse_cd(context.parser)) as Box<dyn AnyParseNode>
+            },
+            html_builder: Some(array_html_builder),
+            mathml_builder: Some(array_mathml_builder),
+        }
+    });
+}
+
 // The matrix environments of amsmath builds on the array environment
 // of LaTeX, which is discussed above.
 // The mathtools package adds starred versions of the same environments.
@@ -1304,9 +1698,10 @@ pub fn matrix_handler_fn(
 ) -> Box<dyn AnyParseNode> {
     let mut context = ctx.borrow_mut();
     let func_name = context.func_name.clone();
+    let base_name = func_name.trim_end_matches('*').to_string();
     
     // Define delimiters for each matrix type
-    let delimiters = match func_name.as_str() {
+    let delimiters = match base_name.as_str() {
         "matrix" => None,
         "pmatrix" => Some(("(".to_string(), ")".to_string())),
         "bmatrix" => Some(("[".to_string(), "]".to_string())),
@@ -1317,11 +1712,36 @@ pub fn matrix_handler_fn(
     };
     
     // \hskip -\arraycolsep in amsmath
-    let col_align = "c";
+    let mut col_align = "c".to_string();
+    if func_name.ends_with('*') {
+        context.parser.consume_spaces();
+        if context.parser.fetch().text == "[" {
+            context.parser.consume();
+            context.parser.consume_spaces();
+            col_align = context.parser.fetch().text.clone();
+            if !"lcr".contains(col_align.as_str()) {
+                let token = context.parser.fetch();
+                context.parser.report_token_error(
+                    "Expected l or c or r".to_string(),
+                    &token,
+                );
+                return Box::new(ordgroup {
+                    mode: context.parser.mode,
+                    loc: None,
+                    body: vec![],
+                    semisimple: false,
+                }) as Box<dyn AnyParseNode>;
+            }
+            context.parser.consume();
+            context.parser.consume_spaces();
+            context.parser.expect("]".to_string(), true);
+        }
+    }
+
     let payload = ParseArrayArgs {
         hskip_before_and_after: false,
         cols: vec![AlignSpec::Align(Align {
-            align: col_align.to_string(),
+            align: col_align.clone(),
             pregap: None,
             postgap: None,
         })],
@@ -1335,12 +1755,12 @@ pub fn matrix_handler_fn(
         leqno: false,
     };
     
-    let mut res = parse_array(context.parser, payload, dCellStyle(&func_name));
+    let mut res = parse_array(context.parser, payload, dCellStyle(&base_name));
     
     // Populate cols with the correct number of column alignment specs
     let num_cols = res.body.iter().map(|row| row.len()).max().unwrap_or(0);
     res.cols = vec![AlignSpec::Align(Align {
-        align: col_align.to_string(),
+        align: col_align,
         pregap: None,
         postgap: None,
     }); num_cols];
@@ -1411,6 +1831,167 @@ pub fn cases_handler_fn(
         right_color: None,
     };
     Box::new(leftright_node) as Box<dyn AnyParseNode>
+}
+
+pub fn smallmatrix_handler_fn(
+    ctx: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    let payload = ParseArrayArgs {
+        hskip_before_and_after: false,
+        add_jot: false,
+        cols: vec![],
+        array_stretch: Some(0.5),
+        col_separation_type: None,
+        auto_tag: false,
+        single_row: false,
+        empty_single_row: false,
+        max_num_cols: None,
+        leqno: false,
+    };
+    let mut res = parse_array(context.parser, payload, StyleStr::script);
+    res.col_separation_type = Some(ColSeparationType::Small);
+    Box::new(res) as Box<dyn AnyParseNode>
+}
+
+pub fn subarray_handler_fn(
+    ctx: FunctionContext,
+    args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    let colalign = if check_symbol_node_type(&args[0]) {
+        vec![args[0].clone()]
+    } else {
+        args[0]
+            .as_ref()
+            .as_any()
+            .downcast_ref::<ordgroup>()
+            .unwrap()
+            .body
+            .clone()
+    };
+
+    let mut cols = Vec::with_capacity(colalign.len());
+    for nde in colalign {
+        let ca = crate::parse_node::check_symbol_node_type_text(&nde);
+        if "lc".contains(&ca) {
+            cols.push(AlignSpec::Align(Align {
+                align: ca,
+                pregap: None,
+                postgap: None,
+            }));
+        } else {
+            context.parser.report_parse_error(
+                format!("Unknown column alignment: {}", ca),
+                symbol_node_loc(&nde),
+            );
+            return Box::new(ordgroup {
+                mode: context.parser.mode,
+                loc: None,
+                body: vec![],
+                semisimple: false,
+            }) as Box<dyn AnyParseNode>;
+        }
+    }
+
+    if cols.len() > 1 {
+        context.parser.report_parse_error(
+            "{subarray} can contain only one column".to_string(),
+            None,
+        );
+        return Box::new(ordgroup {
+            mode: context.parser.mode,
+            loc: None,
+            body: vec![],
+            semisimple: false,
+        }) as Box<dyn AnyParseNode>;
+    }
+
+    let payload = ParseArrayArgs {
+        hskip_before_and_after: false,
+        add_jot: false,
+        cols,
+        array_stretch: Some(0.5),
+        col_separation_type: None,
+        auto_tag: false,
+        single_row: false,
+        empty_single_row: false,
+        max_num_cols: None,
+        leqno: false,
+    };
+    let res = parse_array(context.parser, payload, StyleStr::script);
+
+    if !res.body.is_empty() && res.body[0].len() > 1 {
+        context.parser.report_parse_error(
+            "{subarray} can contain only one column".to_string(),
+            None,
+        );
+        return Box::new(ordgroup {
+            mode: context.parser.mode,
+            loc: None,
+            body: vec![],
+            semisimple: false,
+        }) as Box<dyn AnyParseNode>;
+    }
+
+    Box::new(res) as Box<dyn AnyParseNode>
+}
+
+pub fn gathered_handler_fn(
+    ctx: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    if context.func_name == "gather" || context.func_name == "gather*" {
+        validate_ams_environment_context(&mut context);
+    }
+
+    let payload = ParseArrayArgs {
+        hskip_before_and_after: false,
+        add_jot: true,
+        cols: vec![AlignSpec::Align(Align {
+            align: "c".to_string(),
+            pregap: None,
+            postgap: None,
+        })],
+        array_stretch: None,
+        col_separation_type: Some(ColSeparationType::Gather),
+        auto_tag: get_auto_tag(&context.func_name),
+        single_row: false,
+        empty_single_row: true,
+        max_num_cols: None,
+        leqno: context.parser.settings.get_leqno(),
+    };
+
+    Box::new(parse_array(context.parser, payload, StyleStr::display)) as Box<dyn AnyParseNode>
+}
+
+pub fn equation_handler_fn(
+    ctx: FunctionContext,
+    _args: Vec<Box<dyn AnyParseNode>>,
+    _opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
+) -> Box<dyn AnyParseNode> {
+    let mut context = ctx.borrow_mut();
+    validate_ams_environment_context(&mut context);
+
+    let payload = ParseArrayArgs {
+        hskip_before_and_after: false,
+        add_jot: false,
+        cols: vec![],
+        array_stretch: None,
+        col_separation_type: None,
+        auto_tag: get_auto_tag(&context.func_name),
+        single_row: true,
+        empty_single_row: true,
+        max_num_cols: Some(1),
+        leqno: context.parser.settings.get_leqno(),
+    };
+
+    Box::new(parse_array(context.parser, payload, StyleStr::display)) as Box<dyn AnyParseNode>
 }
 
 // // The matrix environments of amsmath builds on the array environment

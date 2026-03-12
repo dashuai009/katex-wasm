@@ -16,11 +16,11 @@ pub fn mathord_html_builder(
     _group: Box<dyn AnyParseNode>,
     options: Options,
 ) -> Box<dyn HtmlDomNode> {
-    return Box::new(crate::build::common::make_ord(
+    return crate::build::common::make_ord(
         _group,
         options,
         "mathord".to_string(),
-    )) as Box<dyn HtmlDomNode>;
+    );
 }
 
 pub fn mathord_mathml_builder(
@@ -104,11 +104,11 @@ lazy_static! {
             props,
             handler: |a, b, c| panic!("error"),
             html_builder: Some(|group, options| -> Box<dyn HtmlDomNode> {
-                return Box::new(crate::build::common::make_ord(
+                return crate::build::common::make_ord(
                     group,
                     options,
                     "textord".to_string(),
-                )) as Box<dyn HtmlDomNode>;
+                );
             }),
             mathml_builder: Some(mathord_mathml_builder),
         }
