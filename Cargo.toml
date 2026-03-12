@@ -23,6 +23,7 @@ js-sys = "0.3.85"
 regex = "1.12.3"
 lazy_static = "1.5.0"
 unicode-normalization = "0.1.25"
+indexmap = "2.11.4"
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires
