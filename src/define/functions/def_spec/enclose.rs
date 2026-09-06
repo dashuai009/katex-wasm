@@ -75,7 +75,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
 
         let angleHeight = inner.get_height() + inner.get_depth() + lineWeight + clearance;
         // Reserve a left pad for the angle.
-        inner.get_mut_style().padding_left = Some(make_em(angleHeight / 2.0 + lineWeight));
+        *inner.get_mut_style().padding_left_mut() = Some(make_em(angleHeight / 2.0 + lineWeight));
 
         // Create an SVG
         let viewBoxHeight = f64::floor(1000.0 * angleHeight * scale);
@@ -104,7 +104,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             Some(options.clone()),
             Default::default(),
         );
-        img.get_mut_style().height = Some(make_em(angleHeight));
+        *img.get_mut_style().height_mut() = Some(make_em(angleHeight));
         imgShift = inner.get_depth() + lineWeight + clearance;
     } else {
         // Add horizontal padding
@@ -149,18 +149,18 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
 
         img = crate::stretchy::enclose_span(&inner, label.to_string(), topPad, bottomPad, &options);
         if label.contains("fbox") || label.contains("boxed") || label.contains("fcolorbox") {
-            img.get_mut_style().border_style = Some("solid".to_string());
-            img.get_mut_style().border_width = Some(make_em(ruleThickness));
+            *img.get_mut_style().border_style_mut() = Some("solid".to_string());
+            *img.get_mut_style().border_width_mut() = Some(make_em(ruleThickness));
         } else if (label == "angl" && ruleThickness != 0.049) {
-            img.get_mut_style().border_top_width = Some(make_em(ruleThickness));
-            img.get_mut_style().border_right_width = Some(make_em(ruleThickness));
+            *img.get_mut_style().border_top_width_mut() = Some(make_em(ruleThickness));
+            *img.get_mut_style().border_right_width_mut() = Some(make_em(ruleThickness));
         }
         imgShift = inner.get_depth() + bottomPad;
 
         if (group.backgroundColor.is_some()) {
-            img.get_mut_style().background_color = group.backgroundColor.clone();
+            *img.get_mut_style().background_color_mut() = group.backgroundColor.clone();
             if (group.borderColor.is_some()) {
-                img.get_mut_style().border_color = group.borderColor.clone();
+                *img.get_mut_style().border_color_mut() = group.borderColor.clone();
             }
         }
     }

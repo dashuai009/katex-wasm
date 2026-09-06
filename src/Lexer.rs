@@ -95,8 +95,38 @@ pub struct Lexer {
 // this.lexerI.tokenRegex = t;
 // }
 impl Lexer {
+    // Fast path for the ASCII alternatives of KaTeX's tokenRegex. Unicode,
+    // combining marks and control-space tokens keep the reference regex path.
+    fn lex_ascii_text(&mut self, pos: usize) -> Option<String> {
+        let input = self.lexer_i.get_input();
+        let bytes = input.as_bytes();
+        let first = *bytes.get(pos)?;
+        let is_space = |b: u8| matches!(b, b' ' | b'\r' | b'\n' | b'\t');
+        let (text, end) = if is_space(first) {
+            let mut end = pos + 1;
+            while end < bytes.len() && is_space(bytes[end]) { end += 1; }
+            (" ".to_owned(), end)
+        } else if first == b'\\' {
+            let next = *bytes.get(pos + 1)?;
+            if next.is_ascii_alphabetic() || next == b'@' {
+                let mut end = pos + 2;
+                while end < bytes.len() && (bytes[end].is_ascii_alphabetic() || bytes[end] == b'@') { end += 1; }
+                let text = input[pos..end].to_owned();
+                while end < bytes.len() && is_space(bytes[end]) { end += 1; }
+                (text, end)
+            } else if next.is_ascii() && !is_space(next) {
+                (input[pos..pos + 2].to_owned(), pos + 2)
+            } else { return None; }
+        } else if (b'!'..=0x7f).contains(&first) {
+            if input[pos + 1..].chars().next().is_some_and(|c| ('\u{0300}'..='\u{036f}').contains(&c)) { return None; }
+            (input[pos..pos + 1].to_owned(), pos + 1)
+        } else { return None; };
+        self.lexer_i.set_last_index(end);
+        Some(text)
+    }
+
     fn lex_verb_token(&mut self, pos: usize) -> Option<Token> {
-        let input = self.lexer_i.get_input().to_string();
+        let input = self.lexer_i.get_input();
         let remaining = &input[pos..];
         if !remaining.starts_with("\\verb") {
             return None;
@@ -181,6 +211,9 @@ impl Lexer {
             return token;
         }
 
+        let text = if let Some(text) = self.lex_ascii_text(pos) {
+            text
+        } else {
         let _match = self.lexer_i.captures();
         if _match.is_none()
         /*|| _match.unwrap() != pos*/
@@ -211,6 +244,8 @@ impl Lexer {
         }
         .clone()
         .to_string();
+            text
+        };
         // console_log!("text = {}", text);
 
         if self.catcodes.get(&text) == Some(&14) {
@@ -260,5 +295,26 @@ impl Lexer {
 
     pub fn catcodes_get(&self, name: &String) -> Option<&i32> {
         return self.catcodes.get(name);
+    }
+}
+
+#[cfg(test)]
+mod ascii_regression_tests {
+    use super::*;
+
+    #[test]
+    fn fast_tokens_match_reference_regex_text_and_offsets() {
+        let inputs = ["x+y_2^3", " \\alpha  x", "\\@name\tX", "\\%\\{\\}\\,", "x\u{0301}", "α😀", "\\ \n x", "a\r\n\tb", "\\verb|x y|", "\\verb*+x+"];
+        for input in inputs {
+            for (pos, _) in input.char_indices() {
+                let mut lexer = Lexer::new(input.to_owned(), &Settings::new());
+                if let Some(text) = lexer.lex_ascii_text(pos) {
+                    let captures = TOKEN_REGEX.captures(&input[pos..]).unwrap();
+                    let expected = captures.get(6).or_else(|| captures.get(3)).map(|m| m.as_str()).unwrap_or_else(|| if captures.get(2).is_some() { "\\ " } else { " " });
+                    assert_eq!(text, expected, "input={input:?} pos={pos}");
+                    assert_eq!(lexer.lexer_i.get_last_index(), pos + captures.get(0).unwrap().end());
+                }
+            }
+        }
     }
 }

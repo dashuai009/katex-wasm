@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 2,
+  "baseline": "im2latex-1-1000-opt0.json",
+  "finalRuns": [
+    "im2latex-1-1000-opt24.json",
+    "im2latex-1-1000-opt25.json",
+    "im2latex-1-1000-opt26.json"
+  ],
+  "input": {
+    "file": "tests/fixtures/im2latex_formulas.lst",
+    "sha256": "5c544964540d284ac945dd448071df0d8a78356ca2e19ee859d10d280d9cfcae"
+  },
+  "environment": {
+    "wasmMemoryBytes": 3473408,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36",
+    "hardwareConcurrency": 18,
+    "browser": "145.0.7632.6",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M5 Max",
+    "cpuSlowdown": 1,
+    "profiled": false
+  },
+  "build": {
+    "profile": "release",
+    "sourceSha256": "d0db06b19f1d67e2ff0501e85021c7a24397e7410101ff73c663c1a5df0079e2",
+    "wasmSha256": "fae52835815150b864612833e327eae3d810e57c19d03766fdf73f68acc5e60d",
+    "revision": "cc4847452e5b5d289c40e5b9c1ade38339467eb7",
+    "rustc": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "katexRsWasmSha256": "afb4c6765b5f8e8c5dc0685afbfc909f9b3b9703a697c9c2585553a9f1d81dcd"
+  },
+  "inputCount": 1000,
+  "commonCount": 397,
+  "unsupportedPerEngine": {
+    "wasm": 603,
+    "katex": 603,
+    "katexRs": 603
+  },
+  "medianBatchMsAcrossFreshRuns": {
+    "wasm": 21.449999809265137,
+    "katex": 22.899999856948853,
+    "katexRs": 37.30000019073486
+  },
+  "notes": [
+    "Primary timings are HTML generation on the three-way successful subset. All 1000 inputs are preflighted.",
+    "603 inputs produce unsupported/error markup in all three engines, mainly because of label commands.",
+    "opt6 was an invalid stale-artifact diagnostic and is excluded. Profile recordings are excluded.",
+    "Intermediate opt3 overlapped a native build and is not final evidence."
+  ],
+  "statistics": "Midpoint of the central pair for even-sized samples. Baseline comparisons recompute medians from stored rounds.",
+  "domRun": "im2latex-1-1000-opt27.json",
+  "allInputAttemptMedianMs": {
+    "wasm": 53.950000047683716,
+    "katex": 59.14999985694885,
+    "katexRs": 96.5
+  }
+}

@@ -13,6 +13,7 @@ use crate::{
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 pub trait ParseNodeToAny {
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
     fn as_any(&self) -> &dyn Any;
 
     fn as_mut_any(&mut self) -> &mut dyn Any;

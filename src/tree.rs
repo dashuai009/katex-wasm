@@ -14,6 +14,11 @@ pub trait VirtualNode: VirtualNodeClone + Debug {
     fn as_mut_any(&mut self)->&mut dyn Any;
     fn to_node(&self) -> web_sys::Node;
     fn to_markup(&self) -> String;
+    /// Append into a shared output buffer; specialized containers avoid building
+    /// a temporary String for every subtree.
+    fn write_markup(&self, output: &mut String) {
+        output.push_str(&self.to_markup());
+    }
 }
 
 pub trait VirtualNodeClone {

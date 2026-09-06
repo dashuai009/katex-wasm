@@ -11,7 +11,8 @@ use crate::{
 };
 use lazy_static::lazy_static;
 use std::cell::RefCell;
-use std::collections::HashMap;
+// These maps contain fixed internal command/builder names, not user-inserted keys.
+use rustc_hash::FxHashMap as HashMap;
 
 /** Context provided to function pub(crate) handlers for error messages. */
 pub struct FunctionContext2<'a, 'b> {
@@ -188,7 +189,7 @@ lazy_static! {
      * `Parser.js` requires this dictionary.
      */
     pub static ref _functions: std::sync::RwLock<HashMap<String,FunctionSpec>> =  std::sync::RwLock::new({
-        let mut res = HashMap::new();
+        let mut res = HashMap::default();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
              for name in data.names.iter() {
                 res.insert(name.clone(), (data.props.clone(), data.handler));
@@ -202,7 +203,7 @@ lazy_static! {
     /// functions.
     ///
     pub static ref _HTML_GROUP_BUILDERS: std::sync::RwLock<HashMap<String, HtmlBuilder>> =  std::sync::RwLock::new({
-        let mut res = HashMap::new();
+        let mut res = HashMap::default();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
             if let Some(h) = data.html_builder{
                 res.insert(data.def_type.clone(),h);
@@ -221,7 +222,7 @@ lazy_static! {
      * functions.
      */
     pub static ref _MATHML_GROUP_BUILDERS: std::sync::RwLock<HashMap<String,MathMLBuilder>> =  std::sync::RwLock::new({
-        let mut res = HashMap::new();
+        let mut res = HashMap::default();
         for data in super::def_spec::FUNCS.lock().unwrap().iter(){
             if let Some(h) = data.mathml_builder{
                 res.insert(data.def_type.clone(),h);

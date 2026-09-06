@@ -117,9 +117,24 @@ lazy_static! {
 
 }
 
-pub fn get_spacings(k1: &str, k2: &str) -> Option<Measurement> {
-    let _spacings = spacings.lock().unwrap();
-    _spacings.get(k1).and_then(|p| p.get(k2)).cloned()
+pub fn get_spacings(k1: &str, k2: &str) -> Option<&'static Measurement> {
+    const TABLE: [[u8; 8]; 8] = [
+        [0,3,4,5,0,0,0,3], [3,3,0,5,0,0,0,3],
+        [4,4,0,0,4,0,0,4], [5,5,0,0,5,0,0,5],
+        [0,0,0,0,0,0,0,0], [0,3,4,5,0,0,0,3],
+        [3,3,0,5,3,3,3,3], [3,3,4,5,3,0,3,3],
+    ];
+    spacing_value(TABLE[atom_index(k1)?][atom_index(k2)?])
+}
+fn atom_index(name: &str) -> Option<usize> {
+    Some(match name { "mord"=>0, "mop"=>1, "mbin"=>2, "mrel"=>3, "mopen"=>4, "mclose"=>5, "mpunct"=>6, "minner"=>7, _=>return None })
+}
+fn spacing_value(value: u8) -> Option<&'static Measurement> {
+    use std::sync::LazyLock;
+    static THIN: LazyLock<Measurement> = LazyLock::new(|| Measurement { number: 3.0, unit: "mu".to_owned() });
+    static MEDIUM: LazyLock<Measurement> = LazyLock::new(|| Measurement { number: 4.0, unit: "mu".to_owned() });
+    static THICK: LazyLock<Measurement> = LazyLock::new(|| Measurement { number: 5.0, unit: "mu".to_owned() });
+    match value { 3=>Some(&THIN), 4=>Some(&MEDIUM), 5=>Some(&THICK), _=>None }
 }
 
 #[wasm_bindgen]
@@ -148,7 +163,25 @@ macro_rules!  console_log {
 
 use std::panic;
 
-pub fn get_tightSpacings(k1: &str, k2: &str) -> Option<Measurement> {
-    let _tight_spacings = tightSpacings.lock().unwrap();
-    _tight_spacings.get(k1).and_then(|p| p.get(k2)).cloned()
+pub fn get_tightSpacings(k1: &str, k2: &str) -> Option<&'static Measurement> {
+    if (matches!(k1, "mord" | "mop" | "mclose" | "minner") && k2 == "mop") || (k1 == "mop" && k2 == "mord") {
+        spacing_value(3)
+    } else { None }
+}
+
+#[cfg(test)]
+mod regression_tests {
+    use super::*;
+    #[test]
+    fn dense_spacing_matches_original_tables() {
+        let classes = ["mord","mop","mbin","mrel","mopen","mclose","mpunct","minner","unknown"];
+        for a in classes { for b in classes {
+            let original = spacings.lock().unwrap();
+            let expected = original.get(a).and_then(|row| row.get(b));
+            assert_eq!(get_spacings(a,b).map(|m| (m.number,m.unit.as_str())), expected.map(|m| (m.number,m.unit.as_str())), "{a} {b}");
+            let tight = tightSpacings.lock().unwrap();
+            let expected = tight.get(a).and_then(|row| row.get(b));
+            assert_eq!(get_tightSpacings(a,b).map(|m| (m.number,m.unit.as_str())), expected.map(|m| (m.number,m.unit.as_str())));
+        }}
+    }
 }

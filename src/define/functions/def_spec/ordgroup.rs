@@ -11,19 +11,19 @@ use std::sync::Mutex;
 
 fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let group = _group
-        .as_any()
-        .downcast_ref::<parse_node::types::ordgroup>()
+        .into_any()
+        .downcast::<parse_node::types::ordgroup>()
         .unwrap();
     if group.semisimple {
         return Box::new(crate::build::common::make_fragment(crate::build::HTML::build_expression(
-            group.body.clone(),
+            group.body,
             options.clone(),
             IsRealGroup::F,
             (None, None),
         ))) as Box<dyn HtmlDomNode>;
     }
     return Box::new(make_span(vec!["mord".to_string()], crate::build::HTML::build_expression(
-        group.body.clone(),
+        group.body,
         options.clone(),
         IsRealGroup::T,
         (None, None),

@@ -153,15 +153,13 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
         width = crate::units::calculate_size(&group.width, &options);
     }
 
-    let mut style: CssStyle = CssStyle {
-        height: Some(crate::units::make_em(height + depth)),
-        ..Default::default()
-    };
+    let mut style = CssStyle::new();
+    *style.height_mut() = Some(crate::units::make_em(height + depth));
     if width > 0.0 {
-        style.width = Some(crate::units::make_em(width));
+        *style.width_mut() = Some(crate::units::make_em(width));
     }
     if depth > 0.0 {
-        style.vertical_align = Some(crate::units::make_em(-depth));
+        *style.vertical_align_mut() = Some(crate::units::make_em(-depth));
     }
 
     let mut node = crate::dom_tree::img::Img::new(group.src.clone(), group.alt.clone(), style);

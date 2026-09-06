@@ -78,10 +78,10 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
     // Otherwise, a tall argument may be misplaced.
     // This code resolved issue #1153
     let mut strut = common::make_span(vec!["strut".to_string()], vec![], None, Default::default());
-    strut.get_mut_style().height =
+    *strut.get_mut_style().height_mut() =
         Some(crate::units::make_em(node.get_height() + node.get_depth()));
     if node.get_depth() != 0.0 {
-        strut.get_mut_style().vertical_align = Some(crate::units::make_em(-node.get_depth()));
+        *strut.get_mut_style().vertical_align_mut() = Some(crate::units::make_em(-node.get_depth()));
     }
     node.get_mut_children().unwrap().insert(0,Box::new(strut));
 

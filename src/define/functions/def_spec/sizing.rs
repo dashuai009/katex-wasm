@@ -48,14 +48,14 @@ pub fn sizing_group(
 
 fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let group = _group
-        .as_any()
-        .downcast_ref::<parse_node::types::sizing>()
+        .into_any()
+        .downcast::<parse_node::types::sizing>()
         .unwrap();
     // Handle sizing operators like \Huge. Real TeX doesn't actually allow
     // these functions inside of math expressions, so we do some special
     // handling.
     let new_options = options.having_size(group.size as f64);
-    let res = sizing_group(group.body.clone(), new_options, options);
+    let res = sizing_group(group.body, new_options, options);
     return Box::new(res) as Box<dyn HtmlDomNode>;
 }
 

@@ -1,0 +1,56 @@
+running 7 tests
+test utils::escape_regression_tests::preserves_unicode_and_escapes_all_html_delimiters ... ok
+test dom_tree::css_style::regression_tests::sparse_styles_keep_order_escaping_and_independent_clones ... ok
+test spacingData::regression_tests::dense_spacing_matches_original_tables ... ok
+test Lexer::ascii_regression_tests::fast_tokens_match_reference_regex_text_and_offsets ... ok
+test wasm_allocator::regression_tests::cache_reallocation_preserves_live_data_and_alignment ... ok
+test katex::tests::test_parse_tree ... ok
+test units::decimal_regression_tests::matches_fixed_precision_reference ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+
+console_error_panic_hook has set!
+══════════ Summary ══════════
+  Pass:   1000
+  Fail:   0
+  Total:  1000
+
+console_error_panic_hook has set!
+══════════ Summary ══════════
+  Pass:   15
+  Fail:   0
+  Total:  15
+
+
+> katex-wasm-comparison@0.1.0 test:api
+> node --experimental-wasm-modules scripts/check-api.mjs
+
+console_error_panic_hook has set!
+WASM API regressions passed: defaults, mutable options, style aliases, escaping, trust.
+HTML normalization preserves shorthand and duplicate declaration order.
+(node:42515) ExperimentalWarning: Importing WebAssembly module instances is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+> katex-wasm-comparison@0.1.0 test:ui
+> node scripts/check-ui.mjs
+
+{
+  "url": "http://127.0.0.1:56436/katex-wasm/",
+  "previewCount": 15,
+  "common": 397,
+  "memory": [
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408
+  ],
+  "errors": []
+}
+
+Production npm audit: zero advisories after updating js-yaml to 4.3.1.

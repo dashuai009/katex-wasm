@@ -1,164 +1,94 @@
 # AGENTS.md
 
-本项目为 KaTeX 的 Rust WASM 移植版本，用于在 Web 浏览器中渲染 LaTeX 数学公式。
+This project ports KaTeX JavaScript to a Rust/WASM renderer. The UI must always keep formula previews and browser performance comparisons for three implementations: our `katex-wasm`, `katex.js`, and standalone upstream `katex-rs`.
 
-## 项目概述
+## Entry and structure
 
-katex-wasm 是将 JavaScript 版本的 KaTeX 移植到 Rust WebAssembly 的项目。它允许使用 Rust 生成的 WASM 代码替代 JavaScript 来渲染数学表达式。
+- `src/katex.rs`: `render`, JavaScript `renderToString`, and Rust `render_to_string`.
+- `src/Parser.rs`, `src/Lexer.rs`, `src/parse/`: parser; `src/define/macros/`: macros.
+- `src/build/`, `src/dom_tree/`, `src/mathML_tree/`: HTML/MathML building and serialization.
+- `demo/benchmark.js`: shared settings for all three engines, success-rate precheck, timing scopes, and engine rotation.
+- `demo/index.js`, `demo/index.html`: three-column formulas, performance metrics, input preview, and result download.
+- `demo/scripts/perf-playwright.mjs`: Chromium production build test.
+- `scripts/build-katex-rs.mjs`, `third-party/katex-rs.json`: build upstream source and pin commits. Run `--update` when the user requests the latest version, record the new commit and lock file; do not roll back to older npm packages.
 
-## 核心架构
+## Build commands
 
-### 主要入口
+First run in repository root:
 
-| 文件 | 说明 |
-|------|------|
-| `src/lib.rs` | WASM 绑定入口点 |
-| `src/katex.rs` | 主入口，包含三个公开函数 |
-
-### 核心模块
-
-| 模块路径 | 说明 |
-|---------|------|
-| `src/parse/` | LaTeX 解析逻辑 |
-| `src/build/` | 解析树到 DOM 树/标记的转换 |
-| `src/dom_tree/` | 虚拟 DOM 实现 |
-| `src/mathML_tree/` | MathML 树生成 |
-| `src/symbols/` | 符号定义 |
-| `src/settings/` | 配置系统 |
-| `src/metrics/` | 字体度量数据 |
-
-### 公开 API
-
-1. `render(expression, base_node, options)` - 直接渲染到 DOM 节点
-2. `render_to_string_for_js(expression, settings)` - 生成 HTML 字符串（JS 可访问）
-3. `render_to_string(expression, settings)` - 纯 Rust 字符串渲染
-
-## 开发命令
-
-### 构建
-
-```bash
-# 构建 WASM
-wasm-pack build
-
-# 构建 release 版本（优化体积）
-wasm-pack build --release
-```
-
-### Demo 开发
-
-```bash
-wasm-pack build
+```sh
+node scripts/build-wasm.mjs
+node scripts/build-katex-rs.mjs
 cd demo
-npm install
-npm start
+npm ci
+npx playwright install chromium
+npm run build:site
+npm run serve
 ```
 
-### CLI 调试工具
+After changing Rust code, run `npm run build` in `demo` to regenerate WASM and production pages. Reusing old `pkg` or development/profiling builds as release data is forbidden. `npm run build:site` only bundles the existing WASM. Dependency versions are recorded in the root `Cargo.lock`, `demo/package-lock.json`, and `third-party/katex-rs.Cargo.lock`.
 
-`katex-rs-cli` 现在使用 `clap` 解析参数，支持标准的 `--help` 和 `--version`。
+CLI for this project (different from third-party `katex-rs`):
 
-```bash
-# 查看帮助
-cargo run --bin katex-rs-cli -- --help
-
-# 渲染整个文件
-cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt
-
-# 渲染指定行范围
-cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
-
-# 仅输出最终汇总
+```sh
 cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --summary-only
-
-# 关闭多线程渲染
-cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --multi-threaded false
 ```
 
-参数说明：
+## Correctness rules
 
-- `formulas.txt`: 包含 LaTeX 公式的文件路径（每行一个公式）
-- `start_line`: 起始行号（从 1 开始，可选，默认为 1）
-- `end_line`: 结束行号（可选，默认为文件最后一行）
-- `--summary-only`: 可选，只输出最终汇总，不打印逐条公式结果
-- `--multi-threaded <BOOL>`: 可选，是否启用并行渲染，默认为 `true`
+This is a **JavaScript-reproducing** project. Before changing Rust logic, read the corresponding `KaTeX/src` code first (initialize the submodule if missing). Use a pinned npm KaTeX for comparison tools, and do not rely on ungenerated `KaTeX/dist`.
 
-## Diff Harness 测试工具
+After each Rust optimization, rebuild first and then run Diff Harness on a random contiguous block of 50 lines within the first 1000:
 
-diff_harness 是用于对比 JS KaTeX 和 Rust WASM 实现差异的测试工具。
-
-### 使用方法
-
-```bash
-wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs <formulas.txt> [start_line] [end_line] [--log-level <summary|error|normal|debug>]
+```sh
+cd demo
+npm run test:correctness
+# Reproduce already recorded samples; do not select favorable samples:
+DIFF_START=100 npm run test:correctness
 ```
 
-### 参数说明
+Record sample start positions and results in `demo/perf-results`. Failures must be investigated and not hidden by changing samples. Run the full first 1000 lines if needed:
 
-- `formulas.txt`: 包含 LaTeX 公式的文件路径（每行一个公式）
-- `start_line`: 起始行号（从 1 开始，可选，默认为 1）
-- `end_line`: 结束行号（可选，默认为文件最后一行）
-- `--log-level <LEVEL>`: 可选，日志级别，默认为 `debug`
-  - `summary`: 只输出最终汇总
-  - `error`: 只输出失败项（渲染错误或结果不一致）
-  - `normal`: 输出逐条公式的渲染结果和对比状态
-  - `debug`: 在 `normal` 基础上额外输出处理后的 JS/Rust settings
-
-### 示例
-
-```bash
-# 测试整个文件
-wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt
-
-# 测试指定行范围
-wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5
-
-# 仅输出最终汇总
-wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5 --log-level summary
-
-# 仅输出失败项
-wasm-pack build && node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5 --log-level error
+```sh
+node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/im2latex_formulas.lst 1 1000 --log-level error
 ```
 
-### 输出内容
+HTML attribute order, standalone CSS property order, and decimal format can differ; repeated declarations and overriding shorthand properties must keep their order. Preserve DOM structure, text, attribute semantics, and the existing `0.001em` tolerance. Do not relax tolerance, remove failing formulas, or change benchmark output to pass. A success-rate precheck does not imply semantic parity, and bounded HTML checks in Diff Harness do not imply full KaTeX coverage.
 
-对于每个公式，工具会输出：
+## Performance iteration rules
 
-- **JS parseTree**: JavaScript 版本的解析树结果
-- **Rust parseTree**: Rust 版本的解析树结果
-- **JS HTML**: JavaScript 版本的 HTML 渲染结果
-- **Rust HTML**: Rust 版本的 HTML 渲染结果
-- 每个步骤的执行耗时
+1. You must compare `renderToString` for all three engines in the **browser** using the same inputs and settings. Fix the dataset to `tests/fixtures/im2latex_formulas.lst` **physical lines 1–1000**.
+2. Default is 2 full warm-up rounds plus 6 measured rounds. Do not drop the first few formulas from the statistics. Rotate engine order and do not cache formula outputs. Default run should not enable CPU throttling.
+3. In `compute` mode, measure HTML only; in `both` mode, all three engines include the same scope: HTML generation, innerHTML insertion, and forced layout. Do not mix timing scopes across different APIs.
+4. Precheck should list each engine’s failures; performance uses the same success set from all three engines. Error marks cannot be counted as success. Do not let third-party or JS initialization cost be timed separately.
+5. `npm run perf:playwright` auto-generates `demo/perf-results/im2latex-1-1000-optN.json`, continuing from the highest existing number and never overwriting. The previous final version is the new baseline for the next round.
+6. The primary metric is median total batch time; retain all rounds, success set, inputs, WASM hash, build commit, browser, device, and settings. Do not compare across different schemas, inputs, modes, or success sets. Flame graphs must be measured separately; do not use recorded profile runs as final performance evidence.
+7. Repeat final performance advantage verification at least once. State exactly which browser, mode, and input set was used. You cannot claim superiority over JS without real measurements, and you cannot present shared-subset advantages as full semantic or all-device superiority.
 
-**需要注意：**
-- js与rust输出的parseTree不会完全一致，确保表达的含义一致
-- js与rust输出的html不会完全一致，css style等样式可能不同（比如由于format导致样式变化，无需修复），表达含义相同即可
-- 这是一个**复刻js**代码的项目，修复rust代码的逻辑前，**首先先去确认js对应的代码**
+## GitHub Pages
 
-## 重要配置选项
+`.github/workflows/deploy-demo.yml` must continue to automatically build, verify, test, and embed the latest results into static pages. PRs only verify; `main` or manual deployment publishes Pages. Keep repo subpath support, and provide local CSS, fonts, both WASM files, and formula data locally; do not depend on local absolute paths or CDNs.
 
-- `displayMode`: 是否以 display 模式渲染
-- `output`: 输出类型（html, mathml, htmlAndMathml）
-- `throwOnError`: 是否对无效 LaTeX 抛出错误
-- `errorColor`: 错误高亮颜色
-- `maxSize`: 输出大小安全限制
-- `maxExpand`: 宏展开次数限制
-- `trust`: 是否允许潜在危险构造
+All commands in `README` must match package scripts and workflow. Do not restore legacy Travis/AppVeyor template flows; they are not used for current Pages publishing.
 
-## 相关文档
+## Final verification and evidence
 
-- `CLAUDE.md`: Claude Code 开发指南
-- `structure.md`: JS KaTeX 到 Rust 的模块映射关系
-- `README.md`: 项目简介
+- `cargo test --lib`, `npm run test:api`, and `tests/fixtures/performance-regressions.txt` cover allocator, Unicode, macro expansion, settings, style, and trust regressions.
+- Final completed performance runs must be revalidated with at least three fresh browser processes using `--require-faster`. Interactive UI tests do not replace these independent measurements.
+- Run `npm run test:ui` after Pages build to verify subpath, desktop/mobile layouts, download, and continuous render memory. This test generates extra full-attempt timing for unsupported inputs, which must be distinguished from successful-subset timing.
+- `docs/performance.md` and `docs/performance-results/` keep submit-ready baselines, final raw data, and validation summaries; full local iteration history remains in `demo/perf-results/`.
+- `src/wasm_allocator.rs` is for non-atomics WASM only; free small-block cache has a fixed upper bound, and you must not switch to bulk arena reset that reclaims still-live objects.
 
+## Demo display and input override (latest user request)
 
-## 如何迭代性能表现
+The demo must keep the original plain white, parallel formula layout with the scatter chart before the formula results. Preview and demo/Pages performance input is exclusively `demo/public/formulas.txt`, using the entire file by default. No hardcoded example list or im2latex snapshot may replace it. Retain the newer warmup, timing, rotation and failure-accounting protocol. Demo output names are `formulas-1-<line-count>-optN.json`; do not compare them with historical im2latex reports. The separate 50-line Rust correctness gate remains unchanged.
 
-我们需要反复迭代rust代码的性能，测试环境定为浏览器，即wasm的rust代码和katex.js在浏览器中的对比。
+## Behavior-parity override (latest user request)
 
-已经在demo中设计了基于playwright的性能测试命令。你需要在迭代性能的任务中遵循以下原则：
+Do not use render success/failure as the acceptance criterion for katex-wasm or katex.js. KaTeX.js is the behavior reference: matching normal output or matching error output is acceptable. Compare DOM/text/attributes with the existing numeric tolerance; for exceptions compare category/message, never equate a generic WASM trap with a JS parse error. Only real behavior differences fail the correctness gate. Time every formulas.txt input, including error outcomes, and keep third-party results independent of the input set. Schema 3 replaces the previous successful-subset protocol; reject cross-schema baselines. The UI highlights behavior matches/mismatches, not success rates.
 
-1. 当前针对 `tests/fixtures/im2latex_formulas.lst` 的前1000行公式进行测试。
-2. 结果保存在`demo/perf-results`下，注意查看性能测试命令的默认值。
-3. 结果保存为不同版本，文件名以`-opt{number}`结尾，每次不同的迭代过程接续前一次的编号。baseline为上一次接迭代结束的编号。
-4. 每次修改rust代码后需要先验证改动是否保持结果正确，即需要随机前1000行的连续的50行公式，使用  Diff Harness 测试工具 测试结果正确，没有错误。
+## English HTML-only demo override (latest user request)
+
+All demo interface text must be English. Remove the top toolbar (rerun, mode selector and download). Run automatically, and benchmark HTML generation only; reject other timing modes. The formula source hyperlink points to the GitHub blob page, while actual formula loading remains local `public/formulas.txt` for reproducible Pages builds. Browser checks validate these requirements instead of the removed controls.
+
+The demo must not show the top status text or the Behavior differences disclosure. Keep parity checks and mismatch evidence in the benchmark result and verification gates.

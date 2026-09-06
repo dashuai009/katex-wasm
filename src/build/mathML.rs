@@ -29,8 +29,8 @@ pub fn make_text(text: String, mode: Mode, options: Option<&Options>) -> TextNod
     if let Some(c) = text.chars().next() {
         if c as u32 != 0xD835 && !flag {
             if let Some(sym) = get_symbol(mode, &text) {
-                if let Some(r) = sym.replace {
-                    return TextNode::new(r);
+                if let Some(r) = &sym.replace {
+                    return TextNode::new(r.clone());
                 }
             }
         }
@@ -147,7 +147,7 @@ pub fn get_variant(_group: &Box<dyn AnyParseNode>, options: &Options) -> Option<
     let font_map = crate::build::common::FONT_MAP.lock().unwrap();
     let font_info = font_map.get(&font.as_str()).unwrap();
     if let Some(sym) = get_symbol(mode, text) {
-        if let Some(s) = sym.replace {
+        if let Some(s) = &sym.replace {
             if get_character_metrics(&s, font_info.fontName , mode).is_some() {
                 return Some(font_info.variant);
             }

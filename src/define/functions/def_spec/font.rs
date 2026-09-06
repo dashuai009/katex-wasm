@@ -18,12 +18,12 @@ use std::sync::Mutex;
 
 fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let group = _group
-        .as_any()
-        .downcast_ref::<parse_node::types::font>()
+        .into_any()
+        .downcast::<parse_node::types::font>()
         .unwrap();
     let font = &group.font;
     let newOptions = options.with_font(font.clone());
-    return HTML::build_group(Some(group.body.clone()), newOptions, None);
+    return HTML::build_group(Some(group.body), newOptions, None);
 }
 
 fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn MathDomNode> {

@@ -47,13 +47,13 @@ fn handler_fn(
 
 pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let group = _group
-        .as_any()
-        .downcast_ref::<parse_node::types::styling>()
+        .into_any()
+        .downcast::<parse_node::types::styling>()
         .unwrap();
     // Style changes are handled in the TeXbook on pg. 442, Rule 3.
     let new_style = group.style.as_style();
     let new_options = options.having_style(&new_style).with_font("".to_string());
-    let res = sizing_group(group.body.clone(), new_options, options);
+    let res = sizing_group(group.body, new_options, options);
     return Box::new(res) as Box<dyn HtmlDomNode>;
 }
 

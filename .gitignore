@@ -2,7 +2,6 @@
 /target-local
 struct_format/target
 **/*.rs.bk
-Cargo.lock
 bin/
 !src/bin/
 !src/bin/*.rs
@@ -19,3 +18,6 @@ coverage/
 .DS_Store
 
 *.profraw
+
+third-party/katex-rs-source/
+third-party/katex-rs-pkg/

@@ -85,7 +85,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
     // Shift the sqrt image
     let img_shift = img.get_height() - inner.get_height() - line_clearance - rule_width;
 
-    inner.get_mut_style().padding_left = Some(crate::units::make_em(advance_width));
+    *inner.get_mut_style().padding_left_mut() = Some(crate::units::make_em(advance_width));
 
     // Overlay the image and the argument.
     let body = common::make_vlist(

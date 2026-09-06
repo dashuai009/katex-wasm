@@ -1,135 +1,54 @@
-# Demo 开发与部署
+# Three-engine browser comparison
 
-## 本地开发
+Follow the [root README](../README.md) for setup. `npm run serve` starts the local demo; `npm run build` builds release WASM and the static production page. `npm run build:site` reuses the existing WASM package.
 
-```bash
-# 在仓库根目录构建 wasm 包（输出到 ../pkg）
-wasm-pack build
+## Benchmark
 
-# 启动 demo
-cd demo
-npm install
-npm run serve
+```sh
+npm run perf:playwright
+npm run perf:playwright -- --baseline perf-results/formulas-1-212-opt0.json --max-regression-pct 10
+npm run perf:playwright -- --require-faster
 ```
 
-> `demo` 依赖 `file:../pkg`，因此每次修改 Rust 代码后都需要重新执行一次 `wasm-pack build`。
->
-> `webpack.config.j` 现在仅通过环境变量 `WASM_PROFILE` 决定 wasm profile：
-> - `WASM_PROFILE=dev` -> `wasm-pack build --dev`
-> - `WASM_PROFILE=release` -> `wasm-pack build --release`
-> - `WASM_PROFILE=profiling` -> `wasm-pack build --profile profiling`
+The runner serves `dist` on an ephemeral port and launches a fresh Chromium instance. For a `PUBLIC_PATH` subpath build, use `--url` with the address from `npm run preview:pages`, or rebuild without `PUBLIC_PATH` for the automatic server. It does not silently reuse an unrelated development server, copy over input files, or fall back to demo formulas when input loading fails. Run `npm run build` before measuring changed code.
 
-## GitHub Pages 构建
+| Option | Default / meaning |
+|---|---|
+| `--input` | `demo/public/formulas.txt` only |
+| `--start`, `--end` | 1, file length; inclusive physical text lines |
+| `--repeat`, `--warmup` | 6 measured passes, 2 complete unmeasured passes |
+| `--mode` | `compute` only; HTML generation, excluding DOM insertion/layout |
+| `--output` | `demo/perf-results/formulas-1-<line-count>-optN.json`, next available iteration |
+| `--baseline` | prior compatible schema-3 result; rejects changed input/settings/timed indices/browser |
+| `--max-regression-pct` | 10; allowed median batch-time regression |
+| `--require-faster` | fail unless ours matches JS behavior and its median beats JS |
+| `--cpu-slowdown` | 1 (none); explicit Chromium throttling rate |
+| `--cpu-profile` | optional profile file; diagnostic runs must not be used as performance evidence |
+| `--url` | explicitly test a running built site, including a Pages subpath |
+| `--headless` | true |
 
-GitHub Pages 通常部署在 `https://<owner>.github.io/<repo>/`，因此 webpack 的 `publicPath` 必须指向仓库子路径，否则会出现 JS/WASM 资源 404。
+Relative file arguments resolve against the current directory; default paths resolve against the project. Historical result files are not overwritten. Sample counts and failure indices remain in JSON.
 
-`webpack.config.js` 已支持通过环境变量控制：
-
-- `PUBLIC_PATH`：静态资源前缀（例如 `/katex-wasm/`）
-- `NODE_ENV=production`：生产构建
-
-示例：
-
-```bash
-cd demo
-PUBLIC_PATH=/katex-wasm/ npm run build
+```sh
+npm run perf:playwright -- --cpu-profile perf-results/diagnostic.cpuprofile
 ```
 
-## Playwright 自动化性能测试
+Open profiles in Chrome DevTools or Speedscope. Unprofiled runs are required for final timing claims. HTML P95 can be noisy due to timer resolution; median full-batch time is the primary comparison.
 
-已提供自动化脚本：`demo/scripts/perf-playwright.mjs`。
+The UI renders every formula from `public/formulas.txt` in the original plain three-column layout. The scatter chart is above the formulas. It runs the current browser benchmark automatically without a toolbar; no hardcoded examples or other dataset snapshots are displayed.
 
-### 1) 安装依赖
+## Static Pages smoke test
 
-```bash
-cd demo
-npm install
+After a benchmark, copy its JSON to `public/latest-benchmark.json`, then:
+
+```sh
+PUBLIC_PATH=/katex-wasm/ npm run build:site
+npm run test:ui
+npm run preview:pages
 ```
 
-### 2) 一键执行（自动启动 demo，自动打开页面，自动导出 JSON）
+The smoke test checks desktop/mobile previews, the shared font styling, resource paths, the GitHub formula link, HTML-only timing, repeated markup and WASM memory stability. It also records a separate all-input attempt-throughput measurement (including unsupported output). A subpath build is required for this command; set the same `PUBLIC_PATH` on the build and test if the repository name differs.
 
-```bash
-cd demo
-npm run perf:playwright -- \
-  --input ../tests/fixtures/im2latex_formulas.lst \
-  --start 1 \
-  --end 500 \
-  --repeat 3 \
-  --warmup 1 \
-  --mode compute \
-  --output ../demo/perf-results/im2latex-1-500.json
-```
+## Behavior is the correctness criterion
 
-说明：
-
-- `--input`：本地公式文件路径；支持逐行文本文件，也支持 `.yml/.yaml`，脚本会先复制到 `demo/public/`，再由 demo 页面按文件类型解析
-- `--start/--end`：行号范围（1-based）
-- `--repeat`：重复轮次
-- `--warmup`：每轮前 N 条样本不计入统计
-- `--mode`：`compute`（仅渲染计算）或 `both`（渲染 + DOM）
-- `--output`：结果 JSON 输出路径
-- `--cpu-profile`：可选，输出 Chromium CPU profile（`.cpuprofile`），用于火焰图分析
-- `--cpu-sampling-interval-us`：可选，CPU 采样间隔（微秒），默认 `100`
-
-默认不传 `--input` 时，行为保持不变，仍然使用 `demo/public/formulas.txt`。
-
-当 `--input` 指向 `KaTeX/test/screenshotter/ss_data.yaml` 这类 YAML 文件时，demo 页面会按条目提取公式：
-
-- 值为字符串的条目，直接取该字符串
-- 值为对象且包含 `tex` 字段的条目，取 `tex`
-- YAML 中的 `display`、`macros`、`pre/post`、`styles` 等 option 不参与 perf 测试
-- `--start/--end` 对 YAML 输入按“提取后的公式顺序”生效，不按文件物理行号生效
-
-示例：
-
-```bash
-cd demo
-npm run perf:playwright -- \
-  --input ../KaTeX/test/screenshotter/ss_data.yaml \
-  --start 1 \
-  --end 50 \
-  --repeat 3 \
-  --warmup 1 \
-  --mode compute
-```
-
-### 2.1) 导出火焰图数据（CPU Profile）
-
-快捷命令（默认输出到 `../demo/perf-results/perf.cpuprofile`）：
-
-```bash
-cd demo
-npm run perf:playwright:flame -- --start 1 --end 500 --repeat 3 --warmup 1 --mode compute
-```
-
-```bash
-cd demo
-npm run perf:playwright -- \
-  --input ../tests/fixtures/im2latex_formulas.lst \
-  --start 1 \
-  --end 500 \
-  --repeat 3 \
-  --warmup 1 \
-  --mode compute \
-  --output ../demo/perf-results/im2latex-1-500.json \
-  --cpu-profile ../demo/perf-results/im2latex-1-500.cpuprofile
-```
-
-输出的 `.cpuprofile` 可以直接用于火焰图查看：
-
-- Chrome DevTools `Performance` 面板加载 profile 文件
-- 或拖到 https://www.speedscope.app/ 进行交互式火焰图分析
-
-### 3) 阈值与基线回归（可用于 CI）
-
-```bash
-cd demo
-npm run perf:playwright -- \
-  --input ../tests/fixtures/im2latex_formulas.lst \
-  --start 1 --end 500 --repeat 3 --warmup 1 --mode compute \
-  --baseline ../demo/perf-results/baseline.json \
-  --max-regression-pct 10 \
-  --max-wasm-p95-ms 3.5
-```
-
-当阈值超限时脚本会以非 0 退出码结束，可直接接 CI gate。
+All formulas are timed; errors do not remove inputs. The page reports katex-wasm/JS behavior matches and shows only true differences. Identical returned error markup is valid parity; exception comparisons retain category and message checks, so an unrelated WASM trap cannot masquerade as a matching parse error. Third-party results do not filter the input set. Schema 3 is separate from historical schema-2 successful-subset timings.

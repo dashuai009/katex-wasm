@@ -48,9 +48,9 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
     let shift = if let Some(s) = &group.shift { crate::units::calculate_size(s, &options) } else { 0.0 };
 
     // Style the rule to the right size
-    rule.get_mut_style().border_right_width = Some(crate::units::make_em(width));
-    rule.get_mut_style().border_top_width = Some(crate::units::make_em(height));
-    rule.get_mut_style().bottom = Some(crate::units::make_em(shift));
+    *rule.get_mut_style().border_right_width_mut() = Some(crate::units::make_em(width));
+    *rule.get_mut_style().border_top_width_mut() = Some(crate::units::make_em(height));
+    *rule.get_mut_style().bottom_mut() = Some(crate::units::make_em(shift));
 
     // Record the height and width
     rule.set_width(width);

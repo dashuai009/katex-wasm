@@ -61,16 +61,22 @@ pub fn hyphenate(s: String) -> String {
 
 
 pub fn escape_to(out: &mut String, text: &str) {
-    for c in text.chars() {
-        match c {
-            '&' => out.push_str("&amp;"),
-            '>' => out.push_str("&gt;"),
-            '<' => out.push_str("&lt;"),
-            '\"' => out.push_str("&quot;"),
-            '\'' => out.push_str("&#x27;"),
-            _ => out.push_str(&c.to_string()),
+    let mut start = 0;
+    for (i, byte) in text.bytes().enumerate() {
+        let replacement = match byte {
+            b'&' => "&amp;",
+            b'>' => "&gt;",
+            b'<' => "&lt;",
+            b'"' => "&quot;",
+            b'\'' => "&#x27;",
+            _ => continue,
         };
+        // ASCII delimiter offsets are always valid UTF-8 boundaries.
+        out.push_str(&text[start..i]);
+        out.push_str(replacement);
+        start = i + 1;
     }
+    out.push_str(&text[start..]);
 }
 
 /**
@@ -111,4 +117,18 @@ pub fn is_character_box(group: &Box<dyn AnyParseNode>) -> bool {
     return base_elem.get_type() == "mathord"
         || base_elem.get_type() == "textord"
         || base_elem.get_type() == "atom";
+}
+
+#[cfg(test)]
+mod escape_regression_tests {
+    use super::escape_to;
+
+    #[test]
+    fn preserves_unicode_and_escapes_all_html_delimiters() {
+        let mut output = String::from("prefix:");
+        escape_to(&mut output, "α中😀&<>\"'e\u{0301}");
+        assert_eq!(output, "prefix:α中😀&amp;&lt;&gt;&quot;&#x27;e\u{0301}");
+        escape_to(&mut output, "");
+        assert!(output.ends_with("e\u{0301}"));
+    }
 }

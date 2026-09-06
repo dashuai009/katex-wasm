@@ -617,17 +617,17 @@ pub fn lr_handler_fn(
 const IS_MIDDLE: &str = "is_middle_with_an_ungly_name";
 pub fn lr_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let group = _group
-        .as_any()
-        .downcast_ref::<parse_node::types::leftright>()
+        .into_any()
+        .downcast::<parse_node::types::leftright>()
         .unwrap();
-    assert_parsed(group);
+    assert_parsed(&group);
 
     let mut innerHeight = 0.0;
     let mut innerDepth = 0.0;
     let mut hadMiddle = false;
     // Build the inner expression
     let mut inner: Vec<Box<dyn HtmlDomNode>> = HTML::build_expression(
-        group.body.clone(),
+        group.body,
         options.clone(),
         IsRealGroup::T,
         (Some(DomType::mopen), Some(DomType::mclose)),

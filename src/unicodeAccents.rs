@@ -42,7 +42,7 @@ lazy_static! {
         m.insert(
             '\u{0308}',
             unicodeAccentsTextAndMath {
-                text: "\\",
+                text: "\\\"",
                 math: "\\ddot",
             },
         );

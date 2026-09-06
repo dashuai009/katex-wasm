@@ -44,7 +44,7 @@ fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn Html
         Some(&options),
         Default::default(),
     );
-    node.get_mut_style().text_shadow = Some("0.02em 0.01em 0.04px".to_string());
+    *node.get_mut_style().text_shadow_mut() = Some("0.02em 0.01em 0.04px".to_string());
     return Box::new(node) as Box<dyn HtmlDomNode>;
 }
 fn mathml_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn MathDomNode> {

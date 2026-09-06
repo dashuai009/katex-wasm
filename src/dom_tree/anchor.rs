@@ -1,3 +1,4 @@
+use crate::dom_tree::css_style::StyleStorage;
 use std::any::Any;
 use crate::utils::escape_to;
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
 use indexmap::IndexMap;
 use struct_format::html_dom_node;
 
-use super::utils::{this_init_node, this_to_markup, this_to_node};
+use super::utils::{this_init_node, this_to_markup, this_write_markup, this_to_node};
 
 /**
  * This node represents an anchor (<a>) element with a hyperlink.  See `span`
@@ -22,7 +23,7 @@ pub struct Anchor {
     height: f64,
     depth: f64,
     max_font_size: f64,
-    style: CssStyle,
+    style: StyleStorage,
 }
 impl Anchor {
     pub fn new(
@@ -38,7 +39,7 @@ impl Anchor {
             height: 0.0,
             depth: 0.0,
             max_font_size: 0.0,
-            style: CssStyle::new(),
+            style: StyleStorage::default(),
         };
         let _opt = Some(options);
         let _style = CssStyle::new();
@@ -63,6 +64,10 @@ impl VirtualNode for Anchor {
 
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "a")
+    }
+
+    fn write_markup(&self, output: &mut String) {
+        this_write_markup!(self, "a", output)
     }
 
     fn to_markup(&self) -> String {

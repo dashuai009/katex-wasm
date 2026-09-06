@@ -846,7 +846,7 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
                         None,
                         Default::default(),
                     );
-                    col_sep.get_mut_style().width = Some(crate::units::make_em(
+                    *col_sep.get_mut_style().width_mut() = Some(crate::units::make_em(
                         options.get_font_metrics().doubleRuleSep,
                     ));
                     cols.push(col_sep);
@@ -864,17 +864,17 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
                         Some(&options),
                         Default::default(),
                     );
-                    separator.get_mut_style().height = Some(crate::units::make_em(total_height));
-                    separator.get_mut_style().border_right_width =
+                    *separator.get_mut_style().height_mut() = Some(crate::units::make_em(total_height));
+                    *separator.get_mut_style().border_right_width_mut() =
                         Some(crate::units::make_em(rule_thickness));
-                    separator.get_mut_style().border_right_style = Some(line_type.to_string());
-                    separator.get_mut_style().margin = Some(format!(
+                    *separator.get_mut_style().border_right_style_mut() = Some(line_type.to_string());
+                    *separator.get_mut_style().margin_mut() = Some(format!(
                         "0 {}",
                         crate::units::make_em(-rule_thickness / 2.0)
                     ));
                     let shift = total_height - offset;
                     if shift != 0.0 {
-                        separator.get_mut_style().vertical_align =
+                        *separator.get_mut_style().vertical_align_mut() =
                             Some(crate::units::make_em(-shift));
                     }
 
@@ -915,7 +915,7 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
                     None,
                     Default::default(),
                 );
-                col_sep.get_mut_style().width = Some(crate::units::make_em(sepwidth));
+                *col_sep.get_mut_style().width_mut() = Some(crate::units::make_em(sepwidth));
                 cols.push(col_sep);
             }
         }
@@ -974,7 +974,7 @@ fn array_html_builder(mut _group: Box<dyn AnyParseNode>, options: Options) -> Bo
                     None,
                     Default::default(),
                 );
-                col_sep.get_mut_style().width = Some(crate::units::make_em(sepwidth));
+                *col_sep.get_mut_style().width_mut() = Some(crate::units::make_em(sepwidth));
                 cols.push(col_sep);
             }
         }

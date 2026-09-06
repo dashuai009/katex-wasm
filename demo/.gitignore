@@ -7,3 +7,4 @@ dist
 perf-results
 
 public/perf-input*
+public/latest-benchmark.json

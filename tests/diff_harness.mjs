@@ -20,6 +20,7 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 const demoRequire = createRequire(path.join(projectRoot, 'demo', 'package.json'));
 const yaml = demoRequire('js-yaml');
+import {compareOutcomes} from '../demo/behavior.mjs';
 
 // ── Argument parsing ──────────────────────────────────────────────────────────
 
@@ -130,8 +131,7 @@ if (startLine > endLine || startLine > totalLines) {
 
 // ── Load JS KaTeX ─────────────────────────────────────────────────────────────
 
-const katexPath = path.join(projectRoot, 'KaTeX/dist/katex.mjs');
-const katex = (await import(katexPath)).default;
+const katex = demoRequire('katex');
 
 // ── Load WASM KaTeX ───────────────────────────────────────────────────────────
 
@@ -188,38 +188,6 @@ function highlightDiff(strA, strB) {
         rustSnippet: snippetB,
         marker: ' '.repeat(markerPos) + '^',
     };
-}
-
-function htmlMatchesWithinTolerance(jsHtml, rustHtml) {
-    const jsMatches = [...jsHtml.matchAll(/(-?\d+(?:\.\d+)?)em\b/g)];
-    const rustMatches = [...rustHtml.matchAll(/(-?\d+(?:\.\d+)?)em\b/g)];
-    let jsIndex = 0;
-    let rustIndex = 0;
-
-    if (jsMatches.length !== rustMatches.length) {
-        return false;
-    }
-
-    for (let i = 0; i < jsMatches.length; i++) {
-        const jsMatch = jsMatches[i];
-        const rustMatch = rustMatches[i];
-        const jsStatic = jsHtml.slice(jsIndex, jsMatch.index);
-        const rustStatic = rustHtml.slice(rustIndex, rustMatch.index);
-        if (jsStatic !== rustStatic) {
-            return false;
-        }
-
-        const jsValue = Number(jsMatch[1]);
-        const rustValue = Number(rustMatch[1]);
-        if (Math.abs(jsValue - rustValue) > 0.001) {
-            return false;
-        }
-
-        jsIndex = jsMatch.index + jsMatch[0].length;
-        rustIndex = rustMatch.index + rustMatch[0].length;
-    }
-
-    return jsHtml.slice(jsIndex) === rustHtml.slice(rustIndex);
 }
 
 // ── Main loop ─────────────────────────────────────────────────────────────────
@@ -288,7 +256,10 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
     }
 
     // ── Compare ───────────────────────────────────────────────────────────
-    const matched = jsHtml === rustHtml || htmlMatchesWithinTolerance(jsHtml, rustHtml);
+    const matched = compareOutcomes(
+        jsHadError ? {kind:'throw',message:jsHtml.replace(/^JS_ERROR: /,'')} : {kind:'return',html:jsHtml},
+        rustHadError ? {kind:'throw',message:rustHtml.replace(/^RUST_ERROR: /,'')} : {kind:'return',html:rustHtml}
+    ).matched;
     const shouldLogFormula = showAllFormulaLogs || (errorOnly && (jsHadError || rustHadError || !matched));
 
     if (shouldLogFormula) {
@@ -343,10 +314,10 @@ for (let lineNum = startLine; lineNum <= endLine; lineNum++) {
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log(`${BOLD}══════════ Summary ══════════${RESET}`);
-console.log(`  ${GREEN}Pass:${RESET}   ${passCount}`);
-console.log(`  ${RED}Fail:${RESET}   ${failCount}`);
+console.log(`  ${GREEN}Match:${RESET}   ${passCount}`);
+console.log(`  ${RED}Mismatch:${RESET}   ${failCount}`);
 if (errorCount > 0) {
-    console.log(`  ${YELLOW}Errors:${RESET} ${errorCount}`);
+    console.log(`  ${YELLOW}Thrown exceptions (diagnostic):${RESET} ${errorCount}`);
 }
 console.log(`  Total:  ${passCount + failCount}`);
 

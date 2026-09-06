@@ -48,8 +48,8 @@ pub fn adjust_style(size: &String, original_style: StyleInterface) -> StyleInter
 
 pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn HtmlDomNode> {
     let group = _group
-        .as_any()
-        .downcast_ref::<parse_node::types::genfrac>()
+        .into_any()
+        .downcast::<parse_node::types::genfrac>()
         .unwrap();
     // Fractions are handled in the TeXbook on pages 444-445, rules 15(a-e).
     let style = adjust_style(&group.size, options.get_style());
@@ -58,7 +58,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     let dstyle = style.fracDen();
     let mut new_options = options.having_style(&nstyle);
     let mut numerm =
-        HTML::build_group(Some(group.numer.clone()), new_options, Some(options.clone()));
+        HTML::build_group(Some(group.numer), new_options, Some(options.clone()));
 
     if group.continued {
         // \cfrac inserts a \strut into the numerator.
@@ -74,7 +74,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     }
 
     new_options = options.having_style(&dstyle);
-    let denomm = HTML::build_group(Some(group.denom.clone()), new_options, Some(options.clone()));
+    let denomm = HTML::build_group(Some(group.denom), new_options, Some(options.clone()));
 
     let mut rule = None;
     let mut rule_width;

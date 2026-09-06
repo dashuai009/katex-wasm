@@ -195,7 +195,7 @@ pub fn assemble_sup_sub(
             Some(options),
             Default::default(),
         );
-        spacer.get_mut_style().margin_right = Some(make_em(slant));
+        *spacer.get_mut_style().margin_right_mut() = Some(make_em(slant));
         parts.insert(0, Box::new(spacer) as Box<dyn HtmlDomNode>);
     }
     return common::make_span(

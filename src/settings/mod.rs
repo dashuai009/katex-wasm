@@ -205,32 +205,71 @@ impl AsRef<Settings> for Settings {
     }
 }
 
+// Direct property bindings avoid constructing and decoding a property-name
+// string for every settings read. Getter exceptions retain the old catch path.
+#[wasm_bindgen]
+extern "C" {
+    type JsRenderSettings;
+    #[wasm_bindgen(method, getter = displayMode, structural, catch)]
+    fn read_display_mode(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = output, structural, catch)]
+    fn read_output(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = leqno, structural, catch)]
+    fn read_leqno(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = fleqn, structural, catch)]
+    fn read_fleqn(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = throwOnError, structural, catch)]
+    fn read_throw_on_error(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = errorColor, structural, catch)]
+    fn read_error_color(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = minRuleThickness, structural, catch)]
+    fn read_min_rule_thickness(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = colorIsTextColor, structural, catch)]
+    fn read_color_is_text_color(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = strict, structural, catch)]
+    fn read_strict(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = trust, structural, catch)]
+    fn read_trust(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = maxSize, structural, catch)]
+    fn read_max_size(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = maxExpand, structural, catch)]
+    fn read_max_expand(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+    #[wasm_bindgen(method, getter = globalGroup, structural, catch)]
+    fn read_global_group(this: &JsRenderSettings) -> Result<JsValue, JsValue>;
+}
+
 #[wasm_bindgen]
 impl Settings {
     #[wasm_bindgen(constructor)]
     pub fn new_from_js(js_v: &JsValue) -> Settings {
         let mut res = Settings::new();
+        if !js_v.is_object() {
+            res.error_color = "#cc0000".to_owned();
+            return res;
+        }
+        use wasm_bindgen::JsCast;
+        let input: &JsRenderSettings = js_v.unchecked_ref();
         use js_sys::{Boolean, JsString, Reflect};
-        if let Ok(opt_display_mode) = Reflect::get(&js_v, &JsString::from("displayMode")) {
-            res.display_mode = opt_display_mode.as_bool().unwrap();
+        if let Ok(opt_display_mode) = input.read_display_mode() {
+            res.display_mode = opt_display_mode.as_bool().unwrap_or(false);
         }
 
-        if let Ok(opt_output) = Reflect::get(&js_v, &JsString::from("output")) {
+        if let Ok(opt_output) = input.read_output() {
             if let Some(s) = opt_output.as_string() {
                 res.output = OutputType::from_str(s.as_str()).unwrap();
             }
         }
 
-        if let Ok(opt_leqno) = Reflect::get(&js_v, &JsString::from("leqno")) {
+        if let Ok(opt_leqno) = input.read_leqno() {
             res.leqno = opt_leqno.as_bool().unwrap_or(false);
         }
-        if let Ok(opt_fleqn) = Reflect::get(&js_v, &JsString::from("fleqn")) {
+        if let Ok(opt_fleqn) = input.read_fleqn() {
             res.fleqn = opt_fleqn.as_bool().unwrap_or_default();
         }
-        if let Ok(opt_throw_on_error) = Reflect::get(&js_v, &JsString::from("throwOnError")) {
+        if let Ok(opt_throw_on_error) = input.read_throw_on_error() {
             res.throw_on_error = opt_throw_on_error.as_bool().unwrap_or_default();
         }
-        if let Ok(opt_error_color) = Reflect::get(&js_v, &JsString::from("errorColor")) {
+        if let Ok(opt_error_color) = input.read_error_color() {
             if let Some(c) = opt_error_color.as_string() {
                 res.error_color = c;
             } else {
@@ -242,32 +281,32 @@ impl Settings {
 
         // if let Ok(opt_macros) = Reflect::get(&js_v, &JsString::from("macros")){}
 
-        if let Ok(opt_min_rule_thickness) = Reflect::get(&js_v, &JsString::from("minRuleThickness"))
+        if let Ok(opt_min_rule_thickness) = input.read_min_rule_thickness()
         {
             res.min_rule_thickness = opt_min_rule_thickness.as_f64().unwrap_or_default();
         }
         if let Ok(opt_color_is_text_color) =
-        Reflect::get(&js_v, &JsString::from("colorIsTextColor"))
+        input.read_color_is_text_color()
         {
             res.color_is_text_color = opt_color_is_text_color.as_bool().unwrap_or_default();
         }
-        if let Ok(opt_strict) = Reflect::get(&js_v, &JsString::from("strict")) {
+        if let Ok(opt_strict) = input.read_strict() {
             res.strict = StrictType::from_str(opt_strict.as_string().unwrap_or_default().as_str())
                 .unwrap_or_default();
         }
-        if let Ok(opt_trust) = Reflect::get(&js_v, &JsString::from("trust")) {
+        if let Ok(opt_trust) = input.read_trust() {
             res.trust = opt_trust.as_bool().unwrap_or_default();
         }
-        if let Ok(opt_max_size) = Reflect::get(&js_v, &JsString::from("maxSize")) {
+        if let Ok(opt_max_size) = input.read_max_size() {
             res.max_size = opt_max_size.as_f64();
         }
-        if let Ok(opt_max_expand) = Reflect::get(&js_v, &JsString::from("maxExpand")) {
+        if let Ok(opt_max_expand) = input.read_max_expand() {
             res.max_expand = match opt_max_expand.as_f64() {
                 Some(d) => Some(d as i32),
                 None => None,
             }
         }
-        if let Ok(opt_global_group) = Reflect::get(&js_v, &JsString::from("globalGroup")) {
+        if let Ok(opt_global_group) = input.read_global_group() {
             res.global_group = opt_global_group.as_bool().unwrap_or_default();
         }
         return res;

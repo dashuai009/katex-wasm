@@ -225,8 +225,8 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
         )) as Box<dyn HtmlDomNode>;
     } else {
         if base_shift != 0.0 {
-            base.get_mut_style().position = Some("relative".to_string());
-            base.get_mut_style().top = Some(crate::units::make_em(base_shift));
+            *base.get_mut_style().position_mut() = Some("relative".to_string());
+            *base.get_mut_style().top_mut() = Some(crate::units::make_em(base_shift));
         }
 
         return base;

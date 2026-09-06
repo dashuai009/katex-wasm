@@ -27,11 +27,11 @@ pub fn get_character_metrics(
         Some(c) => c,
         None => return None,
     };
-    let mut metrics = get_char_metrics(font, (ch as u32).to_string());
+    let mut metrics = get_char_metrics(font, ch as u32);
     let _extra_char = extra_character_map.lock().unwrap();
     let tmp_ch = _extra_char.get(&ch);
     if metrics.is_none() && tmp_ch.is_some() {
-        metrics = get_char_metrics(font, (tmp_ch.unwrap().to_owned() as u32).to_string());
+        metrics = get_char_metrics(font, tmp_ch.unwrap().to_owned() as u32);
         ch = tmp_ch.unwrap().clone();
     }
 
@@ -45,7 +45,7 @@ pub fn get_character_metrics(
         // we (currently) only care about the height of the glpyh
         // not its width.
         if supportedCodepoint(ch as u32 as f64) {
-            metrics = get_char_metrics(&font, String::from("77")); // 77 is the charcode for 'M'
+            metrics = get_char_metrics(&font, 77); // 77 is the charcode for 'M'
         }
     }
 

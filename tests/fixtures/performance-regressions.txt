@@ -1,0 +1,15 @@
+x+y-z=0
+\left(\frac{a_1^{b_2}}{\sqrt{x^2+1}}\right)^3
+\text{café naïve} + \hat{x} + é + i̇
+\verb|a & b < c| + \verb*+x y+
+\text{a\&b} + \htmlStyle{color:red;}{x}
+\def\foo{a}\foo+\foo
+\def\foo{a}\noexpand\foo+x
+\def\foo{a}\edef\bar{\noexpand\foo}\def\foo{b}\bar
+\begin{pmatrix}a&b\\c&d\end{pmatrix}
+\left.\frac{1}{x}\right|_{a}^{b}
+{\color{blue}x} + y
+\Huge x_1 + \small y^2
+\mathbb{R} \ni x \quad \mathbf{A}^2
+\left(,\right) \left(\frac{a}{b},\right)
+\sum_{i=1}^{n}i=\frac{n(n+1)}{2}

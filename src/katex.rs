@@ -308,7 +308,7 @@ mod tests {
         let script = r#"
 const fs = require('fs');
 const payload = JSON.parse(fs.readFileSync(0, 'utf8'));
-const katex = require('./KaTeX/dist/katex.mjs');
+const katex = require('./demo/node_modules/katex');
 let options = {
   displayMode: true,
   output: 'html',
@@ -316,17 +316,6 @@ let options = {
   trust: true,
   strict: 'ignore'
 };
- var settings = new katex.Settings(options);
- process.stdout.write(JSON.stringify(settings));
-  try {
-    var tree = katex.parseTree(payload.expression, settings);
-    process.stdout.write(JSON.stringify(tree, null, 2));
-    // return buildTree(tree, payload.expression, settings);
-  } catch (error) {
-     process.stdout.write(JSON.stringify(error));
-    // return renderError(error, payload.expression, settings);
-  }
-
 const html = katex.renderToString(payload.expression, options);
 process.stdout.write(html);
 "#;

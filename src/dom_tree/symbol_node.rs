@@ -1,3 +1,4 @@
+use crate::dom_tree::css_style::StyleStorage;
 use crate::dom_tree::css_style::CssStyle;
 use crate::units::make_em;
 use crate::utils::escape_to;
@@ -35,7 +36,7 @@ pub struct SymbolNode {
     pub width: f64,
     pub max_font_size: f64,
     classes: Vec<String>,
-    style: CssStyle,
+    style: StyleStorage,
 }
 
 /// 构造函数
@@ -51,7 +52,7 @@ impl SymbolNode {
             width: 0.0,
             max_font_size: 0.0,
             classes: vec![],
-            style: CssStyle::default(),
+            style: StyleStorage::default(),
         };
 
         // Mark text from non-Latin scripts with specific classes so that we
@@ -76,7 +77,11 @@ impl SymbolNode {
     ///Returns true if subsequent symbolNodes have the same classes, skew, maxFont,
     ///and styles.
     pub fn can_combine(prev: &SymbolNode, next: &SymbolNode) -> bool {
-        if prev.classes.join(" ") != next.classes.join(" ")
+        let same_classes = prev.classes == next.classes || (
+            prev.classes.iter().chain(&next.classes).any(|class| class.is_empty() || class.contains(' '))
+                && prev.classes.join(" ") == next.classes.join(" ")
+        );
+        if !same_classes
             || prev.skew != next.skew
             || prev.max_font_size != next.max_font_size
         {
@@ -149,46 +154,41 @@ impl VirtualNode for SymbolNode {
     ///Creates markup for a symbol node.
      */
     fn to_markup(&self) -> String {
-        // TODO(alpert): More duplication than I'd like from
-        // span.prototype.toMarkup and symbolNode.prototype.toNode...
-        let mut markup = String::with_capacity(self.text.len() + 64);
-        markup.push_str("<span");
+        let mut output = String::with_capacity(self.text.len() + 64);
+        self.write_markup(&mut output);
+        output
+    }
 
-        if self.classes.len() > 0 {
+    fn write_markup(&self, mut markup: &mut String) {
+        let has_style = self.italic > 0.0 || !self.style.is_empty();
+        if self.classes.is_empty() && !has_style {
+            escape_to(markup, &self.text);
+            return;
+        }
+        markup.push_str("<span");
+        if !self.classes.is_empty() {
             markup.push_str(" class=\"");
             let mut first = true;
-            for class_name in self.classes.iter().filter(|c| !c.is_empty()) {
-                if !first {
-                    markup.push(' ');
-                }
-                escape_to(&mut markup, class_name);
+            for class in self.classes.iter().filter(|class| !class.is_empty()) {
+                if !first { markup.push(' '); }
+                escape_to(&mut markup, class);
                 first = false;
             }
-            markup.push_str("\"");
+            markup.push('"');
         }
-
-        let mut styles = String::new();
-
-        if self.italic > 0.0 {
-            let _ = write!(&mut styles, "margin-right:{}em;", self.italic);
-        }
-
-        styles.push_str(&self.style.to_css_str());
-        if !styles.is_empty() {
+        if has_style {
             markup.push_str(" style=\"");
-            escape_to(&mut markup, &styles);
-            markup.push_str("\"");
+            if self.italic > 0.0 {
+                markup.push_str("margin-right:");
+                let mut number = ryu::Buffer::new();
+                markup.push_str(number.format(self.italic));
+                markup.push_str("em;");
+            }
+            self.style.write_css_escaped(&mut markup);
+            markup.push('"');
         }
-        let needs_span = !self.classes.is_empty() || !styles.is_empty();
-        return if needs_span {
-            markup.push_str(">");
-            escape_to(&mut markup, &self.text);
-            markup.push_str("</span>");
-            markup.to_string()
-        } else {
-            let mut res = String::with_capacity(self.text.len());
-            escape_to(&mut res, &self.text);
-            res
-        };
+        markup.push('>');
+        escape_to(&mut markup, &self.text);
+        markup.push_str("</span>");
     }
 }

@@ -5,13 +5,13 @@ macro_rules! this_init_node {
         $this.height = 0.0;
         $this.depth = 0.0;
         $this.max_font_size = 0.0;
-        $this.style = $style;
+        $this.style = $style.into();
         if let Some(opt) = $options {
             if opt.get_style().isTight() {
                 $this.classes.push("mtight".to_string());
             }
             let c = opt.get_color();
-            $this.style.color = c;
+            if c.is_some() || $this.style.color().is_some() { *$this.style.color_mut() = c; }
         }
     };
 }
@@ -43,9 +43,9 @@ macro_rules! this_to_node {
 }
 pub(crate) use this_to_node;
 
-macro_rules! this_to_markup {
-    ($this:expr, $tag_name:literal) => {{
-        let mut markup = String::new();
+macro_rules! this_write_markup {
+    ($this:expr, $tag_name:literal, $output:expr) => {{
+        let mut markup = $output;
         markup.push('<');
         markup.push_str($tag_name);
         // Add the class
@@ -63,11 +63,9 @@ macro_rules! this_to_markup {
             markup.push('"');
         }
 
-        let styles = $this.style.to_css_str();
-
-        if !styles.is_empty() {
+        if !$this.style.is_empty() {
             markup.push_str(" style=\"");
-            escape_to(&mut markup, &styles);
+            $this.style.write_css_escaped(&mut markup);
             markup.push('"');
         }
 
@@ -84,15 +82,23 @@ macro_rules! this_to_markup {
 
         // Add the markup of the children, also as markup
         for child in $this.children.iter() {
-            markup.push_str(&child.to_markup());
+            child.write_markup(&mut markup);
         }
 
         markup.push_str("</");
         markup.push_str($tag_name);
         markup.push('>');
 
-        markup
     }};
 }
 
+pub(crate) use this_write_markup;
+
+macro_rules! this_to_markup {
+    ($this:expr, $tag_name:literal) => {{
+        let mut output = String::new();
+        $this.write_markup(&mut output);
+        output
+    }};
+}
 pub(crate) use this_to_markup;

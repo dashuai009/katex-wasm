@@ -1,137 +1,101 @@
-<div align="center">
+# katex-wasm
 
-  <h1><code>katex-wasm</code></h1>
+A Rust / WebAssembly port of KaTeX, with a browser comparison of **our katex-wasm**, **KaTeX.js 0.16.29**, and **[katex-rs 0.3.0](https://github.com/katex-rs/katex-rs)**. The third engine uses upstream HEAD verified on 2026-09-06, pinned to commit `f9d93892c39424ba24cef0be18105a1629b66357` for reproducibility. It is unrelated to this project's similarly named CLI.
 
-  <strong>A Rust version of Katex using wasm. <a href="https://github.com/rustwasm/wasm-pack">wasm-pack</a>.</strong>
+The demo keeps the original plain white, side-by-side formula layout with a three-engine scatter chart at the top. Both previews and automatic browser measurements read all formulas directly from `demo/public/formulas.txt`; edit this file to change the demo. GitHub Pages builds the same interface automatically.
 
-</div>
+## Build and run
 
-## About
+Requires Rust stable with `wasm32-unknown-unknown`, Node.js 24, npm, and wasm-pack 0.15.0.
 
-katex-wasm
-
-## 🚴 develop
-
-### 🛠️ Build with `wasm-pack build`
-
-```
-wasm-pack build
-```
-
-Use the custom Cargo profile defined in `Cargo.toml` (`[profile.profiling]`):
-
-```bash
-wasm-pack build --profile profiling
-```
-
-Note: `wasm-pack build --profiling` is wasm-pack's built-in profiling mode and does not select your custom `[profile.profiling]`.
-
-### 🔬 Test in Headless Browsers with `wasm-pack test`
-
-```
-wasm-pack test --headless --firefox
-```
-
-## 🔋 demo
-
-```
-wasm-pack build
+```sh
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack --version 0.15.0 --locked
+node scripts/build-wasm.mjs
+node scripts/build-katex-rs.mjs
 cd demo
-npm install
-npm start
+npm ci
+npm run serve
 ```
 
-## CLI
+After changing Rust, run `npm run build` from `demo` to rebuild release WASM and the static page. `npm run build:site` only rebuilds the JavaScript/static bundle using the existing `pkg`. Development serving also uses production JavaScript; benchmark only the built `dist` output.
 
-`katex-rs-cli` now uses `clap` for argument parsing, so it has standard `--help` and `--version` output.
+## Browser performance workflow
 
-```bash
-# Show help
+```sh
+cd demo
+npx playwright install chromium
+npm run test:correctness
+npm run build:site
+npm run perf:playwright
+```
+
+Defaults: **all physical lines** of `demo/public/formulas.txt`, **2 full warmup passes**, **6 measured passes**, HTML output, no CPU throttling, fresh headless Chromium. Each renderer uses `renderToString` with identical options. Engine order rotates between passes. Warmup never removes measured formulas; no rendered-formula cache is used.
+
+To refresh katex-rs to the current upstream HEAD, run `npm run update:katex-rs` from `demo`, then rebuild the page and establish a new baseline. The source commit, version and dependency lock are tracked in `third-party/`. Ordinary builds use that recorded revision.
+
+Results are written to `demo/perf-results/formulas-1-<line-count>-optN.json`, automatically continuing the largest existing `optN`. Existing files cannot be overwritten. Use the last completed iteration as the next baseline:
+
+```sh
+npm run perf:playwright -- --baseline perf-results/formulas-1-212-opt0.json
+npm run perf:playwright -- --require-faster
+```
+
+The primary metric is median total time for **all inputs**, including error output and thrown exceptions. Correctness means **our behavior matches KaTeX.js**, not that either renderer supports every formula. Matching error HTML is a match; matching exceptions are a match after normalizing the KaTeX/ParseError prefix, while different exception types/messages or return-vs-throw behavior are mismatches. HTML comparison retains DOM/text/attribute semantics and the existing `0.001em` tolerance. katex-rs remains an independent comparator and does not determine which inputs are timed.
+
+JSON includes behavior matches and mismatch evidence, all timed indices and rounds, per-formula timing, exception diagnostics and build/environment/input fingerprints. A normal benchmark fails its verification gate when ours differs from JS. `--require-faster` additionally requires an unprofiled release build to beat JS; matching JS errors never fail that gate.
+
+Schema **3** records all-input attempt timings and behavior parity. It cannot be compared directly with the old schema-2 successful-subset results. The current benchmark measures HTML generation only; DOM insertion and layout are not timed. Other timing modes are rejected.
+
+See [demo/README.md](demo/README.md) for profiling and exact options. Historical im2latex measurements use a different input set and must not be compared with the current demo. Performance evidence and optimization notes are in [docs/performance.md](docs/performance.md).
+
+## Correctness and JS reference
+
+Before changing Rust rendering logic, inspect its counterpart in `KaTeX/src`. Hydrate this reference when needed with `git submodule update --init --recursive`. Runtime comparison uses the pinned npm KaTeX package, so it needs no local KaTeX distribution build.
+
+The build script records source and WASM fingerprints in `pkg/build-info.json`. Correctness and bundling reject stale or externally replaced artifacts. Use `node scripts/build-wasm.mjs --profiling` only for diagnostic profiles, then rebuild release before timing.
+
+Every Rust optimization must first pass a random contiguous 50-formula sample from the first 1000 lines:
+
+```sh
+cd demo
+npm run test:correctness
+# Reproduce a recorded sample:
+DIFF_START=100 npm run test:correctness
+```
+
+The harness compares HTML with its existing numeric tolerance after canonicalizing HTML attributes and independent CSS declarations. Duplicate/overlapping declarations retain their order. It is a bounded rendering check, not proof of complete KaTeX compatibility. For an explicit range:
+
+```sh
+node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/im2latex_formulas.lst 1 1000 --log-level summary
+```
+
+It also supports YAML mappings with string or `tex` values. YAML options are not imported.
+
+## APIs and CLI
+
+- `render(expression, base_node, options)` renders to a browser DOM node.
+- JavaScript `renderToString(expression, settings)` returns markup.
+- Rust `render_to_string(expression, settings)` returns markup natively.
+
+```sh
 cargo run --bin katex-rs-cli -- --help
-
-# Render every formula in a file
-cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt
-
-# Render a specific inclusive line range
-cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5
-
-# Only print the final summary
 cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --summary-only
-
-# Disable multi-threaded rendering
-cargo run --bin katex-rs-cli -- tests/fixtures/formulas.txt 1 5 --multi-threaded false
 ```
 
-Arguments:
+The local CLI belongs to **this project**. It is unrelated to the third-party katex-rs package in the demo.
 
-- `formulas.txt`: input file containing one LaTeX formula per line
-- `start_line`: optional 1-based inclusive start line, defaults to `1`
-- `end_line`: optional 1-based inclusive end line, defaults to the last line in the file
-- `--summary-only`: optional flag that suppresses per-formula output and only prints the final summary
-- `--multi-threaded <BOOL>`: optional boolean switch for parallel rendering, defaults to `true`
+## GitHub Pages
 
-Coverage testing for the CLI is documented in [docs/katex-rs-cli-coverage.md](/home/dashuai/katex-wasm/docs/katex-rs-cli-coverage.md).
+[The workflow](.github/workflows/deploy-demo.yml) runs on pushes to `main`, pull requests, and manual dispatch. It builds release WASM, installs locked npm dependencies, runs the correctness sample and three-engine browser benchmark, embeds the measured JSON in the static site, and deploys Pages on main/manual runs. CI reports use the workflow run number in their `ci-optN.json` filename. Pull requests validate without deploying. Set the repository's Pages source to **GitHub Actions**.
 
-Quick coverage run with a `.txt` formula file:
+The final build uses `PUBLIC_PATH=/<repository>/`; all WASM, CSS, fonts and formula data are bundled locally. No CDN or application server is required. To build the same subpath locally:
 
-```bash
-scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas.txt
+```sh
+cd demo
+PUBLIC_PATH=/katex-wasm/ npm run build:site
 ```
 
-The coverage script uses `katex-rs-cli --summary-only` to print only the final summary.
+## Source layout
 
-Merge coverage from two formula files:
-
-```bash
-scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part1.txt --profraw-dir coverage/profraw/part1
-scripts/katex-rs-cli-coverage.sh tests/fixtures/formulas_part2.txt --profraw-dir coverage/profraw/part2 --merge-profraw coverage/profraw/part1
-```
-
-## Diff Harness
-
-Use `tests/diff_harness.mjs` to compare JS KaTeX and Rust WASM output on the same formulas.
-
-```bash
-wasm-pack build
-node --experimental-wasm-modules tests/diff_harness.mjs tests/fixtures/formulas.txt 1 5 --log-level error
-```
-
-The harness now accepts either:
-
-- text input with one formula per line
-- YAML input such as `KaTeX/test/screenshotter/ss_data.yaml`; it extracts formulas from string values or object `tex` fields
-
-For YAML input, `start_line` and `end_line` apply to the extracted formula order, not physical file lines.
-
-```bash
-wasm-pack build
-node --experimental-wasm-modules tests/diff_harness.mjs KaTeX/test/screenshotter/ss_data.yaml 1 20 --log-level summary
-```
-
-Log levels:
-
-- `summary`: only the final summary
-- `error`: only render errors or mismatches
-- `normal`: per-formula render results and match status
-- `debug`: `normal` plus processed JS/Rust settings
-
-YAML parsing in the harness uses `demo`'s `js-yaml` dependency, so make sure `cd demo && npm install` has been run at least once before using YAML input.
-
-## 🚀 Deploy demo to GitHub Pages
-
-已经提供自动化工作流：`.github/workflows/deploy-demo.yml`。
-
-### 触发方式
-
-- 推送到 `main` 分支自动部署
-- 或在 GitHub Actions 页面手动触发 `workflow_dispatch`
-
-### 流程说明
-
-1. `wasm-pack build` 在仓库根目录构建 wasm，产物默认输出到 `pkg/`
-2. `demo/package.json` 使用 `"katex-wasm": "file:../pkg"`，直接消费该产物
-3. 构建 demo 时通过 `PUBLIC_PATH=/${{ github.event.repository.name }}/` 注入 webpack `output.publicPath`
-4. 将 `demo/dist` 上传到 GitHub Pages 并发布
-
-> 注意：GitHub Pages 项目页不是根路径（`/`），如果不设置 `publicPath`，`index.js` 和 wasm 文件会按根路径请求，导致 404。
-
+`src/parse`, `src/Parser.rs`, `src/Lexer.rs` parse LaTeX; `src/build` builds HTML/MathML; `src/dom_tree` serializes DOM nodes; `src/metrics` supplies font metrics. `src/katex.rs` provides the public rendering entry points. See [AGENTS.md](AGENTS.md) for maintenance rules.

@@ -68,7 +68,7 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
     if group.newLine {
         span.get_mut_classes().push("newline".to_string());
         if let Some(s) = &group.size {
-            span.get_mut_style().margin_top =
+            *span.get_mut_style().margin_top_mut() =
                 Some(make_em( calculate_size(s, &options)));
         }
     }

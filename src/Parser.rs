@@ -118,6 +118,10 @@ impl Parser<'_> {
      * fetch the next token as the new lookahead token and return it.
      */
     pub fn fetch(&mut self) -> Token {
+        self.fetch_ref().clone()
+    }
+
+    fn fetch_ref(&mut self) -> &Token {
         if self.next_token.is_none() {
             let token = self.gullet.expand_next_token();
             if self.error.is_none() {
@@ -127,7 +131,7 @@ impl Parser<'_> {
             }
             self.next_token = Some(token);
         }
-        return self.next_token.clone().unwrap();
+        return self.next_token.as_ref().unwrap();
     }
 
     /**
@@ -236,7 +240,7 @@ impl Parser<'_> {
             if self.mode == Mode::math {
                 self.consume_spaces();
             }
-            let lex = self.fetch();
+            let lex = self.fetch_ref();
             if END_OF_EXPRESSION.contains(&lex.text.as_str()) {
                 break;
             }
@@ -324,17 +328,17 @@ impl Parser<'_> {
             None => return body, // no infix node found
         };
 
-        let infix_node = &body[infix_idx];
-        let numer_body = &body[0..infix_idx];
-        let denom_body = &body[(infix_idx + 1)..];
+        let mut numer_body = body;
+        let mut denom_body = numer_body.split_off(infix_idx + 1);
+        let infix_node = numer_body.pop().unwrap();
 
         let numerNode: Box<dyn AnyParseNode> =
             if numer_body.len() == 1 && numer_body[0].get_type() == "ordgroup" {
-                numer_body[0].clone()
+                numer_body.pop().unwrap()
             } else {
                 Box::new(parse_node::types::ordgroup {
                     mode: self.mode,
-                    body: numer_body.to_vec(),
+                    body: numer_body,
                     loc: None,
                     semisimple: false,
                 })
@@ -342,11 +346,11 @@ impl Parser<'_> {
 
         let denomNode: Box<dyn AnyParseNode> =
             if denom_body.len() == 1 && denom_body[0].get_type() == "ordgroup" {
-                denom_body[0].clone()
+                denom_body.pop().unwrap()
             } else {
                 Box::new(parse_node::types::ordgroup {
                     mode: self.mode,
-                    body: denom_body.to_vec(),
+                    body: denom_body,
                     loc: None,
                     semisimple: false,
                 })
@@ -361,7 +365,7 @@ impl Parser<'_> {
         let node = if func_name == "\\\\abovefrac" {
             self.call_function(
                 &func_name,
-                vec![numerNode, infix_node.clone(), denomNode],
+                vec![numerNode, infix_node, denomNode],
                 vec![],
                 None,
                 None,
@@ -462,7 +466,7 @@ impl Parser<'_> {
 
         // In text mode, we don't have superscripts or subscripts
         if self.mode == Mode::text {
-            return _base.clone();
+            return _base;
         }
 
         // Note that base may be empty (i.e. null) at this point.
@@ -473,7 +477,11 @@ impl Parser<'_> {
             // Guaranteed in math mode, so eat any spaces first.
             self.consume_spaces();
 
-            // Lex the first token
+            // ASCII tokens other than script/limit controls end this atom.
+            let lookahead = &self.fetch_ref().text;
+            if lookahead.is_ascii() && !matches!(lookahead.as_str(), "^" | "_" | "'" | "\\limits" | "\\nolimits") {
+                break;
+            }
             let lex = self.fetch();
 
             if (lex.text == "\\limits" || lex.text == "\\nolimits") {
@@ -565,14 +573,14 @@ impl Parser<'_> {
                 let mut primes: Vec<Box<dyn AnyParseNode>> = vec![Box::new(prime.clone())];
                 self.consume();
                 // Keep lexing tokens until we get something that's not a prime
-                while (self.fetch().text == "'") {
+                while (self.fetch_ref().text == "'") {
                     // For each one, add another prime to the list
                     primes.push(Box::new(prime.clone()));
                     self.consume();
                 }
                 // If there's a superscript following the primes, combine that
                 // superscript in with the primes.
-                if (self.fetch().text == "^") {
+                if (self.fetch_ref().text == "^") {
                     if let Some(prime_sup) = self.handle_sup_sub_script("superscript".to_string()) {
                         primes.push(prime_sup);
                     } else {
@@ -662,6 +670,9 @@ impl Parser<'_> {
         break_on_token_text: Option<BreakToken>,
         name: String, // For determining its context
     ) -> Option<Box<dyn AnyParseNode>> {
+        if !_functions.read().unwrap().contains_key(&self.fetch_ref().text) {
+            return None;
+        }
         let token = self.fetch();
         let func = &token.text.clone();
         let functions = _functions.read().unwrap();
@@ -861,7 +872,7 @@ impl Parser<'_> {
      * Discard any space tokens, fetching the next non-space token.
      */
     pub fn consume_spaces(&mut self) {
-        while (self.fetch().text == " ") {
+        while (self.fetch_ref().text == " ") {
             self.consume();
         }
     }
@@ -1129,6 +1140,10 @@ impl Parser<'_> {
         name: String, // For error reporting.
         breakOnTokenText: Option<BreakToken>,
     ) -> Option<Box<dyn AnyParseNode>> {
+        let lookahead = &self.fetch_ref().text;
+        if !lookahead.starts_with('\\') && lookahead != "{" && !_functions.read().unwrap().contains_key(lookahead) {
+            return self.parse_symbol();
+        }
         let first_token = self.fetch();
         let text = first_token.text;
 
@@ -1260,6 +1275,27 @@ impl Parser<'_> {
      * symbols and special functions like \verb.
      */
     pub fn parse_symbol(&mut self) -> Option<Box<dyn AnyParseNode>> {
+        let mode = self.mode;
+        let nucleus = self.fetch_ref();
+        // ASCII symbols cannot contain precomposed or combining Unicode accents.
+        // Keep the same symbol table and node types, without allocating temporary
+        // strings or running the Unicode normalization machinery for this path.
+        if nucleus.text.is_ascii() {
+            if let Some(sym) = crate::symbols::get_symbol(mode, &nucleus.text) {
+                if !matches!(sym.group, Group::accent | Group::op) {
+                    let nucleus = self.next_token.take().unwrap();
+                    let loc = nucleus.loc;
+                    let text = nucleus.text;
+                    let node: Box<dyn AnyParseNode> = match sym.group {
+                        Group::mathord => Box::new(parse_node::types::mathord { mode: self.mode, loc, text }),
+                        Group::textord => Box::new(parse_node::types::textord { mode: self.mode, loc, text }),
+                        Group::spacing => Box::new(parse_node::types::spacing { mode: self.mode, loc, text }),
+                        group => Box::new(parse_node::types::atom { mode: self.mode, family: Atom::from_group(group), loc, text }),
+                    };
+                    return Some(node);
+                }
+            }
+        }
         let nucleus = self.fetch();
         let mut text = nucleus.text.clone();
 

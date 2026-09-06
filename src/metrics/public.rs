@@ -189,12 +189,27 @@ pub struct CharacterMetrics {
     pub width: f64,
 }
 
+/// ASCII glyphs are the common path; other codepoints retain sparse storage.
+pub struct MetricMap {
+    ascii: [Option<CharacterMetrics>; 128],
+    other: HashMap<u32, CharacterMetrics>,
+}
+impl MetricMap {
+    pub fn new() -> Self { Self { ascii: [None; 128], other: HashMap::new() } }
+    pub fn get(&self, code: &u32) -> Option<&CharacterMetrics> {
+        if *code < 128 { self.ascii[*code as usize].as_ref() } else { self.other.get(code) }
+    }
+    pub fn insert(&mut self, code: u32, value: CharacterMetrics) -> Option<CharacterMetrics> {
+        if code < 128 { self.ascii[code as usize].replace(value) } else { self.other.insert(code, value) }
+    }
+}
+
 macro_rules! make_metric_map{
     {$( $key:literal :[$depth :expr, $height:expr, $italic:expr, $skew:expr, $width:expr] ),*}=>{
         {
-            let mut temp_map = HashMap::new();
+            let mut temp_map = crate::metrics::public::MetricMap::new();
             $(
-                temp_map.insert($key.to_string(),CharacterMetrics{
+                temp_map.insert($key.parse::<u32>().unwrap(),CharacterMetrics{
                     depth:$depth as f64,
                     height:$height as f64,
                     italic:$italic as f64,

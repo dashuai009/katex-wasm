@@ -329,7 +329,7 @@ fn build_svg_span(group: Box<dyn AnyParseNode>, options: Options) -> (Span, f64,
             if numSvgChildren == 1 {
                 return (span, *minWidth, height as f64);
             } else {
-                span.get_mut_style().height = Some(make_em(height as f64));
+                *span.get_mut_style().height_mut() = Some(make_em(height as f64));
                 spans.push(Box::new(span) as Box<dyn HtmlDomNode>);
             }
         }
@@ -355,9 +355,9 @@ pub fn svg_span(group: Box<dyn AnyParseNode>, options: Options) -> Span {
     // Note that we are returning span.depth = 0.
     // Any adjustments relative to the baseline must be done in buildHTML.
     span.set_height(height);
-    span.get_mut_style().height = Some(make_em(height));
+    *span.get_mut_style().height_mut() = Some(make_em(height));
     if min_width > 0.0 {
-        span.get_mut_style().min_width = Some(make_em(min_width));
+        *span.get_mut_style().min_width_mut() = Some(make_em(min_width));
     }
 
     return span;
@@ -384,7 +384,7 @@ pub fn enclose_span(
 
         if (label == "fbox") {
             if let Some(c) = options.get_color() {
-                img.get_mut_style().border_color = Some(c);
+                *img.get_mut_style().border_color_mut() = Some(c);
             }
         }
     } else {
@@ -438,7 +438,7 @@ pub fn enclose_span(
     }
 
     img.set_height(totalHeight);
-    img.get_mut_style().height = Some(make_em(totalHeight));
+    *img.get_mut_style().height_mut() = Some(make_em(totalHeight));
 
     return img;
 }

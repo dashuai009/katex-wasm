@@ -38,6 +38,10 @@ pub fn href_handler_fn(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let context = ctx.borrow();
+    if !context.parser.settings.get_trust() {
+        return Box::new(context.parser.format_unsupported_cmd(&context.func_name));
+    }
+
     let body = &args[1];
     let href = args[0].as_any().downcast_ref::<parse_node::types::url>().unwrap();
     //TODO
@@ -84,6 +88,10 @@ pub fn url_handler_fn(
     opt_args: Vec<Option<Box<dyn AnyParseNode>>>,
 ) -> Box<dyn AnyParseNode> {
     let context = ctx.borrow();
+    if !context.parser.settings.get_trust() {
+        return Box::new(context.parser.format_unsupported_cmd(&context.func_name));
+    }
+
     let href = args[0].as_any().downcast_ref::<parse_node::types::url>().unwrap();
 
     //TODO

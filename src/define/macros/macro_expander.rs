@@ -32,8 +32,43 @@ pub struct MacroExpander<'a> {
 }
 
 pub enum ExpandOneRes {
-    token(Token),
-    tokens(Vec<Token>),
+    Complete,
+    Expanded,
+}
+
+fn prepare_builtins() -> crate::Namespace::Builtins<MacroDefinition> {
+    let settings = Settings::new();
+    let mut builtins: rustc_hash::FxHashMap<_, _> = crate::define::macros::macro_map::create_macro_map().into_iter().collect();
+    for definition in builtins.values_mut() {
+        if let MacroDefinition::Str(body) = definition {
+            // Comment diagnostics depend on settings; preserve their runtime path.
+            if body.contains('%') { continue; }
+            let mut num_args = 0;
+            if body.contains('#') {
+                let stripped = body.replace("##", "");
+                while stripped.contains(&format!("#{}", num_args + 1)) { num_args += 1; }
+            }
+            let mut lexer = Lexer::new(body.clone(), &settings);
+            let mut tokens = Vec::new();
+            loop {
+                let token = lexer.lex();
+                if token.text == "EOF" { break; }
+                tokens.push(token);
+            }
+            if lexer.take_error().is_none() {
+                tokens.reverse();
+                *definition = MacroDefinition::MacroExpansion(MacroExpansion { tokens, num_args, delimiters: None, unexpandable: false });
+            }
+        }
+    }
+    std::sync::Arc::new(builtins)
+}
+
+// KaTeX's MacroExpander reuses the module-level builtins. Only the per-render
+// current namespace is mutable. Thread-local storage also supports the native CLI.
+thread_local! {
+    static BUILTIN_MACROS: crate::Namespace::Builtins<MacroDefinition> =
+        prepare_builtins();
 }
 
 impl MacroExpander<'_> {
@@ -44,7 +79,7 @@ impl MacroExpander<'_> {
             lexer: Lexer::new(input, settings),
             // Make new global namespace
             macros: Namespace::<MacroDefinition>::new(
-                std::sync::Arc::new(crate::define::macros::macro_map::create_macro_map().into()),
+                BUILTIN_MACROS.with(std::sync::Arc::clone),
                 settings.get_ref_macros(),
             ),
             mode,
@@ -121,7 +156,10 @@ impl MacroExpander<'_> {
      * Remove and return the next unexpanded token.
      */
     pub fn pop_token(&mut self) -> Token {
-        self.future(); // ensure non-empty stack
+        if self.stack.is_empty() {
+            let token = self.lexer.lex();
+            self.stack.push(token);
+        }
         return self.stack.pop().unwrap();
     }
 
@@ -356,14 +394,14 @@ impl MacroExpander<'_> {
                     loc: None,
                 });
             }
-            self.push_token(topToken.clone());
-            return Ok(ExpandOneRes::token(topToken));
+            self.push_token(topToken);
+            return Ok(ExpandOneRes::Complete);
         }
 
         let expansion = _expansion.unwrap();
         if expandableOnly && expansion.unexpandable {
-            self.push_token(topToken.clone());
-            return Ok(ExpandOneRes::token(topToken));
+            self.push_token(topToken);
+            return Ok(ExpandOneRes::Complete);
         }
         self.expansion_count += 1;
         if self.expansion_count > self.settings.get_max_expand().unwrap_or(0) {
@@ -417,8 +455,8 @@ impl MacroExpander<'_> {
             }
         }
         // Concatenate expansion onto top of stack.
-        self.push_tokens(tokens.clone());
-        return Ok(ExpandOneRes::tokens(tokens));
+        self.push_tokens(tokens);
+        return Ok(ExpandOneRes::Expanded);
     }
 
     /**
@@ -439,13 +477,14 @@ impl MacroExpander<'_> {
         loop {
             let mut _expanded = self.expand_once(false).expect("");
             // expandOnce returns Token if and only if it's fully expanded.
-            if let ExpandOneRes::token(mut expanded) = _expanded {
+            if let ExpandOneRes::Complete = _expanded {
+                let mut expanded = self.stack.pop().unwrap();
                 // the token after \noexpand is interpreted as if its meaning
                 // were ‘\relax’
                 if expanded.treatAsRelax {
                     expanded.text = "\\relax".to_string();
                 }
-                return self.stack.pop().unwrap(); // == expanded
+                return expanded;
             }
         }
 
@@ -478,13 +517,14 @@ impl MacroExpander<'_> {
         while (self.stack.len() > oldStackLength) {
             let _expanded = self.expand_once(true).unwrap(); // expand only expandable tokens
             // expandOnce returns Token if and only if it's fully expanded.
-            if let ExpandOneRes::token(mut expanded) = _expanded {
+            if let ExpandOneRes::Complete = _expanded {
+                let mut expanded = self.stack.pop().unwrap();
                 if expanded.treatAsRelax {
                     // the expansion of \noexpand is the token itself
                     expanded.noexpand = false;
                     expanded.treatAsRelax = false;
                 }
-                output.push(self.stack.pop().unwrap());
+                output.push(expanded);
             }
         }
         return output;
@@ -530,8 +570,8 @@ impl MacroExpander<'_> {
         let d = match definition {
             MacroDefinition::MacroContext(ref f) => f(self),
 
-            MacroDefinition::Str(s) => MacroDefinition::Str(s.clone()),
-            MacroDefinition::MacroExpansion(m) => MacroDefinition::MacroExpansion(m.clone()),
+            MacroDefinition::Str(s) => MacroDefinition::Str(s),
+            MacroDefinition::MacroExpansion(m) => MacroDefinition::MacroExpansion(m),
         };
 
         match d {
@@ -548,7 +588,7 @@ impl MacroExpander<'_> {
                 let mut tok = bodyLexer.lex();
                 // println!("tok = {}",tok);
                 while (tok.text != "EOF") {
-                    tokens.push(tok.clone());
+                    tokens.push(tok);
                     tok = bodyLexer.lex();
                     // println!("tok = {}",tok);
                 }

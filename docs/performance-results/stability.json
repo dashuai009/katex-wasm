@@ -1,0 +1,109 @@
+{
+  "memory": [
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408,
+    3473408
+  ],
+  "allInputAttempts": {
+    "description": "All 1000 raw inputs, including unsupported/error markup. Not a success-only comparison; no per-call timer.",
+    "warmup": 2,
+    "repeat": 6,
+    "rounds": [
+      {
+        "katexRs": {
+          "ms": 97.40000009536743,
+          "throws": 0
+        },
+        "wasm": {
+          "ms": 54,
+          "throws": 0
+        },
+        "katex": {
+          "ms": 63.09999990463257,
+          "throws": 0
+        }
+      },
+      {
+        "wasm": {
+          "ms": 53.90000009536743,
+          "throws": 0
+        },
+        "katex": {
+          "ms": 58.299999713897705,
+          "throws": 0
+        },
+        "katexRs": {
+          "ms": 97.30000019073486,
+          "throws": 0
+        }
+      },
+      {
+        "katex": {
+          "ms": 59.59999990463257,
+          "throws": 0
+        },
+        "katexRs": {
+          "ms": 95.59999990463257,
+          "throws": 0
+        },
+        "wasm": {
+          "ms": 55.10000038146973,
+          "throws": 0
+        }
+      },
+      {
+        "katexRs": {
+          "ms": 97.09999990463257,
+          "throws": 0
+        },
+        "wasm": {
+          "ms": 53.40000009536743,
+          "throws": 0
+        },
+        "katex": {
+          "ms": 59.799999713897705,
+          "throws": 0
+        }
+      },
+      {
+        "wasm": {
+          "ms": 52.700000286102295,
+          "throws": 0
+        },
+        "katex": {
+          "ms": 57.799999713897705,
+          "throws": 0
+        },
+        "katexRs": {
+          "ms": 95.90000009536743,
+          "throws": 0
+        }
+      },
+      {
+        "katex": {
+          "ms": 58.69999980926514,
+          "throws": 0
+        },
+        "katexRs": {
+          "ms": 94.40000009536743,
+          "throws": 0
+        },
+        "wasm": {
+          "ms": 54,
+          "throws": 0
+        }
+      }
+    ],
+    "checksum": 150866568
+  },
+  "environment": {
+    "wasmMemoryBytes": 3473408,
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36",
+    "hardwareConcurrency": 18
+  }
+}

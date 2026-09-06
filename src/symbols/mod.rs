@@ -20,10 +20,27 @@ static MATH_SYMBOLS: LazyLock<HashMap<String, Symbol>> =
 static TEXT_SYMBOLS: LazyLock<HashMap<String, Symbol>> =
     LazyLock::new(define_all_text_symbols);
 
-pub fn get_symbol(mode: Mode, name: &str) -> Option<Symbol> {
+static ASCII_MATH: LazyLock<[Option<&'static Symbol>; 128]> = LazyLock::new(|| {
+    std::array::from_fn(|code| {
+        let mut buffer = [0u8; 4];
+        MATH_SYMBOLS.get((code as u8 as char).encode_utf8(&mut buffer) as &str)
+    })
+});
+static ASCII_TEXT: LazyLock<[Option<&'static Symbol>; 128]> = LazyLock::new(|| {
+    std::array::from_fn(|code| {
+        let mut buffer = [0u8; 4];
+        TEXT_SYMBOLS.get((code as u8 as char).encode_utf8(&mut buffer) as &str)
+    })
+});
+
+pub fn get_symbol(mode: Mode, name: &str) -> Option<&'static Symbol> {
+    if name.len() == 1 && name.is_ascii() {
+        let code = name.as_bytes()[0] as usize;
+        return match mode { Mode::math => ASCII_MATH[code], Mode::text => ASCII_TEXT[code] };
+    }
     match mode {
-        Mode::math => MATH_SYMBOLS.get(name).cloned(),
-        Mode::text => TEXT_SYMBOLS.get(name).cloned(),
+        Mode::math => MATH_SYMBOLS.get(name),
+        Mode::text => TEXT_SYMBOLS.get(name),
     }
 }
 #[wasm_bindgen]

@@ -33,10 +33,10 @@ pub struct TmpSymbol {
 pub fn lookup_symbol(value: String, font_name: String, mode: Mode) -> TmpSymbol {
     // Replace the value with its replaced value from symbol.js
     // Must replace BEFORE looking up metrics (JS: symbols[mode][value].replace)
-    let mut replaced_value = value.clone();
-    if let Some(tmp) = get_symbol(mode, &value) {
-        if let Some(tmp_replace) = tmp.replace {
-            replaced_value = tmp_replace;
+    let mut replaced_value = value;
+    if let Some(tmp) = get_symbol(mode, &replaced_value) {
+        if let Some(tmp_replace) = &tmp.replace {
+            replaced_value = tmp_replace.clone();
         }
     }
 
@@ -68,7 +68,7 @@ pub fn make_symbol(
     let lookup = lookup_symbol(value, font_name, mode);
     let value = lookup.value;
 
-    let mut symbol_node = SymbolNode::new("init_node".to_string());
+    let mut symbol_node;
     if let Some(metrics) = lookup.metrics {
         let mut italic = metrics.italic;
         if let Some(opt) = options.clone() {
@@ -131,7 +131,7 @@ pub fn make_symbol(
         }
         let color = opt.get_color();
         // if (color) {
-        symbol_node.get_mut_style().color = color;
+        if color.is_some() { *symbol_node.get_mut_style().color_mut() = color; }
         // }
     }
 
@@ -402,7 +402,7 @@ pub fn make_line_span(
         thickness.unwrap_or(options.get_font_metrics().defaultRuleThickness),
         options.minRuleThickness,
     ));
-    line.get_mut_style().border_bottom_width = Some(make_em(line.get_height()));
+    *line.get_mut_style().border_bottom_width_mut() = Some(make_em(line.get_height()));
     line.set_max_font_size(1.0);
     return line;
 }
@@ -579,32 +579,30 @@ pub fn get_vlist_children_and_depth(params: VListParam) -> (Vec<VListChild>, f64
         PositionType::IndividualShift => {
             // Add in kerns to the list of params.children to get each element to be
             // shifted to the correct specified shift
-            let mut children_iter = params.children.iter();
-            let mut pre_child = children_iter.next().unwrap();
-            let mut children = vec![pre_child.clone()];
-            depth = match pre_child {
-                VListChild::Elem { elem, shift, .. } => -shift.unwrap() - elem.get_depth(),
-                VListChild::Kern { size } => unreachable!(),
-            } as f64;
+            let mut children_iter = params.children.into_iter();
+            let first = children_iter.next().unwrap();
+            let mut previous_size;
+            match &first {
+                VListChild::Elem { elem, shift, .. } => {
+                    depth = -shift.unwrap() - elem.get_depth();
+                    previous_size = elem.get_height() + elem.get_depth();
+                }
+                VListChild::Kern { .. } => unreachable!(),
+            }
+            let mut children = vec![first];
             let mut curr_pos = depth;
-            for cur_child in children_iter {
-                match cur_child {
+            for child in children_iter {
+                match &child {
                     VListChild::Elem { elem, shift, .. } => {
-                        let diff = -(shift.unwrap()) - curr_pos - elem.get_depth();
-                        let size = match pre_child {
-                            VListChild::Elem { elem, .. } => {
-                                diff - (elem.get_height() + elem.get_depth())
-                            }
-                            VListChild::Kern { size } => todo!(),
-                        };
-
-                        curr_pos = curr_pos + diff;
+                        let diff = -shift.unwrap() - curr_pos - elem.get_depth();
+                        let size = diff - previous_size;
+                        previous_size = elem.get_height() + elem.get_depth();
+                        curr_pos += diff;
                         children.push(VListChild::Kern { size });
-                        children.push(cur_child.clone());
-                        pre_child = cur_child;
+                        children.push(child);
                     }
-                    VListChild::Kern { size } => unreachable!(),
-                };
+                    VListChild::Kern { .. } => unreachable!(),
+                }
             }
             return (children, depth);
         }
@@ -671,7 +669,7 @@ pub fn make_vlist(params: VListParam) -> Span {
         None,
         CssStyle::default(),
     );
-    pstrut.get_mut_style().height = Some(make_em(pstrut_size));
+    *pstrut.get_mut_style().height_mut() = Some(make_em(pstrut_size));
     // Create a new list of actual children at the correct offsets
     let mut real_children = vec![];
     let mut min_pos: f64 = depth;
@@ -689,28 +687,30 @@ pub fn make_vlist(params: VListParam) -> Span {
                 shift,
                 ..
             } => {
+                let elem_depth = elem.get_depth();
+                let elem_size = elem.get_height() + elem_depth;
                 let mut child_wrap = make_span(
                     wrapper_classes.unwrap_or(vec![]),
                     vec![
                         Box::new(pstrut.clone()) as Box<dyn HtmlDomNode>,
-                        elem.clone(),
+                        elem,
                     ],
                     None,
                     wrapper_style.unwrap_or(CssStyle::default()),
                 );
-                child_wrap.get_mut_style().top =
-                    Some(make_em(-pstrut_size - curr_pos - elem.get_depth()));
+                *child_wrap.get_mut_style().top_mut() =
+                    Some(make_em(-pstrut_size - curr_pos - elem_depth));
 
                 if margin_left.is_some() {
-                    child_wrap.get_mut_style().margin_left = margin_left.clone();
+                    *child_wrap.get_mut_style().margin_left_mut() = margin_left.clone();
                 }
 
                 if margin_right.is_some() {
-                    child_wrap.get_mut_style().margin_right = margin_right.clone();
+                    *child_wrap.get_mut_style().margin_right_mut() = margin_right.clone();
                 }
 
                 real_children.push(Box::new(child_wrap) as Box<dyn HtmlDomNode>);
-                curr_pos += elem.get_height() + elem.get_depth();
+                curr_pos += elem_size;
             }
             VListChild::Kern { size } => {
                 curr_pos += size;
@@ -729,7 +729,7 @@ pub fn make_vlist(params: VListParam) -> Span {
         None,
         Default::default(),
     );
-    vlist.get_mut_style().height = Some(make_em(max_pos as f64));
+    *vlist.get_mut_style().height_mut() = Some(make_em(max_pos as f64));
     // A second row is used if necessary to represent the vlist's depth.
     let rows;
     if min_pos < 0.0 {
@@ -745,7 +745,7 @@ pub fn make_vlist(params: VListParam) -> Span {
             None,
             CssStyle::default(),
         );
-        depth_strut.get_mut_style().height = Some(make_em(-min_pos));
+        *depth_strut.get_mut_style().height_mut() = Some(make_em(-min_pos));
         // Safari wants the first row to have inline content; otherwise it
         // puts the bottom of the *second* row on the baseline.
         let top_strut = make_span(
@@ -806,7 +806,7 @@ pub fn make_glue(measurement: &crate::units::Measurement, options: &Options) -> 
         CssStyle::default(),
     );
     let size = crate::units::calculate_size(measurement, &options);
-    rule.get_mut_style().margin_right = Some(make_em(size));
+    *rule.get_mut_style().margin_right_mut() = Some(make_em(size));
     return rule;
 }
 
@@ -918,9 +918,9 @@ pub fn static_svg(value: String, options: Options) -> Span {
         CssStyle::new(),
     );
     span.set_height(*height);
-    span.get_mut_style().height = Some(make_em(*height));
+    *span.get_mut_style().height_mut() = Some(make_em(*height));
     if *width > 0.0 {
-        span.get_mut_style().width = Some(make_em(*width));
+        *span.get_mut_style().width_mut() = Some(make_em(*width));
     }
     return span;
 }

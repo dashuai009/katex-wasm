@@ -16,10 +16,12 @@ use crate::parse_node::types::vcenter;
 
 pub type Mapping<T> = std::collections::HashMap<String, T>;
 pub type MapRef<T> = Arc<RefCell<Mapping<T>>>;
+/// Immutable internal names use a fast hasher; user-defined macros keep RandomState.
+pub type Builtins<T> = Arc<rustc_hash::FxHashMap<String, T>>;
 #[derive(Debug)]
 pub struct Namespace<Value> {
     current: MapRef<Value>,
-    builtins: MapRef<Value>,
+    builtins: Builtins<Value>,
     undef_stack: Vec<MapRef<Option<Value>>>,
 }
 
@@ -31,7 +33,7 @@ impl<Value: Clone> Namespace<Value> {
      * according to any global/top-level `set`s done.
      */
     pub fn new<'a>(
-        builtins: MapRef<Value>,
+        builtins: Builtins<Value>,
         global_macros: MapRef<Value>,
     ) -> Namespace<Value> {
         Namespace {
@@ -89,7 +91,7 @@ impl<Value: Clone> Namespace<Value> {
         // let buil = self.builtins.lock().unwrap();
         // return cur.contains_key(name) ||
         //     buil.contains_key(name);
-        return self.current.borrow().contains_key(name) || self.builtins.borrow().contains_key(name);
+        return self.current.borrow().contains_key(name) || self.builtins.contains_key(name);
     }
 
     /**
@@ -104,7 +106,7 @@ impl<Value: Clone> Namespace<Value> {
         let cur = self.current.borrow();
         match cur.get(name) {
             None => {
-                match self.builtins.borrow().get(name) {
+                match self.builtins.get(name) {
                     Some(vv)=>{
                         Some(vv.clone())
                     },

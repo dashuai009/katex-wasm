@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use crate::{
     dom_tree::{css_style::CssStyle,  span::Span},
     parse_node,
@@ -22,6 +23,13 @@ use crate::define::functions::public::_HTML_GROUP_BUILDERS;
 use crate::dom_tree::anchor::Anchor;
 use crate::dom_tree::document_fragment::DocumentFragment;
 use crate::parse_node::types::ParseNodeToAny;
+
+fn saved_class(name: &str) -> Cow<'static, str> {
+    match DomType::from_str(name) {
+        Ok(kind) => Cow::Borrowed(kind.as_str()),
+        Err(_) => Cow::Owned(name.to_owned()),
+    }
+}
 
 // Binary atoms (first class `mbin`) change into ordinary atoms (`mord`)
 // depending on their surroundings. See TeXbook pg. 442-446, Rules 5 and 6,
@@ -48,7 +56,7 @@ pub enum DomType {
     minner,
 }
 impl DomType {
-    pub fn as_str(&self) -> &str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             DomType::mord => "mord",
             DomType::mop => "mop",
@@ -147,14 +155,14 @@ pub fn build_expression(
     // If `expression` has no atoms on the left or right, class "leftmost"
     // or "rightmost", respectively, is used to indicate it.
     let dummy_prev_type = if let Some(s) = surrounding.0 {
-        s.as_str().to_string()
+        Cow::Borrowed(s.as_str())
     } else {
-        "leftmost".to_string()
+        Cow::Borrowed("leftmost")
     };
     let dummy_next_type = if let Some(ref s) = surrounding.1 {
-        s.as_str().to_string()
+        Cow::Borrowed(s.as_str())
     } else {
-        "rightmost".to_string()
+        Cow::Borrowed("rightmost")
     };
 
     // TODO: These code assumes that a node's math class is the first element
@@ -257,7 +265,7 @@ struct PendingInsert {
 }
 
 struct TraversePrev {
-    node_type: String,
+    node_type: Cow<'static, str>,
     insert_after: Option<InsertAfterTarget>,
     pending: Vec<PendingInsert>,
 }
@@ -343,7 +351,7 @@ fn insert_missing_partial_group_spacing(
     is_root: bool,
 ) {
     let mut i = 0usize;
-    let mut prev_type = "leftmost".to_string();
+    let mut prev_type = Cow::Borrowed("leftmost");
     let mut space_after_prev = false;
     while i < nodes.len() {
         if check_partial_group(&nodes[i]) {
@@ -354,7 +362,7 @@ fn insert_missing_partial_group_spacing(
 
         if has_class(&*nodes[i], "mspace") {
             if is_root && has_class(&*nodes[i], "newline") {
-                prev_type = "leftmost".to_string();
+                prev_type = Cow::Borrowed("leftmost");
                 space_after_prev = false;
             } else {
                 space_after_prev = true;
@@ -384,7 +392,7 @@ fn insert_missing_partial_group_spacing(
         }
 
         if let Some(right_type) = get_type_of_dom_tree(&nodes[i], Some(Side::Right)) {
-            prev_type = right_type.as_str().to_string();
+            prev_type = Cow::Borrowed(right_type.as_str());
         }
         space_after_prev = has_boundary_space(&nodes[i], Side::Right, is_root);
         i += 1;
@@ -424,7 +432,7 @@ fn traverse_non_space_nodes(
         // spacing should go between atoms of different classes
         let nonspace = !has_class(&*nodes[i], "mspace");
         if nonspace {
-            if let Some(result) = callback(&mut nodes[i], prev.node_type.as_str()) {
+            if let Some(result) = callback(&mut nodes[i], prev.node_type.as_ref()) {
                 if let Some(target) = prev.insert_after.clone() {
                     if target.path.starts_with(current_path.as_slice()) {
                         if insert_after_target(nodes, &target, current_path.as_slice(), result) {
@@ -443,10 +451,10 @@ fn traverse_non_space_nodes(
                 }
             }
             if let Some(node_type) = first_class(&*nodes[i]) {
-                prev.node_type = node_type.to_string();
+                prev.node_type = saved_class(node_type);
             }
         } else if is_root && has_class(&*nodes[i], "newline") {
-            prev.node_type = "leftmost".to_string();
+            prev.node_type = Cow::Borrowed("leftmost");
             // treat like beginning of line
         }
         prev.insert_after = Some(InsertAfterTarget {
@@ -552,8 +560,8 @@ pub fn build_group(
 fn traverse_non_space_nodes_reverse(
     callback: &dyn Fn(&mut Box<dyn HtmlDomNode>, &str),
     nodes: &mut Vec<Box<dyn HtmlDomNode>>,
-    prev_type: &mut String,
-    line_reset_type: &str,
+    prev_type: &mut Cow<'static, str>,
+    line_reset_type: &'static str,
     is_root: bool,
 ) {
     let mut i = nodes.len();
@@ -574,12 +582,12 @@ fn traverse_non_space_nodes_reverse(
 
         let nonspace = !has_class(&*nodes[i], "mspace");
         if nonspace {
-            callback(&mut nodes[i], prev_type.as_str());
+            callback(&mut nodes[i], prev_type.as_ref());
             if let Some(node_type) = first_class(&*nodes[i]) {
-                *prev_type = node_type.to_string();
+                *prev_type = saved_class(node_type);
             }
         } else if is_root && has_class(&*nodes[i], "newline") {
-            *prev_type = line_reset_type.to_string();
+            *prev_type = Cow::Borrowed(line_reset_type);
         }
     }
 }
@@ -629,9 +637,9 @@ fn buildHTMLUnbreakable(children: Vec<Box<dyn HtmlDomNode>>, options: Option<&Op
     // the height of the expression, and the bottom of the HTML element
     // falls at the depth of the expression.
     let mut strut = make_span(vec!["strut".to_string()], vec![], None, CssStyle::new());
-    strut.get_mut_style().height = Some(make_em(body.get_height() + body.get_depth()));
+    *strut.get_mut_style().height_mut() = Some(make_em(body.get_height() + body.get_depth()));
     if body.get_depth() > 0.0 {
-        strut.get_mut_style().vertical_align = Some(make_em(-body.get_depth()));
+        *strut.get_mut_style().vertical_align_mut() = Some(make_em(-body.get_depth()));
     }
     body.get_mut_children().unwrap().insert(0, Box::new(strut) as Box<dyn HtmlDomNode>);
 
@@ -751,9 +759,9 @@ pub fn build_html(mut tree: Vec<Box<dyn AnyParseNode>>, options: Options) -> Spa
         if let Some(children) = html_node.get_mut_children() {
             if let Some(tag_child) = children.get_mut(index) {
                 let strut = &mut tag_child.get_mut_children().unwrap()[0];
-                strut.get_mut_style().height = Some(make_em(html_height + html_depth));
+                *strut.get_mut_style().height_mut() = Some(make_em(html_height + html_depth));
                 if html_depth > 0.0 {
-                    strut.get_mut_style().vertical_align = Some(make_em(-html_depth));
+                    *strut.get_mut_style().vertical_align_mut() = Some(make_em(-html_depth));
                 }
             }
         }

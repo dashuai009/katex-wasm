@@ -47,7 +47,7 @@ fn cd_label_html_builder(group: Box<dyn AnyParseNode>, options: Options) -> Box<
     label
         .get_mut_classes()
         .push(format!("cd-label-{}", group.side));
-    label.get_mut_style().bottom = Some(make_em(0.8 - label.get_depth()));
+    *label.get_mut_style().bottom_mut() = Some(make_em(0.8 - label.get_depth()));
     label.set_height(0.0);
     label.set_depth(0.0);
     label

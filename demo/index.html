@@ -1,17 +1,115 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-  <title>Hello wasm-pack!</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.2/dist/katex.css" integrity="sha384-IKOookmJ6jaAbJnGdgrLG5MDmzxJmjkIm6XCFqxnhzuMbfkEhGQalwVq2sYnGyZM" crossorigin="anonymous">
-
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KaTeX Rendering Performance Comparison</title>
+    <link rel="stylesheet" href="katex.min.css" />
+    <style>
+      body {
+        margin: 8px;
+        background: white;
+        color: black;
+      }
+      canvas {
+        max-width: 100%;
+      }
+      #chart-container {
+        width: 800px;
+        max-width: 100%;
+        height: 600px;
+      }
+      #summary {
+        border-collapse: collapse;
+        margin: 16px 0;
+      }
+      #summary th,
+      #summary td {
+        padding: 6px 12px;
+        border: 1px solid #ccc;
+        text-align: left;
+      }
+      #formulas {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .engine-heading {
+        font-weight: bold;
+        padding: 12px 8px;
+      }
+      .formula {
+        min-width: 0;
+        overflow: auto;
+        padding: 12px 8px;
+      }
+      .source {
+        display: block;
+        font: 12px monospace;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+      .error {
+        color: #b00001;
+        white-space: pre-wrap;
+      }
+      @media (max-width: 600px) {
+        #chart-container {
+          height: 360px;
+        }
+        #formulas {
+          grid-template-columns: 1fr;
+        }
+        .formula::before {
+          content: attr(data-engine);
+          display: block;
+          font-weight: bold;
+        }
+        .engine-heading {
+          display: none;
+        }
+        #summary {
+          font-size: 12px;
+        }
+        #summary th,
+        #summary td {
+          padding: 5px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <div style="display: flex">
-      <div id = "math-wasm" style="width: 45%">wasm</div>
-      <div id = "math-katex" style="width: 45%">katex</div>
+    <noscript
+      >Enable JavaScript to view formulas and performance comparisons.</noscript
+    >
+    <div id="chart-container">
+      <canvas
+        id="chart"
+        aria-label="Formula length and HTML generation time for three renderers"
+        role="img"
+      ></canvas>
     </div>
-
+    <table id="summary">
+      <thead>
+        <tr>
+          <th>Renderer</th>
+          <th>Median batch time</th>
+          <th>Mean per formula</th>
+          <th>P95</th>
+          <th>Behavior vs. katex.js</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p>
+      Formulas:
+      <a
+        href="https://github.com/dashuai009/katex-wasm/blob/main/demo/public/formulas.txt"
+        target="_blank"
+        rel="noopener noreferrer"
+        >formulas.txt on GitHub</a
+      >.
+    </p>
+    <div id="formulas"></div>
+    <p id="versions"></p>
   </body>
 </html>

@@ -43,9 +43,9 @@ use std::sync::RwLock;
  */
 fn get_metrics(symbol: &str, font: &str, mode: Mode) -> CharacterMetrics {
     let replace = if let Some(sym) = get_symbol(Mode::math, symbol) {
-        sym.replace.unwrap_or(symbol.to_string())
+        sym.replace.as_deref().unwrap_or(symbol)
     } else {
-        symbol.to_string()
+        symbol
     };
     if let Some(metrics) = get_character_metrics(&replace, font, mode) {
         return metrics;
@@ -87,7 +87,7 @@ fn center_span(mut span: Span, options: &Options, style: &StyleInterface) -> Spa
         * options.get_font_metrics().axisHeight;
 
     span.get_mut_classes().push("delimcenter".to_string());
-    span.get_mut_style().top = Some(make_em(shift));
+    *span.get_mut_style().top_mut() = Some(make_em(shift));
     span.set_height(span.get_height() - shift);
     span.set_depth(span.get_depth() + shift);
     return span;
@@ -220,7 +220,7 @@ fn make_glyph_span(symbol: &str, font: &str, mode: Mode) -> crate::build::common
 
 fn make_inner(ch: &str, height: f64, options: &Options) -> VListChild {
     // Create a span with inline SVG for the inner part of a tall stacked delimiter.
-    let char_code = (ch.chars().nth(0).unwrap() as u32).to_string();
+    let char_code = ch.chars().next().unwrap() as u32;
     let width = if let Some(m) =
         get_char_metrics("Size4-Regular", char_code.clone())
     {
@@ -258,8 +258,8 @@ fn make_inner(ch: &str, height: f64, options: &Options) -> VListChild {
         Default::default(),
     );
     span.set_height(height);
-    span.get_mut_style().height = Some(make_em(height));
-    span.get_mut_style().width = Some(make_em(width));
+    *span.get_mut_style().height_mut() = Some(make_em(height));
+    *span.get_mut_style().width_mut() = Some(make_em(width));
     return VListChild::Elem {
         elem: Box::new(span) as Box<dyn HtmlDomNode>,
         margin_left: None,
@@ -492,8 +492,8 @@ fn make_stacked_delim(
             Default::default(),
         );
         wrapper.set_height(view_box_height / 1000.0);
-        wrapper.get_mut_style().width = Some(width.to_string());
-        wrapper.get_mut_style().height = Some(height.to_string());
+        *wrapper.get_mut_style().width_mut() = Some(width.to_string());
+        *wrapper.get_mut_style().height_mut() = Some(height.to_string());
         stack.push(crate::build::common::VListChild::Elem {
             elem: Box::new(wrapper) as Box<dyn HtmlDomNode>,
             margin_left: None,
@@ -661,7 +661,7 @@ pub fn make_sqrt_image(height: f64, options: &Options) -> (Span, f64, f64) {
                 extra_viniculum,
                 options,
             );
-            span.get_mut_style().min_width = Some("0.853em".to_string());
+            *span.get_mut_style().min_width_mut() = Some("0.853em".to_string());
             advance_width = 0.833 / size_multiplier; // from the font.
         }
         Delimiter::Large(size) => {
@@ -676,7 +676,7 @@ pub fn make_sqrt_image(height: f64, options: &Options) -> (Span, f64, f64) {
                 extra_viniculum,
                 options,
             );
-            span.get_mut_style().min_width = Some("1.02em".to_string());
+            *span.get_mut_style().min_width_mut() = Some("1.02em".to_string());
             advance_width = 1.0 / size_multiplier; // 1.0 from the font.
         }
         Delimiter::Stack => {
@@ -692,13 +692,13 @@ pub fn make_sqrt_image(height: f64, options: &Options) -> (Span, f64, f64) {
                 extra_viniculum,
                 options,
             );
-            span.get_mut_style().min_width = Some("0.742em".to_string());
+            *span.get_mut_style().min_width_mut() = Some("0.742em".to_string());
             advance_width = 1.056;
         }
     };
 
     span.set_height(tex_height);
-    span.get_mut_style().height = Some(make_em(span_height));
+    *span.get_mut_style().height_mut() = Some(make_em(span_height));
 
     return (
         span,

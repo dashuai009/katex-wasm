@@ -2,7 +2,7 @@ pub use std::{collections::HashMap, str::FromStr};
 
 pub use crate::types::Mode;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Font {
     main,
     ams,
@@ -40,7 +40,7 @@ impl Font {
 // const rel = "rel";
 // const spacing = "spacing";
 // const textord = "textord";
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Group {
     accent,
     bin,

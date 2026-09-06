@@ -1,5 +1,8 @@
-// A dependency graph that contains any wasm must all be imported
-// asynchronously. This `bootstrap.js` file does the single async import, so
-// that no one else needs to worry about it again.
-import("./index.js")
-  .catch(e => console.error("Error importing `index.js`:", e));
+import("./index.js").catch((error) => {
+  const message = document.createElement("p");
+  message.setAttribute("role", "alert");
+  message.textContent = `Failed to load renderers: ${error.message}`;
+  document.body.prepend(message);
+  window.__PERF_RESULT__ = { error: String(error) };
+  window.__PERF_DONE__ = true;
+});

@@ -1,3 +1,4 @@
+use crate::dom_tree::css_style::StyleStorage;
 use std::any::Any;
 use crate::dom_tree::css_style::CssStyle;
 use crate::mathML_tree::public::MathDomNode;
@@ -18,7 +19,7 @@ pub struct DocumentFragment {
     height: f64,
     depth: f64,
     max_font_size: f64,
-    style: CssStyle, // Never used; needed for satisfying interface.
+    style: StyleStorage, // Never used; needed for satisfying interface.
 }
 
 impl DocumentFragment {
@@ -29,7 +30,7 @@ impl DocumentFragment {
             height: 0.0,
             depth: 0.0,
             max_font_size: 0.0,
-            style: CssStyle::default(),
+            style: StyleStorage::default(),
         }
     }
 }
@@ -53,13 +54,16 @@ impl VirtualNode for DocumentFragment  {
         return web_sys::Node::from(frag);
     }
 
+    fn write_markup(&self, output: &mut String) {
+        for child in &self.children {
+            child.write_markup(output);
+        }
+    }
+
     /** Convert the fragment into HTML markup. */
     fn to_markup(&self) -> String {
         let mut markup = String::new();
-        // Simply concatenate the markup for the children together.
-        for child in self.children.iter() {
-            markup.push_str(child.to_markup().as_str());
-        }
+        self.write_markup(&mut markup);
         return markup;
     }
 }

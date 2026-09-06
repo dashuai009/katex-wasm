@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(getter_with_clone)]
 #[derive( Clone)]
 pub struct LexerInterface {
-    input: String,
+    input: std::sync::Arc<String>,
     // pub tokenRegx: regex::Regex,
     token_regex: &'static Regex,
     last_index: usize,
@@ -29,7 +29,7 @@ impl LexerInterface {
     pub fn new(input: String, token_regex: &'static Regex) -> LexerInterface {
         // console_log!("input {}",input);
         return LexerInterface {
-            input,
+            input: std::sync::Arc::new(input),
             token_regex,
             last_index: 0,
         };

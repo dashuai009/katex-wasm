@@ -129,6 +129,7 @@ pub fn derive_node_type(input: TokenStream) -> TokenStream {
         //     }
         // }
         impl ParseNodeToAny for #struct_name{
+            fn into_any(self: Box<Self>) -> Box<dyn Any> { self }
             fn as_any(&self) -> &dyn Any {
                 self
             }
@@ -223,7 +224,7 @@ pub fn derive_html_dom_node(input: TokenStream) -> TokenStream {
                     return &mut self.style;
                 }
                 fn set_style(&mut self, _style: CssStyle) {
-                    self.style = _style;
+                    self.style = _style.into();
                 }
 
                 fn has_class(&self, class_name: &String) -> bool {

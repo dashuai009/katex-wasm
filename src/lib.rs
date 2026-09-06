@@ -47,6 +47,16 @@ pub use crate::parse_node::types::AnyParseNode;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+// Use the WASM allocator only for single-threaded WASM. Native and atomics
+// builds retain their allocator; an explicit wee_alloc selection still wins.
+#[cfg(all(target_family = "wasm", not(target_feature = "atomics"), not(feature = "wee_alloc")))]
+#[global_allocator]
+static TALC: wasm_allocator::SmallBlockCache<talc::wasm::WasmDynamicTalc> =
+    wasm_allocator::SmallBlockCache::new(talc::wasm::new_wasm_dynamic_allocator());
+
+#[cfg(any(test, all(target_family = "wasm", not(target_feature = "atomics"))))]
+mod wasm_allocator;
+
 use metrics::*;
 use Namespace::*;
 //use ParseError::*;

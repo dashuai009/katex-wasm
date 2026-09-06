@@ -94,13 +94,17 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     if let Some(builder_delegate) = html_builder_delegate(&group, &options) {
         return builder_delegate(_group, options);
     }
+    let group = _group.into_any().downcast::<parse_node::types::supsub>().unwrap();
+    let value_base_is_character_box = group.base.as_ref().is_some_and(is_character_box);
+    let is_oiint = group.base.as_ref().and_then(|base| base.as_any().downcast_ref::<parse_node::types::op>())
+        .and_then(|op| op.name.as_deref()).is_some_and(|name| name == "\\oiint" || name == "\\oiiint");
     let parse_node::types::supsub {
         base: value_base,
         sup: value_sup,
         sub: value_sub,
         ..
-    } = group;
-    let base = crate::build::HTML::build_group(value_base.clone(), options.clone(), None);
+    } = *group;
+    let base = crate::build::HTML::build_group(value_base, options.clone(), None);
     //println!("base mathord HtmlDomNode = {:#?}", base);
     let mut _supm = None;
     let mut _subm = None;
@@ -111,11 +115,10 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     let mut sup_shift = 0.0;
     let mut sub_shift = 0.0;
 
-    let value_base_is_character_box = value_base.is_some() && is_character_box(&value_base.as_ref().unwrap());
     if value_sup.is_some() {
         let new_options = options.having_style(&options.get_style().sup());
         _supm = Some(crate::build::HTML::build_group(
-            value_sup.clone(),
+            value_sup,
             new_options.clone(),
             Some(options.clone()),
         ));
@@ -129,7 +132,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     if value_sub.is_some() {
         let new_options = options.having_style(&options.get_style().sub());
         _subm = Some(crate::build::HTML::build_group(
-            value_sub.clone(),
+            value_sub,
             new_options.clone(),
             Some(options.clone()),
         ));
@@ -161,19 +164,6 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
         // Subscripts shouldn't be shifted by the base's italic correction.
         // Account for that by shifting the subscript back the appropriate
         // amount. Note we only do this when the base is a single symbol.
-        let is_oiint = if let Some(b) = &group.base {
-            if let Some(op) = b.as_any().downcast_ref::<parse_node::types::op>() {
-                if let Some(name) = &op.name {
-                    name == "\\oiint" || name == "\\oiiint"
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
-        } else {
-            false
-        };
         if let Some(b) = base.as_any().downcast_ref::<SymbolNode>() {
             margin_left = Some(make_em(-b.italic));
         } else if is_oiint {
@@ -273,7 +263,7 @@ fn supsub_html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<d
     }
 
     // Wrap the supsub vlist in a span.msupsub to reset text-align.
-    let mclass = crate::build::HTML::get_type_of_dom_tree(&mut base.clone(), Some(Side::Right))
+    let mclass = crate::build::HTML::get_type_of_dom_tree(&base, Some(Side::Right))
         .unwrap_or(DomType::mord);
     return Box::new(make_span(
         vec![mclass.as_str().to_string()],

@@ -172,12 +172,12 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
             left -= width / 2.0;
         }
 
-        accentBody.get_mut_style().left = Some(make_em(left as f64));
+        *accentBody.get_mut_style().left_mut() = Some(make_em(left as f64));
 
         // \textcircled uses the \bigcirc glyph, so it needs some
         // vertical adjustment to match LaTeX.
         if (group.label == "\\textcircled") {
-            accentBody.get_mut_style().top = Some(".2em".to_string());
+            *accentBody.get_mut_style().top_mut() = Some(".2em".to_string());
         }
 
         accentBody = crate::build::common::make_vlist(
@@ -229,10 +229,11 @@ pub fn html_builder(_group: Box<dyn AnyParseNode>, options: Options) -> Box<dyn 
                         margin_right: None,
                         wrapper_classes: Some(vec!["svg-align".to_string()]),
                         wrapper_style: if skew > 0.0 {
-                            Some(CssStyle {
-                                width: Some(format!("calc(100% - {})", make_em(2.0 * skew))),
-                                margin_left: Some(make_em(2.0 * skew)),
-                                ..CssStyle::default()
+                            Some({
+                                let mut style = CssStyle::new();
+                                *style.width_mut() = Some(format!("calc(100% - {})", make_em(2.0 * skew)));
+                                *style.margin_left_mut() = Some(make_em(2.0 * skew));
+                                style
                             })
                         } else {
                             None

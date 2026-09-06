@@ -1,6 +1,7 @@
+use crate::dom_tree::css_style::StyleStorage;
 use crate::dom_tree::css_style::CssStyle;
 use crate::dom_tree::line_node::LineNode;
-use crate::dom_tree::utils::{this_init_node, this_to_markup, this_to_node};
+use crate::dom_tree::utils::{this_init_node, this_to_markup, this_write_markup, this_to_node};
 use crate::units::make_em;
 use crate::utils::escape_to;
 use crate::Options::Options;
@@ -18,7 +19,7 @@ pub struct Span {
     height: f64,
     depth: f64,
     width: f64,
-    style: CssStyle,
+    style: StyleStorage,
     max_font_size: f64,
 }
 
@@ -36,7 +37,7 @@ impl Span {
             height: 0.0,
             depth: 0.0,
             width: 0.0,
-            style: CssStyle::default(),
+            style: StyleStorage::default(),
             max_font_size: 0.0,
         };
         this_init_node!(res, classes, options, style);
@@ -63,6 +64,10 @@ impl VirtualNode for Span {
 
     fn to_node(&self) -> web_sys::Node {
         this_to_node!(self, "span")
+    }
+
+    fn write_markup(&self, output: &mut String) {
+        this_write_markup!(self, "span", output)
     }
 
     fn to_markup(&self) -> String {

@@ -1,19 +1,27 @@
 {
-  "name": "create-wasm-app",
+  "name": "katex-wasm-comparison",
   "version": "0.1.0",
-  "description": "create an app to consume rust-generated wasm packages",
+  "description": "Browser rendering and performance comparison of three KaTeX engines",
   "main": "index.js",
   "scripts": {
-    "build": "webpack --mode production",
-    "serve": "webpack serve",
-    "serve:profiling": "WASM_PROFILE=profiling webpack serve",
-    "build:gh-pages": "PUBLIC_PATH=/katex-wasm/ webpack --mode production",
-    "perf:playwright": "node ./scripts/perf-playwright.mjs",
-    "perf:playwright:flame": "node ./scripts/perf-playwright.mjs --cpu-profile ../demo/perf-results/perf.cpuprofile"
+    "build:wasm": "node ../scripts/build-wasm.mjs",
+    "build": "npm run build:wasm && webpack --mode production",
+    "build:site": "webpack --mode production",
+    "start": "npm run serve",
+    "serve": "webpack serve --mode production",
+    "build:gh-pages": "PUBLIC_PATH=/katex-wasm/ npm run build",
+    "perf:playwright": "node scripts/perf-playwright.mjs",
+    "test:correctness": "node scripts/check-correctness.mjs",
+    "build:katex-rs": "node ../scripts/build-katex-rs.mjs",
+    "update:katex-rs": "node ../scripts/build-katex-rs.mjs --update",
+    "format": "prettier --write *.js *.mjs *.html scripts/*.mjs ../scripts/*.mjs ../scripts/*.cjs",
+    "test:api": "node --experimental-wasm-modules scripts/check-api.mjs",
+    "test:ui": "node scripts/check-ui.mjs",
+    "preview:pages": "node scripts/preview.mjs"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rustwasm/create-wasm-app.git"
+    "url": "git+https://github.com/dashuai009/katex-wasm.git"
   },
   "keywords": [
     "webassembly",
@@ -24,21 +32,21 @@
   "author": "dashuai009 <1525836294@qq.com>",
   "license": "(MIT OR Apache-2.0)",
   "bugs": {
-    "url": "https://github.com/rustwasm/create-wasm-app/issues"
+    "url": "https://github.com/dashuai009/katex-wasm/issues"
   },
-  "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
+  "homepage": "https://github.com/dashuai009/katex-wasm",
   "dependencies": {
-    "chart.js": "^4.4.0",
-    "js-yaml": "^4.1.0",
+    "chart.js": "4.5.1",
+    "js-yaml": "4.3.1",
     "katex": "=0.16.29",
-    "katex-wasm": "file:../pkg"
+    "katex-wasm": "file:../pkg",
+    "parse5": "8.0.0"
   },
   "devDependencies": {
-    "@wasm-tool/wasm-pack-plugin": "^1.5.0",
     "copy-webpack-plugin": "^13.0.1",
-    "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.6.0",
     "playwright": "^1.53.0",
+    "prettier": "3.6.2",
     "webpack": "^5.105.2",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.3"
